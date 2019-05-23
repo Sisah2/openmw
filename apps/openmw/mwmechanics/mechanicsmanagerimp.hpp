@@ -239,6 +239,7 @@ namespace MWMechanics
             virtual bool isAttackPreparing(const MWWorld::Ptr& ptr) override;
             virtual bool isRunning(const MWWorld::Ptr& ptr) override;
             virtual bool isSneaking(const MWWorld::Ptr& ptr) override;
+            virtual void getHeadBobInfo(const MWWorld::Ptr &ptr, MWRender::HeadBobInfo& outHb) override;
 
         private:
             bool canCommitCrimeAgainst(const MWWorld::Ptr& victim, const MWWorld::Ptr& attacker);

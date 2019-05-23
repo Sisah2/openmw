@@ -9,6 +9,7 @@
 #include "../mwworld/containerstore.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/headbob.hpp"
 
 namespace MWWorld
 {
@@ -154,7 +155,7 @@ class CharacterController : public MWRender::Animation::TextKeyListener
     MWWorld::Ptr mPtr;
     MWWorld::Ptr mWeapon;
     MWRender::Animation *mAnimation;
-    
+
     struct AnimationQueueEntry
     {
         std::string mGroup;
@@ -173,6 +174,8 @@ class CharacterController : public MWRender::Animation::TextKeyListener
     bool mAdjustMovementAnimSpeed;
     bool mHasMovedInXY;
     bool mMovementAnimationControlled;
+
+    MWRender::HeadBobInfo mHeadBob;
 
     CharacterState mDeathState;
     std::string mCurrentDeath;
@@ -281,7 +284,7 @@ public:
     { return mDeathState != CharState_None; }
 
     void forceStateUpdate();
-    
+
     bool isAttackPreparing() const;
     bool isCastingSpell() const;
     bool isReadyToBlock() const;
@@ -303,6 +306,8 @@ public:
     bool readyToStartAttack() const;
 
     float getAttackStrength() const;
+
+    MWRender::HeadBobInfo getHeadBobInfo();
 
     /// @see Animation::setActive
     void setActive(int active);

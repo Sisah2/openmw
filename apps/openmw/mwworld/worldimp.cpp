@@ -1872,6 +1872,10 @@ namespace MWWorld
         else
             mRendering->getCamera()->setSneakOffset(0.f);
 
+        MWRender::HeadBobInfo hb;
+        MWBase::Environment::get().getMechanicsManager()->getHeadBobInfo(player, hb);
+        mRendering->getCamera()->setHeadBob(hb);
+
         int blind = static_cast<int>(player.getClass().getCreatureStats(player).getMagicEffects().get(ESM::MagicEffect::Blind).getMagnitude());
         MWBase::Environment::get().getWindowManager()->setBlindness(std::max(0, std::min(100, blind)));
 
@@ -1879,7 +1883,7 @@ namespace MWWorld
         mRendering->setNightEyeFactor(std::min(1.f, (nightEye/100.f)));
 
         mRendering->getCamera()->setCameraDistance();
-        if(!mRendering->getCamera()->isFirstPerson())
+        if(!isFirstPerson)
         {
             osg::Vec3f focal, camera;
             mRendering->getCamera()->getPosition(focal, camera);

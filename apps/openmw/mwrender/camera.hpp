@@ -9,6 +9,8 @@
 
 #include "../mwworld/ptr.hpp"
 
+#include "headbob.hpp"
+
 namespace osg
 {
     class Camera;
@@ -55,6 +57,9 @@ namespace MWRender
 
         float mCameraDistance;
 
+        HeadBobInfo mHeadBob;
+        float mSneakOffset;
+
         osg::ref_ptr<osg::NodeCallback> mUpdateCallback;
 
     public:
@@ -93,6 +98,9 @@ namespace MWRender
 
         /// \brief Lowers the camera for sneak.
         void setSneakOffset(float offset);
+
+        /// Parametric Head Bobbing
+        void setHeadBob(HeadBobInfo headBob);
 
         bool isFirstPerson() const
         { return !(mVanity.enabled || mPreviewMode || !mFirstPersonView); }

@@ -61,6 +61,7 @@ private:
     int mPartPriorities[ESM::PRT_Count];
 
     osg::Vec3f mFirstPersonOffset;
+    float mFirstPersonRoll;
     // Field of view to use when rendering first person meshes
     float mFirstPersonFieldOfView;
 
@@ -154,6 +155,7 @@ public:
 
     /// Set a translation offset (in object root space) to apply to meshes when in first person mode.
     void setFirstPersonOffset(const osg::Vec3f& offset);
+    void setFirstPersonRoll(float roll);
 
     virtual void updatePtr(const MWWorld::Ptr& updated);
 

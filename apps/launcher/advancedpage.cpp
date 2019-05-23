@@ -101,6 +101,7 @@ bool Launcher::AdvancedPage::loadSettings()
     // Match the index with the option (only 0, 1, 2, or 3 are valid). Will default to 0 if invalid.
     if (showOwnedIndex >= 0 && showOwnedIndex <= 3)
         showOwnedComboBox->setCurrentIndex(showOwnedIndex);
+    loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
 
     // Other Settings
     QString screenshotFormatString = QString::fromStdString(mEngineSettings.getString("screenshot format", "General")).toUpper();
@@ -169,6 +170,7 @@ void Launcher::AdvancedPage::saveSettings()
     std::string screenshotFormatString = screenshotFormatComboBox->currentText().toLower().toStdString();
     if (screenshotFormatString != mEngineSettings.getString("screenshot format", "General"))
         mEngineSettings.setString("screenshot format", "General", screenshotFormatString);
+    saveSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
 }
 
 void Launcher::AdvancedPage::loadSettingBool(QCheckBox *checkbox, const std::string &setting, const std::string &group) {
@@ -186,3 +188,4 @@ void Launcher::AdvancedPage::slotLoadedCellsChanged(QStringList cellNames)
 {
     loadCellsForAutocomplete(cellNames);
 }
+

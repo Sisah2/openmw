@@ -334,7 +334,7 @@ void CharacterController::refreshHitRecoilAnims(CharacterState& idle)
             mPtr.getClass().getCreatureStats(mPtr).setBlock(false);
         mHitState = CharState_None;
     }
-    else if (isKnockedOut() && mPtr.getClass().getCreatureStats(mPtr).getFatigue().getCurrent() > 0 
+    else if (isKnockedOut() && mPtr.getClass().getCreatureStats(mPtr).getFatigue().getCurrent() > 0
             && mTimeUntilWake <= 0)
     {
         mHitState = isSwimming ? CharState_SwimKnockDown : CharState_KnockDown;
@@ -636,7 +636,7 @@ void CharacterController::refreshIdleAnims(const WeaponInfo* weap, CharacterStat
 
                 // play until the Loop Stop key 2 to 5 times, then play until the Stop key
                 // this replicates original engine behavior for the "Idle1h" 1st-person animation
-                numLoops = 1 + Misc::Rng::rollDice(4); 
+                numLoops = 1 + Misc::Rng::rollDice(4);
             }
         }
 
@@ -2337,6 +2337,51 @@ void CharacterController::update(float duration, bool animationOnly)
             // We must always queue movement, even if there is none, to apply gravity.
             world->queueMovement(mPtr, osg::Vec3f(0.f, 0.f, 0.f));
 
+        // First person head bobbing
+        static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
+        mHeadBob.mEnabled = isHeadBobbing;
+        if (isHeadBobbing)
+        {
+            if (onground && isMoving && solid && speed > 0.f)
+            {
+                if (mMovementAnimSpeed > mHeadBob.mAnimSpeed)
+                    mHeadBob.mAnimSpeed = mMovementAnimSpeed;
+                else
+                {
+                    // Changing speed downwards tends to be very jarring, it's blended over mutliple frames here to smooth it out
+                    mHeadBob.mAnimSpeed -= mHeadBob.mAnimSpeed * duration * 10.f;
+                    if (mHeadBob.mAnimSpeed < mMovementAnimSpeed)
+                        mHeadBob.mAnimSpeed = mMovementAnimSpeed;
+                }
+
+                float speedmult = speed / mHeadBob.mAnimSpeed;
+                if (sneak)
+                    speedmult /= 3.444f;
+                mHeadBob.mCycle += speedmult * duration * osg::PI * 2.f;
+                mHeadBob.mSpeedSmoothed += speed * duration * 10.f;
+                if (mHeadBob.mSpeedSmoothed > speed)
+                    mHeadBob.mSpeedSmoothed = speed;
+            }
+            else
+            {
+                mHeadBob.mSpeedSmoothed -= mHeadBob.mSpeedSmoothed * duration * 10.f;
+                if (mHeadBob.mSpeedSmoothed < 0.01f)
+                {
+                    mHeadBob.mSpeedSmoothed = 0.f;
+                    mHeadBob.mCycle = 0.f;
+                }
+                else
+                {
+                    float speedmult = mHeadBob.mSpeedSmoothed / mHeadBob.mAnimSpeed;
+                    if (sneak)
+                        speedmult /= 3.444f;
+                    mHeadBob.mCycle += speedmult * duration * osg::PI * 2.f;
+                }
+            }
+
+            mHeadBob.mCycle = std::fmod(mHeadBob.mCycle, osg::PI * 2.f);
+        }
+
         movement = vec;
         cls.getMovementSettings(mPtr).mPosition[0] = cls.getMovementSettings(mPtr).mPosition[1] = 0;
         // Can't reset jump state (mPosition[2]) here; we don't know for sure whether the PhysicSystem will actually handle it in this frame
@@ -2782,6 +2827,11 @@ bool CharacterController::isRunning() const
             mMovementState == CharState_SwimRunBack ||
             mMovementState == CharState_SwimRunLeft ||
             mMovementState == CharState_SwimRunRight;
+}
+
+MWRender::HeadBobInfo CharacterController::getHeadBobInfo()
+{
+    return mHeadBob;
 }
 
 void CharacterController::setAttackingOrSpell(bool attackingOrSpell)

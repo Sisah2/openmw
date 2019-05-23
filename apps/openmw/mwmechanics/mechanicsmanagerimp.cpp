@@ -480,6 +480,11 @@ namespace MWMechanics
         return mActors.isSneaking(ptr);
     }
 
+    void MechanicsManager::getHeadBobInfo(const MWWorld::Ptr& ptr, MWRender::HeadBobInfo& hb)
+    {
+        return mActors.getHeadBobInfo(ptr, hb);
+    }
+
     void MechanicsManager::rest(double hours, bool sleep)
     {
         if (sleep)

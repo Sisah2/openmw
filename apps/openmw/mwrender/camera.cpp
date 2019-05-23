@@ -57,7 +57,8 @@ namespace MWRender
       mVanityToggleQueued(false),
       mVanityToggleQueuedValue(false),
       mViewModeToggleQueued(false),
-      mCameraDistance(0.f)
+      mCameraDistance(0.f),
+      mSneakOffset(0.f)
     {
         mVanity.enabled = false;
         mVanity.allowed = true;
@@ -106,15 +107,28 @@ namespace MWRender
         if (mTrackingPtr.isEmpty())
             return;
 
+        bool firstPerson = isFirstPerson();
         osg::Vec3d position = getFocalPoint();
 
         osg::Quat orient =  osg::Quat(getPitch(), osg::Vec3d(1,0,0)) * osg::Quat(getYaw(), osg::Vec3d(0,0,1));
 
-        osg::Vec3d offset = orient * osg::Vec3d(0, isFirstPerson() ? 0 : -mCameraDistance, 0);
+        osg::Vec3d offset = orient * osg::Vec3d(0, firstPerson ? 0 : -mCameraDistance, 0);
         position += offset;
 
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
+
+        osg::Vec3f headOffset(0,0,-mSneakOffset);
+        if (mHeadBob.mEnabled && firstPerson)
+        {
+            osg::Vec3d hbOffset;
+            mHeadBob.getHeadBobOffset(hbOffset);
+            headOffset.x() += hbOffset.x();
+            headOffset.z() += hbOffset.y();
+            mAnimation->setFirstPersonRoll(hbOffset.z());
+            up = osg::Quat(hbOffset.z(), forward) * up;
+        }
+        mAnimation->setFirstPersonOffset(headOffset);
 
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }
@@ -175,6 +189,11 @@ namespace MWRender
         }
     }
 
+    void Camera::setHeadBob(HeadBobInfo headBob)
+    {
+        mHeadBob = headBob;
+    }
+
     void Camera::toggleViewMode(bool force)
     {
         // Changing the view will stop all playing animations, so if we are playing
@@ -190,7 +209,7 @@ namespace MWRender
         mFirstPersonView = !mFirstPersonView;
         processViewChange();
     }
-    
+
     void Camera::allowVanityMode(bool allow)
     {
         if (!allow && mVanity.enabled)
@@ -257,7 +276,7 @@ namespace MWRender
 
     void Camera::setSneakOffset(float offset)
     {
-        mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
+        mSneakOffset = offset;
     }
 
     float Camera::getYaw()

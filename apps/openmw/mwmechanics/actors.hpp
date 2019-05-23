@@ -7,6 +7,8 @@
 #include <list>
 #include <map>
 
+#include "../mwrender/headbob.hpp"
+
 namespace ESM
 {
     class ESMReader;
@@ -141,6 +143,7 @@ namespace MWMechanics
             bool isAttackPreparing(const MWWorld::Ptr& ptr);
             bool isRunning(const MWWorld::Ptr& ptr);
             bool isSneaking(const MWWorld::Ptr& ptr);
+            void getHeadBobInfo(const MWWorld::Ptr& ptr, MWRender::HeadBobInfo& outHb);
 
             void forceStateUpdate(const MWWorld::Ptr &ptr);
 

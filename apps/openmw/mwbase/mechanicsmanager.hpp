@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "../mwworld/ptr.hpp"
+#include "../mwrender/headbob.hpp"
 
 namespace osg
 {
@@ -269,6 +270,7 @@ namespace MWBase
             virtual bool isAttackPreparing(const MWWorld::Ptr& ptr) = 0;
             virtual bool isRunning(const MWWorld::Ptr& ptr) = 0;
             virtual bool isSneaking(const MWWorld::Ptr& ptr) = 0;
+            virtual void getHeadBobInfo(const MWWorld::Ptr &ptr, MWRender::HeadBobInfo& hb) = 0;
     };
 }
 

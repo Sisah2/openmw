@@ -389,7 +389,7 @@ namespace MWMechanics
         if (world->isSwimming(actor) || (playerPos - actorPos).length2() >= 3000 * 3000)
             return;
 
-        // Our implementation is not FPS-dependent unlike Morrowind's so it needs to be recalibrated. 
+        // Our implementation is not FPS-dependent unlike Morrowind's so it needs to be recalibrated.
         // We chose to use the chance MW would have when run at 60 FPS with the default value of the GMST.
         const float delta = MWBase::Environment::get().getFrameDuration() * 6.f;
         static const float fVoiceIdleOdds = world->getStore().get<ESM::GameSetting>().find("fVoiceIdleOdds")->mValue.getFloat();
@@ -453,7 +453,7 @@ namespace MWMechanics
         bool isPlayerFollowerOrEscorter = playerAllies.find(actor1) != playerAllies.end();
 
         // If actor2 and at least one actor2 are in combat with actor1, actor1 and its allies start combat with them
-        // Doesn't apply for player followers/escorters        
+        // Doesn't apply for player followers/escorters
         if (!aggressive && !isPlayerFollowerOrEscorter)
         {
             // Check that actor2 is in combat with actor1
@@ -994,6 +994,19 @@ namespace MWMechanics
         CharacterController* ctrl = it->second->getCharacterController();
 
         return ctrl->isSneaking();
+    }
+
+    void Actors::getHeadBobInfo(const MWWorld::Ptr& ptr, MWRender::HeadBobInfo& hb)
+    {
+        PtrActorMap::iterator it = mActors.find(ptr);
+        if (it == mActors.end())
+        {
+            hb.mEnabled = false;
+            return;
+        }
+        CharacterController* ctrl = it->second->getCharacterController();
+
+        hb = ctrl->getHeadBobInfo();
     }
 
     void Actors::updateDrowning(const MWWorld::Ptr& ptr, float duration, bool isKnockedOut, bool isPlayer)
@@ -1991,7 +2004,7 @@ namespace MWMechanics
             if (stats.isDead())
                 continue;
 
-            // An actor counts as following if AiFollow is the current AiPackage, 
+            // An actor counts as following if AiFollow is the current AiPackage,
             // or there are only Combat and Wander packages before the AiFollow package
             for (const AiPackage* package : stats.getAiSequence())
             {
