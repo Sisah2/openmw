@@ -101,13 +101,13 @@ bool Launcher::AdvancedPage::loadSettings()
     // Match the index with the option (only 0, 1, 2, or 3 are valid). Will default to 0 if invalid.
     if (showOwnedIndex >= 0 && showOwnedIndex <= 3)
         showOwnedComboBox->setCurrentIndex(showOwnedIndex);
-    loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
 
     // Other Settings
     QString screenshotFormatString = QString::fromStdString(mEngineSettings.getString("screenshot format", "General")).toUpper();
     if (screenshotFormatComboBox->findText(screenshotFormatString) == -1)
         screenshotFormatComboBox->addItem(screenshotFormatString);
     screenshotFormatComboBox->setCurrentIndex(screenshotFormatComboBox->findText(screenshotFormatString));
+    loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
 
     return true;
 }

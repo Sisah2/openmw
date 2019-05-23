@@ -37,6 +37,7 @@ New Features:
 - More configuration options for in-game water reflections (#4859)
 - Command line option to specify a random seed to be used by the game's random-number generator ("RNG") for debugging purposes (#4887)
 - Configuration options for distant terrain to adjust quality and performance impact (#4890)
+- Head bobbing is now available in first-person view, disabled by default (#5043)
 
 New Editor Features:
 - "Faction Ranks" table for "Faction" records (#4209)
