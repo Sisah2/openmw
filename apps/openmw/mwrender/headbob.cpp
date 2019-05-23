@@ -9,9 +9,9 @@ void HeadBobInfo::getHeadBobOffset(osg::Vec3d& result)
 {
     static const float maximum = 2.f;
     static const float softLimit = 256.f;
-    static const float roll = std::max(maximum, Settings::Manager::getFloat("head bobbing roll", "Camera"));
-    static const float sway = std::max(maximum, Settings::Manager::getFloat("head bobbing lateral sway", "Camera"));
-    static const float bounce = std::max(maximum, Settings::Manager::getFloat("head bobbing vertical bounce", "Camera"));
+    static const float roll = std::min(maximum, Settings::Manager::getFloat("head bobbing roll", "Camera"));
+    static const float sway = std::min(maximum, Settings::Manager::getFloat("head bobbing lateral sway", "Camera"));
+    static const float bounce = std::min(maximum, Settings::Manager::getFloat("head bobbing vertical bounce", "Camera"));
 
     float level = std::sin(mCycle);
 
