@@ -2342,7 +2342,7 @@ void CharacterController::update(float duration, bool animationOnly)
         mHeadBob.mEnabled = isHeadBobbing;
         if (isHeadBobbing)
         {
-            if (onground && isMoving && solid && speed > 0.f)
+            if (onground && isMoving && solid && speed > 0.f && !mSkipAnim && !animationOnly)
             {
                 if (mMovementAnimSpeed > mHeadBob.mAnimSpeed)
                     mHeadBob.mAnimSpeed = mMovementAnimSpeed;
@@ -2364,18 +2364,29 @@ void CharacterController::update(float duration, bool animationOnly)
             }
             else
             {
-                mHeadBob.mSpeedSmoothed -= mHeadBob.mSpeedSmoothed * duration * 10.f;
-                if (mHeadBob.mSpeedSmoothed < 0.01f)
+                mHeadBob.mSpeedSmoothed -= mHeadBob.mSpeedSmoothed * duration * 20.f;
+                if (mHeadBob.mSpeedSmoothed < 0.0001f)
                 {
                     mHeadBob.mSpeedSmoothed = 0.f;
-                    mHeadBob.mCycle = 0.f;
                 }
-                else
+
+                if (mHeadBob.mCycle != 0.f)
                 {
-                    float speedmult = mHeadBob.mSpeedSmoothed / mHeadBob.mAnimSpeed;
+                    float speedmult = 1.f;
                     if (sneak)
                         speedmult /= 3.444f;
-                    mHeadBob.mCycle += speedmult * duration * osg::PI * 2.f;
+                    if (mHeadBob.mCycle > osg::PI)
+                    {
+                        mHeadBob.mCycle += speedmult * duration * osg::PI * 2.f;
+                        if (mHeadBob.mCycle > osg::PI * 2.f)
+                            mHeadBob.mCycle = 0.f;
+                    }
+                    else
+                    {
+                        mHeadBob.mCycle -= speedmult * duration * osg::PI * 2.f;
+                        if (mHeadBob.mCycle < 0.f)
+                            mHeadBob.mCycle = 0.f;
+                    }
                 }
             }
 
