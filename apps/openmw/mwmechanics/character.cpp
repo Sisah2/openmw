@@ -60,6 +60,11 @@ void wrap(float& rad)
         rad = std::fmod(rad-osg::PI, 2.0f*osg::PI)+osg::PI;
 }
 
+float clamp(float val, float min, float max)
+{
+    return std::min(max, std::max(min, val));
+}
+
 std::string getBestAttack (const ESM::Weapon* weapon)
 {
     int slash = (weapon->mData.mSlash[0] + weapon->mData.mSlash[1])/2;
@@ -141,7 +146,7 @@ float getFallDamage(const MWWorld::Ptr& ptr, float fallHeight)
     return 0.f;
 }
 
-}
+} // namespace
 
 namespace MWMechanics
 {
@@ -955,6 +960,8 @@ CharacterController::CharacterController(const MWWorld::Ptr &ptr, MWRender::Anim
         refreshCurrentAnims(mIdleState, mMovementState, mJumpState, true);
 
     mAnimation->runAnimation(0.f);
+
+    mBobbingInfo = {}; // Zero-is-initialization
 
     unpersistAnimationState();
 }
@@ -2337,63 +2344,89 @@ void CharacterController::update(float duration, bool animationOnly)
             // We must always queue movement, even if there is none, to apply gravity.
             world->queueMovement(mPtr, osg::Vec3f(0.f, 0.f, 0.f));
 
-        // First person head bobbing
-        static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
-        static const bool isHandBobbing = Settings::Manager::getBool("hand bobbing", "Camera");
-        mBobbingInfo.mHeadBobEnabled = isPlayer && isHeadBobbing;
-        mBobbingInfo.mHandBobEnabled = isPlayer && isHandBobbing;
-        if (mBobbingInfo.mHeadBobEnabled || mBobbingInfo.mHandBobEnabled)
-        {
-            if (onground && isMoving && solid && speed > 0.f && !mSkipAnim && !animationOnly)
+        { // First Person Head Bobbing
+            static const float fSneakOffset = gmst.find("i1stPersonSneakDelta")->mValue.getFloat();
+            static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
+            static const bool isHandBobbing = Settings::Manager::getBool("hand bobbing", "Camera");
+
+            mBobbingInfo.mHeadBobEnabled = isPlayer && isHeadBobbing;
+            mBobbingInfo.mHandBobEnabled = isPlayer && isHandBobbing;
+
+            if (mBobbingInfo.mHeadBobEnabled || mBobbingInfo.mHandBobEnabled)
             {
-                if (mMovementAnimSpeed > mBobbingInfo.mAnimSpeed)
-                    mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
-                else
+                if (onground && isMoving && solid && speed > 0.f && !mSkipAnim && !animationOnly)
                 {
-                    // Changing speed downwards tends to be very jarring, it's blended over mutliple frames here to smooth it out
-                    mBobbingInfo.mAnimSpeed -= mBobbingInfo.mAnimSpeed * duration * 10.f;
-                    if (mBobbingInfo.mAnimSpeed < mMovementAnimSpeed)
+                    if (mMovementAnimSpeed > mBobbingInfo.mAnimSpeed)
                         mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
-                }
-
-                float speedmult = speed / mBobbingInfo.mAnimSpeed;
-                if (sneak)
-                    speedmult /= 3.444f;
-                mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
-                mBobbingInfo.mSpeedSmoothed += speed * duration * 10.f;
-                if (mBobbingInfo.mSpeedSmoothed > speed)
-                    mBobbingInfo.mSpeedSmoothed = speed;
-            }
-            else
-            {
-                mBobbingInfo.mSpeedSmoothed -= mBobbingInfo.mSpeedSmoothed * duration * 20.f;
-                if (mBobbingInfo.mSpeedSmoothed < 0.0001f)
-                {
-                    mBobbingInfo.mSpeedSmoothed = 0.f;
-                }
-
-                if (mBobbingInfo.mCycle != 0.f)
-                {
-                    float speedmult = 1.f;
-                    if (sneak)
-                        speedmult /= 3.444f;
-                    if (mBobbingInfo.mCycle > osg::PI)
-                    {
-                        mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
-                        if (mBobbingInfo.mCycle > osg::PI * 2.f)
-                            mBobbingInfo.mCycle = 0.f;
-                    }
                     else
                     {
-                        mBobbingInfo.mCycle -= speedmult * duration * osg::PI * 2.f;
-                        if (mBobbingInfo.mCycle < 0.f)
-                            mBobbingInfo.mCycle = 0.f;
+                        // Changing speed downwards tends to be very jarring, it's blended over mutliple frames here to smooth it out
+                        mBobbingInfo.mAnimSpeed -= mBobbingInfo.mAnimSpeed * duration * 10.f;
+                        if (mBobbingInfo.mAnimSpeed < mMovementAnimSpeed)
+                            mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
+                    }
+
+                    float speedmult = speed / mBobbingInfo.mAnimSpeed;
+                    if (sneak)
+                        speedmult /= 3.444f;
+                    mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
+                    mBobbingInfo.mSpeedSmoothed += speed * duration * 10.f;
+                    if (mBobbingInfo.mSpeedSmoothed > speed)
+                        mBobbingInfo.mSpeedSmoothed = speed;
+                }
+                else
+                {
+                    mBobbingInfo.mSpeedSmoothed -= mBobbingInfo.mSpeedSmoothed * duration * 20.f;
+                    if (mBobbingInfo.mSpeedSmoothed < 0.0001f)
+                    {
+                        mBobbingInfo.mSpeedSmoothed = 0.f;
+                    }
+
+                    if (mBobbingInfo.mCycle != 0.f)
+                    {
+                        float speedmult = 1.f;
+                        if (sneak)
+                            speedmult /= 3.444f;
+                        if (mBobbingInfo.mCycle > osg::PI)
+                        {
+                            mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
+                            if (mBobbingInfo.mCycle > osg::PI * 2.f)
+                                mBobbingInfo.mCycle = 0.f;
+                        }
+                        else
+                        {
+                            mBobbingInfo.mCycle -= speedmult * duration * osg::PI * 2.f;
+                            if (mBobbingInfo.mCycle < 0.f)
+                                mBobbingInfo.mCycle = 0.f;
+                        }
                     }
                 }
-            }
 
-            mBobbingInfo.mCycle = std::fmod(mBobbingInfo.mCycle, osg::PI * 2.f);
-        }
+                mBobbingInfo.mCycle = std::fmod(mBobbingInfo.mCycle, osg::PI * 2.f);
+
+                // Smoothed Sneak Offset
+                if (sneak && !inwater && onground && solid)
+                {
+                    mBobbingInfo.mSneakOffset += fSneakOffset * duration * 10.f;
+                    if (!std::isfinite(mBobbingInfo.mSneakOffset))
+                        mBobbingInfo.mSneakOffset = fSneakOffset;
+                }
+                else
+                {
+                    mBobbingInfo.mSneakOffset -= fSneakOffset * duration * 10.f;
+                    if (!std::isfinite(mBobbingInfo.mSneakOffset))
+                        mBobbingInfo.mSneakOffset = 0.f;
+                }
+
+                mBobbingInfo.mSneakOffset = clamp(mBobbingInfo.mSneakOffset, 0.f, fSneakOffset);
+
+            } else {
+                if (sneak && !inwater && onground && solid)
+                    mBobbingInfo.mSneakOffset = fSneakOffset;
+                else
+                    mBobbingInfo.mSneakOffset = 0.f;
+            }
+        } // First Person Head Bobbing
 
         movement = vec;
         cls.getMovementSettings(mPtr).mPosition[0] = cls.getMovementSettings(mPtr).mPosition[1] = 0;

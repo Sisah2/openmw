@@ -110,7 +110,9 @@ namespace MWRender
         bool firstPerson = isFirstPerson();
         osg::Vec3d position = getFocalPoint();
 
-        osg::Quat orient =  osg::Quat(getPitch(), osg::Vec3d(1,0,0)) * osg::Quat(getYaw(), osg::Vec3d(0,0,1));
+        float pitch = getPitch();
+        float yaw = getYaw();
+        osg::Quat orient =  osg::Quat(pitch, osg::Vec3d(1,0,0)) * osg::Quat(yaw, osg::Vec3d(0,0,1));
 
         osg::Vec3d offset = orient * osg::Vec3d(0, firstPerson ? 0 : -mCameraDistance, 0);
         position += offset;
@@ -118,18 +120,22 @@ namespace MWRender
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
 
-        osg::Vec3f fpOffset(0,0,-mSneakOffset);
+        osg::Vec3f fpOffset(0, 0, -mBobbingInfo.mSneakOffset);
+        float fpPitch = 0, fpRoll = 0, fpYaw = 0;
         if (mBobbingInfo.mHeadBobEnabled && firstPerson)
         {
             osg::Vec3d hbOffset, wpnOffset;
             mBobbingInfo.getOffsets(hbOffset, wpnOffset);
+
+            // Head Bobbing
             fpOffset.x() += hbOffset.x();
             fpOffset.z() += hbOffset.z();
-            mAnimation->setFirstPersonRoll(hbOffset.y());
+            fpRoll += hbOffset.y();
             up = osg::Quat(hbOffset.y(), forward) * up;
         }
-        mAnimation->setFirstPersonOffset(fpOffset);
 
+        mAnimation->setFirstPersonOffset(fpOffset);
+        mAnimation->setFirstPersonRotation(fpPitch, fpRoll, fpYaw);
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }
 

@@ -1867,12 +1867,6 @@ namespace MWWorld
         bool swimming = isSwimming(player);
         bool flying = isFlying(player);
 
-        static const float i1stPersonSneakDelta = mStore.get<ESM::GameSetting>().find("i1stPersonSneakDelta")->mValue.getFloat();
-        if (sneaking && !swimming && !flying)
-            mRendering->getCamera()->setSneakOffset(i1stPersonSneakDelta);
-        else
-            mRendering->getCamera()->setSneakOffset(0.f);
-
         MWRender::BobbingInfo bi;
         MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bi);
         mRendering->getCamera()->setBobbingInfo(bi);
