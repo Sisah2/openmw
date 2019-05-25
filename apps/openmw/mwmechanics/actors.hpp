@@ -7,8 +7,6 @@
 #include <list>
 #include <map>
 
-#include "../mwrender/headbob.hpp"
-
 namespace ESM
 {
     class ESMReader;
@@ -29,6 +27,11 @@ namespace MWWorld
 {
     class Ptr;
     class CellStore;
+}
+
+namespace MWRender
+{
+    struct BobbingInfo;
 }
 
 namespace MWMechanics
@@ -143,7 +146,7 @@ namespace MWMechanics
             bool isAttackPreparing(const MWWorld::Ptr& ptr);
             bool isRunning(const MWWorld::Ptr& ptr);
             bool isSneaking(const MWWorld::Ptr& ptr);
-            void getHeadBobInfo(const MWWorld::Ptr& ptr, MWRender::HeadBobInfo& outHb);
+            void getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo);
 
             void forceStateUpdate(const MWWorld::Ptr &ptr);
 

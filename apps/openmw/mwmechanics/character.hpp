@@ -9,16 +9,11 @@
 #include "../mwworld/containerstore.hpp"
 
 #include "../mwrender/animation.hpp"
-#include "../mwrender/headbob.hpp"
+#include "../mwrender/bobbing.hpp"
 
 namespace MWWorld
 {
     class InventoryStore;
-}
-
-namespace MWRender
-{
-    class Animation;
 }
 
 namespace MWMechanics
@@ -175,7 +170,7 @@ class CharacterController : public MWRender::Animation::TextKeyListener
     bool mHasMovedInXY;
     bool mMovementAnimationControlled;
 
-    MWRender::HeadBobInfo mHeadBob;
+    MWRender::BobbingInfo mBobbingInfo;
 
     CharacterState mDeathState;
     std::string mCurrentDeath;
@@ -307,7 +302,7 @@ public:
 
     float getAttackStrength() const;
 
-    MWRender::HeadBobInfo getHeadBobInfo();
+    MWRender::BobbingInfo& getBobbingInfo();
 
     /// @see Animation::setActive
     void setActive(int active);

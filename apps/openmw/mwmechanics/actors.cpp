@@ -24,6 +24,7 @@
 
 #include "../mwmechanics/aibreathe.hpp"
 
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/vismask.hpp"
 
 #include "spellcasting.hpp"
@@ -996,17 +997,18 @@ namespace MWMechanics
         return ctrl->isSneaking();
     }
 
-    void Actors::getHeadBobInfo(const MWWorld::Ptr& ptr, MWRender::HeadBobInfo& hb)
+    void Actors::getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo)
     {
         PtrActorMap::iterator it = mActors.find(ptr);
         if (it == mActors.end())
         {
-            hb.mEnabled = false;
+            outBobbingInfo.mHeadBobEnabled = false;
+            outBobbingInfo.mHandBobEnabled = false;
             return;
         }
         CharacterController* ctrl = it->second->getCharacterController();
 
-        hb = ctrl->getHeadBobInfo();
+        outBobbingInfo = ctrl->getBobbingInfo();
     }
 
     void Actors::updateDrowning(const MWWorld::Ptr& ptr, float duration, bool isKnockedOut, bool isPlayer)

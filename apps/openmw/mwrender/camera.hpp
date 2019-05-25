@@ -9,7 +9,7 @@
 
 #include "../mwworld/ptr.hpp"
 
-#include "headbob.hpp"
+#include "bobbing.hpp"
 
 namespace osg
 {
@@ -57,7 +57,7 @@ namespace MWRender
 
         float mCameraDistance;
 
-        HeadBobInfo mHeadBob;
+        BobbingInfo mBobbingInfo;
         float mSneakOffset;
 
         osg::ref_ptr<osg::NodeCallback> mUpdateCallback;
@@ -99,8 +99,8 @@ namespace MWRender
         /// \brief Lowers the camera for sneak.
         void setSneakOffset(float offset);
 
-        /// Parametric Head Bobbing
-        void setHeadBob(HeadBobInfo headBob);
+        /// Parametric Head and Hand Bobbing
+        void setBobbingInfo(BobbingInfo& bobbingInfo);
 
         bool isFirstPerson() const
         { return !(mVanity.enabled || mPreviewMode || !mFirstPersonView); }

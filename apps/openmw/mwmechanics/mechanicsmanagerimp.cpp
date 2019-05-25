@@ -19,6 +19,8 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/dialoguemanager.hpp"
 
+#include "../mwrender/bobbing.hpp"
+
 #include "aicombat.hpp"
 #include "aipursue.hpp"
 #include "spellcasting.hpp"
@@ -480,9 +482,9 @@ namespace MWMechanics
         return mActors.isSneaking(ptr);
     }
 
-    void MechanicsManager::getHeadBobInfo(const MWWorld::Ptr& ptr, MWRender::HeadBobInfo& hb)
+    void MechanicsManager::getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo)
     {
-        return mActors.getHeadBobInfo(ptr, hb);
+        return mActors.getBobbingInfo(ptr, outBobbingInfo);
     }
 
     void MechanicsManager::rest(double hours, bool sleep)

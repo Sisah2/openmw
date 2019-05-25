@@ -2339,58 +2339,60 @@ void CharacterController::update(float duration, bool animationOnly)
 
         // First person head bobbing
         static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
-        mHeadBob.mEnabled = isHeadBobbing;
-        if (isHeadBobbing)
+        static const bool isHandBobbing = Settings::Manager::getBool("hand bobbing", "Camera");
+        mBobbingInfo.mHeadBobEnabled = isPlayer && isHeadBobbing;
+        mBobbingInfo.mHandBobEnabled = isPlayer && isHandBobbing;
+        if (mBobbingInfo.mHeadBobEnabled || mBobbingInfo.mHandBobEnabled)
         {
             if (onground && isMoving && solid && speed > 0.f && !mSkipAnim && !animationOnly)
             {
-                if (mMovementAnimSpeed > mHeadBob.mAnimSpeed)
-                    mHeadBob.mAnimSpeed = mMovementAnimSpeed;
+                if (mMovementAnimSpeed > mBobbingInfo.mAnimSpeed)
+                    mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
                 else
                 {
                     // Changing speed downwards tends to be very jarring, it's blended over mutliple frames here to smooth it out
-                    mHeadBob.mAnimSpeed -= mHeadBob.mAnimSpeed * duration * 10.f;
-                    if (mHeadBob.mAnimSpeed < mMovementAnimSpeed)
-                        mHeadBob.mAnimSpeed = mMovementAnimSpeed;
+                    mBobbingInfo.mAnimSpeed -= mBobbingInfo.mAnimSpeed * duration * 10.f;
+                    if (mBobbingInfo.mAnimSpeed < mMovementAnimSpeed)
+                        mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
                 }
 
-                float speedmult = speed / mHeadBob.mAnimSpeed;
+                float speedmult = speed / mBobbingInfo.mAnimSpeed;
                 if (sneak)
                     speedmult /= 3.444f;
-                mHeadBob.mCycle += speedmult * duration * osg::PI * 2.f;
-                mHeadBob.mSpeedSmoothed += speed * duration * 10.f;
-                if (mHeadBob.mSpeedSmoothed > speed)
-                    mHeadBob.mSpeedSmoothed = speed;
+                mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
+                mBobbingInfo.mSpeedSmoothed += speed * duration * 10.f;
+                if (mBobbingInfo.mSpeedSmoothed > speed)
+                    mBobbingInfo.mSpeedSmoothed = speed;
             }
             else
             {
-                mHeadBob.mSpeedSmoothed -= mHeadBob.mSpeedSmoothed * duration * 20.f;
-                if (mHeadBob.mSpeedSmoothed < 0.0001f)
+                mBobbingInfo.mSpeedSmoothed -= mBobbingInfo.mSpeedSmoothed * duration * 20.f;
+                if (mBobbingInfo.mSpeedSmoothed < 0.0001f)
                 {
-                    mHeadBob.mSpeedSmoothed = 0.f;
+                    mBobbingInfo.mSpeedSmoothed = 0.f;
                 }
 
-                if (mHeadBob.mCycle != 0.f)
+                if (mBobbingInfo.mCycle != 0.f)
                 {
                     float speedmult = 1.f;
                     if (sneak)
                         speedmult /= 3.444f;
-                    if (mHeadBob.mCycle > osg::PI)
+                    if (mBobbingInfo.mCycle > osg::PI)
                     {
-                        mHeadBob.mCycle += speedmult * duration * osg::PI * 2.f;
-                        if (mHeadBob.mCycle > osg::PI * 2.f)
-                            mHeadBob.mCycle = 0.f;
+                        mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
+                        if (mBobbingInfo.mCycle > osg::PI * 2.f)
+                            mBobbingInfo.mCycle = 0.f;
                     }
                     else
                     {
-                        mHeadBob.mCycle -= speedmult * duration * osg::PI * 2.f;
-                        if (mHeadBob.mCycle < 0.f)
-                            mHeadBob.mCycle = 0.f;
+                        mBobbingInfo.mCycle -= speedmult * duration * osg::PI * 2.f;
+                        if (mBobbingInfo.mCycle < 0.f)
+                            mBobbingInfo.mCycle = 0.f;
                     }
                 }
             }
 
-            mHeadBob.mCycle = std::fmod(mHeadBob.mCycle, osg::PI * 2.f);
+            mBobbingInfo.mCycle = std::fmod(mBobbingInfo.mCycle, osg::PI * 2.f);
         }
 
         movement = vec;
@@ -2840,9 +2842,9 @@ bool CharacterController::isRunning() const
             mMovementState == CharState_SwimRunRight;
 }
 
-MWRender::HeadBobInfo CharacterController::getHeadBobInfo()
+MWRender::BobbingInfo& CharacterController::getBobbingInfo()
 {
-    return mHeadBob;
+    return mBobbingInfo;
 }
 
 void CharacterController::setAttackingOrSpell(bool attackingOrSpell)

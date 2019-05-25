@@ -42,6 +42,7 @@
 #include "../mwmechanics/aiavoiddoor.hpp" //Used to tell actors to avoid doors
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -1872,9 +1873,9 @@ namespace MWWorld
         else
             mRendering->getCamera()->setSneakOffset(0.f);
 
-        MWRender::HeadBobInfo hb;
-        MWBase::Environment::get().getMechanicsManager()->getHeadBobInfo(player, hb);
-        mRendering->getCamera()->setHeadBob(hb);
+        MWRender::BobbingInfo bi;
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bi);
+        mRendering->getCamera()->setBobbingInfo(bi);
 
         int blind = static_cast<int>(player.getClass().getCreatureStats(player).getMagicEffects().get(ESM::MagicEffect::Blind).getMagnitude());
         MWBase::Environment::get().getWindowManager()->setBlindness(std::max(0, std::min(100, blind)));

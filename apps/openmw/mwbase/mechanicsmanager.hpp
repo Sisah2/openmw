@@ -8,7 +8,6 @@
 #include <stdint.h>
 
 #include "../mwworld/ptr.hpp"
-#include "../mwrender/headbob.hpp"
 
 namespace osg
 {
@@ -28,6 +27,11 @@ namespace MWWorld
     class Ptr;
     class CellStore;
     class CellRef;
+}
+
+namespace MWRender
+{
+    class BobbingInfo;
 }
 
 namespace Loading
@@ -270,7 +274,7 @@ namespace MWBase
             virtual bool isAttackPreparing(const MWWorld::Ptr& ptr) = 0;
             virtual bool isRunning(const MWWorld::Ptr& ptr) = 0;
             virtual bool isSneaking(const MWWorld::Ptr& ptr) = 0;
-            virtual void getHeadBobInfo(const MWWorld::Ptr &ptr, MWRender::HeadBobInfo& hb) = 0;
+            virtual void getBobbingInfo(const MWWorld::Ptr &ptr, MWRender::BobbingInfo& outBobbingInfo) = 0;
     };
 }
 
