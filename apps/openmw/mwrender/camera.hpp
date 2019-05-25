@@ -58,7 +58,6 @@ namespace MWRender
         float mCameraDistance;
 
         BobbingInfo mBobbingInfo;
-        float mSneakOffset;
 
         osg::ref_ptr<osg::NodeCallback> mUpdateCallback;
 
@@ -96,10 +95,7 @@ namespace MWRender
         /// @note this may be ignored if an important animation is currently playing
         void togglePreviewMode(bool enable);
 
-        /// \brief Lowers the camera for sneak.
-        void setSneakOffset(float offset);
-
-        /// Parametric Head and Hand Bobbing
+        /// Parametric Head and Hand Bobbing in first person, also handles downward sneaking offset
         void setBobbingInfo(BobbingInfo& bobbingInfo);
 
         bool isFirstPerson() const

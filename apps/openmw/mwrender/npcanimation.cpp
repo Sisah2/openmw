@@ -687,9 +687,9 @@ osg::Vec3f NpcAnimation::runAnimation(float timepassed)
 
         mFirstPersonNeckController->setRotate(
                 osg::Quat(
-                    mPtr.getRefData().getPosition().rot[0] * rotateFactor, osg::Vec3f(-1,0,0),
+                    mPtr.getRefData().getPosition().rot[0] * -rotateFactor + mFirstPersonPitch, osg::Vec3f(1,0,0),
                     mFirstPersonRoll, osg::Vec3f(0,1,0),
-                    0.f, osg::Vec3f(0,0,1))
+                    mFirstPersonYaw, osg::Vec3f(0,0,1))
                 );
         mFirstPersonNeckController->setOffset(mFirstPersonOffset);
     }

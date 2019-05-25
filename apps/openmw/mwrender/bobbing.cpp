@@ -37,13 +37,19 @@ void BobbingInfo::getOffsets(osg::Vec3d& outHeadOffset, osg::Vec3d& outHandOffse
     outHeadOffset.x() = level * scalar * headSway * 1.5f;
     outHeadOffset.y() = level * scalar * headRoll * 0.001f;
     outHeadOffset.z() = scalar * headBounce * 2.5f;
-    outHeadOffset.z() -= scalar * headBounce * std::abs(level) * 5.f;
+    outHeadOffset.z() -= std::abs(level) * scalar * headBounce * 5.f;
 
-    if (!std::isfinite(outHeadOffset.length2()))
-        outHeadOffset.set(0, 0, 0);
+    static const float handSway = clamp(Settings::Manager::getFloat("hand bobbing lateral sway", "Camera"), -maximum, maximum);
+    static const float handBounce = clamp(Settings::Manager::getFloat("hand bobbing vertical bounce", "Camera"), -maximum, maximum);
 
-    if (!std::isfinite(outHandOffset.length2()))
-        outHandOffset.set(0, 0, 0);
+    outHandOffset.x() = scalar * handBounce * 0.007f;
+    outHandOffset.x() -= std::abs(level) * scalar * handBounce * 0.015f;
+    outHandOffset.z() = level * scalar * handSway * 0.015f;
+
+    static const float handInertia = clamp(Settings::Manager::getFloat("hand inertia", "Camera"), -maximum, maximum);
+
+    outHandOffset.x() += mInertiaPitch * scalar * handInertia * 0.08f;
+    outHandOffset.z() += mInertiaYaw * scalar * handInertia * 0.08f;
 }
 
 } // namespace MWRender

@@ -2408,14 +2408,10 @@ void CharacterController::update(float duration, bool animationOnly)
                 if (sneak && !inwater && onground && solid)
                 {
                     mBobbingInfo.mSneakOffset += fSneakOffset * duration * 10.f;
-                    if (!std::isfinite(mBobbingInfo.mSneakOffset))
-                        mBobbingInfo.mSneakOffset = fSneakOffset;
                 }
                 else
                 {
                     mBobbingInfo.mSneakOffset -= fSneakOffset * duration * 10.f;
-                    if (!std::isfinite(mBobbingInfo.mSneakOffset))
-                        mBobbingInfo.mSneakOffset = 0.f;
                 }
 
                 mBobbingInfo.mSneakOffset = clamp(mBobbingInfo.mSneakOffset, 0.f, fSneakOffset);
@@ -2426,6 +2422,39 @@ void CharacterController::update(float duration, bool animationOnly)
                 else
                     mBobbingInfo.mSneakOffset = 0.f;
             }
+
+            // Landing viewshake
+            if (playLandingSound)
+                mBobbingInfo.mLandingShake = true;
+
+            // TODO Set a magnitude dependent on landing velocity
+            static const float fLandingShakeOffset = 15.f * Settings::Manager::getFloat("head landing bounce", "Camera");
+            if (mBobbingInfo.mLandingShake)
+            {
+                mBobbingInfo.mLandingOffset += fLandingShakeOffset * duration * 20.f;
+                if (mBobbingInfo.mLandingOffset >= fLandingShakeOffset)
+                {
+                    mBobbingInfo.mLandingShake = false;
+                    mBobbingInfo.mLandingOffset = fLandingShakeOffset;
+                }
+            }
+            else if (mBobbingInfo.mLandingOffset > 0.f)
+            {
+                mBobbingInfo.mLandingOffset *= 1.0f - duration * 10.f;
+                if (mBobbingInfo.mLandingOffset < 0.0001f)
+                    mBobbingInfo.mLandingOffset = 0.f;
+            }
+
+            // Hand Inertia
+            static const float limit = 1.f;
+
+            mBobbingInfo.mInertiaYaw *= 1.0f - duration * 10.f;
+            mBobbingInfo.mInertiaYaw += rot.z();
+            mBobbingInfo.mInertiaYaw = clamp(mBobbingInfo.mInertiaYaw, -limit, limit);
+
+            mBobbingInfo.mInertiaPitch *= 1.0f - duration * 10.f;
+            mBobbingInfo.mInertiaPitch += rot.x();
+            mBobbingInfo.mInertiaPitch = clamp(mBobbingInfo.mInertiaPitch, -limit, limit);
         } // First Person Head Bobbing
 
         movement = vec;

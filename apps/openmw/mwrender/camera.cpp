@@ -43,22 +43,21 @@ namespace MWRender
 {
 
     Camera::Camera (osg::Camera* camera)
-    : mHeightScale(1.f),
-      mCamera(camera),
-      mAnimation(nullptr),
-      mFirstPersonView(true),
-      mPreviewMode(false),
-      mFreeLook(true),
-      mNearest(30.f),
-      mFurthest(800.f),
-      mIsNearest(false),
-      mHeight(124.f),
-      mMaxCameraDistance(192.f),
-      mVanityToggleQueued(false),
-      mVanityToggleQueuedValue(false),
-      mViewModeToggleQueued(false),
-      mCameraDistance(0.f),
-      mSneakOffset(0.f)
+        : mHeightScale(1.f)
+        , mCamera(camera)
+        , mAnimation(nullptr)
+        , mFirstPersonView(true)
+        , mPreviewMode(false)
+        , mFreeLook(true)
+        , mNearest(30.f)
+        , mFurthest(800.f)
+        , mIsNearest(false)
+        , mHeight(124.f)
+        , mMaxCameraDistance(192.f)
+        , mVanityToggleQueued(false)
+        , mVanityToggleQueuedValue(false)
+        , mViewModeToggleQueued(false)
+        , mCameraDistance(0.f)
     {
         mVanity.enabled = false;
         mVanity.allowed = true;
@@ -74,6 +73,8 @@ namespace MWRender
 
         mUpdateCallback = new UpdateRenderCameraCallback(this);
         mCamera->addUpdateCallback(mUpdateCallback);
+
+        mBobbingInfo = {};
     }
 
     Camera::~Camera()
@@ -119,23 +120,38 @@ namespace MWRender
 
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
+        osg::Vec3d right = orient * osg::Vec3d(1,0,0);
 
         osg::Vec3f fpOffset(0, 0, -mBobbingInfo.mSneakOffset);
-        float fpPitch = 0, fpRoll = 0, fpYaw = 0;
-        if (mBobbingInfo.mHeadBobEnabled && firstPerson)
+        float fpPitch = 0, fpRoll = 0;
+        float wpnPitch = 0, wpnYaw = 0;
+        if (firstPerson)
         {
             osg::Vec3d hbOffset, wpnOffset;
             mBobbingInfo.getOffsets(hbOffset, wpnOffset);
 
-            // Head Bobbing
-            fpOffset.x() += hbOffset.x();
-            fpOffset.z() += hbOffset.z();
-            fpRoll += hbOffset.y();
-            up = osg::Quat(hbOffset.y(), forward) * up;
+            if (mBobbingInfo.mHeadBobEnabled)
+            {
+                fpOffset.x() += hbOffset.x();
+                fpOffset.z() += hbOffset.z();
+                fpRoll += hbOffset.y();
+
+                fpOffset.z() -= mBobbingInfo.mLandingOffset;
+            }
+
+            if (mBobbingInfo.mHandBobEnabled)
+            {
+                wpnPitch += wpnOffset.x();
+                wpnPitch -= mBobbingInfo.mLandingOffset * 0.001f;
+                wpnYaw += wpnOffset.z();
+            }
         }
 
+        forward = osg::Quat(fpPitch, right) * forward;
+        up = osg::Quat(fpRoll, forward) * up;
+
         mAnimation->setFirstPersonOffset(fpOffset);
-        mAnimation->setFirstPersonRotation(fpPitch, fpRoll, fpYaw);
+        mAnimation->setFirstPersonRotation(fpPitch + wpnPitch, fpRoll, wpnYaw);
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }
 
@@ -278,11 +294,6 @@ namespace MWRender
         }
 
         mCameraDistance = offset;
-    }
-
-    void Camera::setSneakOffset(float offset)
-    {
-        mSneakOffset = offset;
     }
 
     float Camera::getYaw()

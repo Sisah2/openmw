@@ -17,7 +17,8 @@ struct BobbingInfo
     float mSpeedSmoothed; /// Smoothed movement speed
     float mAnimSpeed;
     float mSneakOffset;
-    float mLandingShake;
+    bool mLandingShake;
+    float mLandingOffset;
 
     float mInertiaPitch;
     float mInertiaYaw;

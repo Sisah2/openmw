@@ -1862,14 +1862,9 @@ namespace MWWorld
             MWBase::Environment::get().getWindowManager()->setWerewolfOverlay(false);
         }
 
-        // Sink the camera while sneaking
-        bool sneaking = player.getClass().getCreatureStats(getPlayerPtr()).getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool swimming = isSwimming(player);
-        bool flying = isFlying(player);
-
-        MWRender::BobbingInfo bi;
-        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bi);
-        mRendering->getCamera()->setBobbingInfo(bi);
+        static MWRender::BobbingInfo bobbingInfo = {};
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
+        mRendering->getCamera()->setBobbingInfo(bobbingInfo);
 
         int blind = static_cast<int>(player.getClass().getCreatureStats(player).getMagicEffects().get(ESM::MagicEffect::Blind).getMagnitude());
         MWBase::Environment::get().getWindowManager()->setBlindness(std::max(0, std::min(100, blind)));
