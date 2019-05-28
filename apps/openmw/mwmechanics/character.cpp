@@ -2405,19 +2405,16 @@ void CharacterController::update(float duration, bool animationOnly)
                 mBobbingInfo.mCycle = std::fmod(mBobbingInfo.mCycle, osg::PI * 2.f);
 
                 // Smoothed Sneak Offset
-                if (sneak && !inwater && onground && solid)
-                {
+                if (sneak && !inwater && !flying)
                     mBobbingInfo.mSneakOffset += fSneakOffset * duration * 10.f;
-                }
                 else
-                {
                     mBobbingInfo.mSneakOffset -= fSneakOffset * duration * 10.f;
-                }
 
                 mBobbingInfo.mSneakOffset = clamp(mBobbingInfo.mSneakOffset, 0.f, fSneakOffset);
 
             } else {
-                if (sneak && !inwater && onground && solid)
+                // Original Sneak Offset
+                if (sneak && !inwater && !flying)
                     mBobbingInfo.mSneakOffset = fSneakOffset;
                 else
                     mBobbingInfo.mSneakOffset = 0.f;
