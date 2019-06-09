@@ -445,7 +445,6 @@ namespace MWGui
         mConsole = new Console(w,h, mConsoleOnlyScripts);
         mWindows.push_back(mConsole);
         trackWindow(mConsole, "console");
-        mGuiModeStates[GM_Console] = GuiModeState(mConsole);
 
         bool questList = mResourceSystem->getVFS()->exists("textures/tx_menubook_options_over.dds");
         JournalWindow* journal = JournalWindow::create(JournalViewModel::create (), questList, mEncoding);
@@ -698,7 +697,7 @@ namespace MWGui
             setCursorVisible(!gameMode);
 
         if (gameMode)
-            MyGUI::InputManager::getInstance().resetKeyFocusWidget();
+            setKeyFocusWidget (nullptr);
 
         // Icons of forced hidden windows are displayed
         setMinimapVisibility((mAllowed & GW_Map) && (!mMap->pinned() || (mForceHidden & GW_Map)));
@@ -711,10 +710,10 @@ namespace MWGui
         // If in game mode (or interactive messagebox), show the pinned windows
         if (mGuiModes.empty())
         {
-            mMap->setVisible(mMap->pinned() && !(mForceHidden & GW_Map) && (mAllowed & GW_Map));
-            mStatsWindow->setVisible(mStatsWindow->pinned() && !(mForceHidden & GW_Stats) && (mAllowed & GW_Stats));
-            mInventoryWindow->setVisible(mInventoryWindow->pinned() && !(mForceHidden & GW_Inventory) && (mAllowed & GW_Inventory));
-            mSpellWindow->setVisible(mSpellWindow->pinned() && !(mForceHidden & GW_Magic) && (mAllowed & GW_Magic));
+            mMap->setVisible(mMap->pinned() && !isConsoleMode() && !(mForceHidden & GW_Map) && (mAllowed & GW_Map));
+            mStatsWindow->setVisible(mStatsWindow->pinned() && !isConsoleMode() && !(mForceHidden & GW_Stats) && (mAllowed & GW_Stats));
+            mInventoryWindow->setVisible(mInventoryWindow->pinned() && !isConsoleMode() && !(mForceHidden & GW_Inventory) && (mAllowed & GW_Inventory));
+            mSpellWindow->setVisible(mSpellWindow->pinned() && !isConsoleMode() && !(mForceHidden & GW_Magic) && (mAllowed & GW_Magic));
             return;
         }
         else if (getMode() != GM_Inventory)
@@ -1184,6 +1183,7 @@ namespace MWGui
         else if (tag.compare(0, tokenLength, tokenToFind) == 0)
         {
             _result = mTranslationDataStorage.translateCellName(tag.substr(tokenLength));
+            _result = MyGUI::TextIterator::toTagsString(_result);
         }
         else if (Gui::replaceTag(tag, _result))
         {
@@ -1320,6 +1320,10 @@ namespace MWGui
         }
 
         updateVisible();
+
+        // To make sure that console window get focus again
+        if (mConsole && mConsole->isVisible())
+            mConsole->onOpen();
     }
 
     void WindowManager::removeGuiMode(GuiMode mode, bool noSound)
@@ -1529,14 +1533,15 @@ namespace MWGui
 
     bool WindowManager::isGuiMode() const
     {
-        return !mGuiModes.empty() || (mMessageBoxManager && mMessageBoxManager->isInteractiveMessageBox());
+        return
+            !mGuiModes.empty() ||
+            isConsoleMode() ||
+            (mMessageBoxManager && mMessageBoxManager->isInteractiveMessageBox());
     }
 
     bool WindowManager::isConsoleMode() const
     {
-        if (!mGuiModes.empty() && mGuiModes.back()==GM_Console)
-            return true;
-        return false;
+        return mConsole && mConsole->isVisible();
     }
 
     MWGui::GuiMode WindowManager::getMode() const
@@ -1668,6 +1673,13 @@ namespace MWGui
             setWerewolfOverlay(true);
             forceHide((GuiWindow)(MWGui::GW_Inventory | MWGui::GW_Magic));
         }
+    }
+
+    // Remove this wrapper once onKeyFocusChanged call is rendered unnecessary
+    void WindowManager::setKeyFocusWidget(MyGUI::Widget *widget)
+    {
+        MyGUI::InputManager::getInstance().setKeyFocusWidget(widget);
+        onKeyFocusChanged(widget);
     }
 
     void WindowManager::onKeyFocusChanged(MyGUI::Widget *widget)
@@ -1836,6 +1848,7 @@ namespace MWGui
     bool WindowManager::isSavingAllowed() const
     {
         return !MyGUI::InputManager::getInstance().isModalAny()
+                && !isConsoleMode()
                 // TODO: remove this, once we have properly serialized the state of open windows
                 && (!isGuiMode() || (mGuiModes.size() == 1 && (getMode() == GM_MainMenu || getMode() == GM_Rest)));
     }
@@ -1862,7 +1875,7 @@ namespace MWGui
         sizeVideo(screenSize.width, screenSize.height);
 
         MyGUI::Widget* oldKeyFocus = MyGUI::InputManager::getInstance().getKeyFocusWidget();
-        MyGUI::InputManager::getInstance().setKeyFocusWidget(mVideoWidget);
+        setKeyFocusWidget(mVideoWidget);
 
         mVideoBackground->setVisible(true);
 
@@ -1900,7 +1913,7 @@ namespace MWGui
 
         MWBase::Environment::get().getSoundManager()->resumeSounds();
 
-        MyGUI::InputManager::getInstance().setKeyFocusWidget(oldKeyFocus);
+        setKeyFocusWidget(oldKeyFocus);
 
         setCursorVisible(cursorWasVisible);
 
@@ -2081,6 +2094,21 @@ namespace MWGui
             _data = MyGUI::TextIterator::toTagsString(text);
 
         SDL_free(text);
+    }
+
+    void WindowManager::toggleConsole()
+    {
+        bool visible = mConsole->isVisible();
+
+        if (!visible && !mGuiModes.empty())
+            mKeyboardNavigation->saveFocus(mGuiModes.back());
+
+        mConsole->setVisible(!visible);
+
+        if (visible && !mGuiModes.empty())
+            mKeyboardNavigation->restoreFocus(mGuiModes.back());
+
+        updateVisible();
     }
 
     void WindowManager::toggleDebugWindow()
