@@ -552,7 +552,7 @@ namespace MWMechanics
     void Actors::adjustMagicEffects (const MWWorld::Ptr& creature)
     {
         CreatureStats& creatureStats =  creature.getClass().getCreatureStats (creature);
-        if (creatureStats.isDead())
+        if (creatureStats.isDeathAnimationFinished())
             return;
 
         MagicEffects now = creatureStats.getSpells().getMagicEffects();
@@ -1595,7 +1595,8 @@ namespace MWMechanics
                 else if (!isPlayer)
                     iter->first.getRefData().getBaseNode()->setNodeMask(MWRender::Mask_Actor);
 
-                if (iter->first.getClass().getCreatureStats(iter->first).isParalyzed())
+                const bool isDead = iter->first.getClass().getCreatureStats(iter->first).isDead();
+                if (!isDead && iter->first.getClass().getCreatureStats(iter->first).isParalyzed())
                     ctrl->skipAnim();
 
                 // Handle player last, in case a cell transition occurs by casting a teleportation spell
@@ -1680,10 +1681,6 @@ namespace MWMechanics
                     stats.getActiveSpells().visitEffectSources(soulTrap);
                 }
 
-                // Reset magic effects and recalculate derived effects
-                // One case where we need this is to make sure bound items are removed upon death
-                stats.modifyMagicEffects(MWMechanics::MagicEffects());
-                stats.getActiveSpells().clear();
                 calculateCreatureStatModifiers(iter->first, 0);
 
                 if (cls.isEssential(iter->first))
@@ -1695,6 +1692,10 @@ namespace MWMechanics
 
                 ++mDeathCount[Misc::StringUtils::lowerCase(iter->first.getCellRef().getRefId())];
 
+                // Reset magic effects and recalculate derived effects
+                // One case where we need this is to make sure bound items are removed upon death
+                stats.modifyMagicEffects(MWMechanics::MagicEffects());
+                stats.getActiveSpells().clear();
                 // Make sure spell effects are removed
                 purgeSpellEffects(stats.getActorId());
 
