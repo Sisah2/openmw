@@ -460,12 +460,12 @@ namespace MWWorld
         return false;
     }
 
-    int Class::getDoorState (const MWWorld::ConstPtr &ptr) const
+    MWWorld::DoorState Class::getDoorState (const MWWorld::ConstPtr &ptr) const
     {
         throw std::runtime_error("this is not a door");
     }
 
-    void Class::setDoorState (const MWWorld::Ptr &ptr, int state) const
+    void Class::setDoorState (const MWWorld::Ptr &ptr, MWWorld::DoorState state) const
     {
         throw std::runtime_error("this is not a door");
     }
@@ -506,5 +506,29 @@ namespace MWWorld
     float Class::getEffectiveArmorRating(const ConstPtr &armor, const Ptr &actor) const
     {
         throw std::runtime_error("class does not support armor ratings");
+    }
+
+    osg::Vec4f Class::getEnchantmentColor(const MWWorld::ConstPtr& item) const
+    {
+        osg::Vec4f result(1,1,1,1);
+        std::string enchantmentName = item.getClass().getEnchantment(item);
+        if (enchantmentName.empty())
+            return result;
+
+        const ESM::Enchantment* enchantment = MWBase::Environment::get().getWorld()->getStore().get<ESM::Enchantment>().search(enchantmentName);
+        if (!enchantment)
+            return result;
+
+        assert (enchantment->mEffects.mList.size());
+
+        const ESM::MagicEffect* magicEffect = MWBase::Environment::get().getWorld()->getStore().get<ESM::MagicEffect>().search(
+                enchantment->mEffects.mList.front().mEffectID);
+        if (!magicEffect)
+            return result;
+
+        result.x() = magicEffect->mData.mRed / 255.f;
+        result.y() = magicEffect->mData.mGreen / 255.f;
+        result.z() = magicEffect->mData.mBlue / 255.f;
+        return result;
     }
 }

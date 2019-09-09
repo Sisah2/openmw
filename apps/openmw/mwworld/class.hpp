@@ -6,7 +6,10 @@
 #include <string>
 #include <vector>
 
+#include <osg/Vec4f>
+
 #include "ptr.hpp"
+#include "doorstate.hpp"
 
 namespace ESM
 {
@@ -296,7 +299,7 @@ namespace MWWorld
 
             virtual bool allowTelekinesis(const MWWorld::ConstPtr& ptr) const { return true; }
             ///< Return whether this class of object can be activated with telekinesis
-            
+
             /// Get a blood texture suitable for \a ptr (see Blood Texture 0-2 in Morrowind.ini)
             virtual int getBloodTexture (const MWWorld::ConstPtr& ptr) const;
 
@@ -348,10 +351,9 @@ namespace MWWorld
 
             virtual bool isClass(const MWWorld::ConstPtr& ptr, const std::string &className) const;
 
-            /// 0 = nothing, 1 = opening, 2 = closing
-            virtual int getDoorState (const MWWorld::ConstPtr &ptr) const;
+            virtual DoorState getDoorState (const MWWorld::ConstPtr &ptr) const;
             /// This does not actually cause the door to move. Use World::activateDoor instead.
-            virtual void setDoorState (const MWWorld::Ptr &ptr, int state) const;
+            virtual void setDoorState (const MWWorld::Ptr &ptr, DoorState state) const;
 
             virtual void respawn (const MWWorld::Ptr& ptr) const {}
 
@@ -367,6 +369,8 @@ namespace MWWorld
 
             /// Get the effective armor rating, factoring in the actor's skills, for the given armor.
             virtual float getEffectiveArmorRating(const MWWorld::ConstPtr& armor, const MWWorld::Ptr& actor) const;
+
+            virtual osg::Vec4f getEnchantmentColor(const MWWorld::ConstPtr& item) const;
     };
 }
 

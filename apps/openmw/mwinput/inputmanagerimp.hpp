@@ -76,6 +76,7 @@ namespace MWInput
             osg::ref_ptr<osgViewer::ScreenCaptureHandler> screenCaptureHandler,
             osgViewer::ScreenCaptureHandler::CaptureOperation *screenCaptureOperation,
             const std::string& userFile, bool userFileExists,
+            const std::string& userControllerBindingsFile,
             const std::string& controllerBindingsFile, bool grab);
 
         virtual ~InputManager();
@@ -225,7 +226,7 @@ namespace MWInput
         void setPlayerControlsEnabled(bool enabled);
         void handleGuiArrowKey(int action);
         // Return true if GUI consumes input.
-        bool gamepadToGuiControl(const SDL_ControllerButtonEvent &arg, bool release);
+        bool gamepadToGuiControl(const SDL_ControllerButtonEvent &arg);
         bool gamepadToGuiControl(const SDL_ControllerAxisEvent &arg);
 
         void updateCursorMode();
@@ -234,7 +235,6 @@ namespace MWInput
 
     private:
         void toggleMainMenu();
-        void toggleOptionsMenu();
         void toggleSpell();
         void toggleWeapon();
         void toggleInventory();
@@ -326,8 +326,6 @@ namespace MWInput
             A_LookLeftRight,
             A_MoveForwardBackward,
             A_MoveLeftRight,
-
-            A_OptionsMenu,
 
             A_Last            // Marker for the last item
         };

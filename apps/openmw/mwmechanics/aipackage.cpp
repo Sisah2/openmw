@@ -232,7 +232,7 @@ void MWMechanics::AiPackage::openDoors(const MWWorld::Ptr& actor)
         return;
 
     // note: AiWander currently does not open doors
-    if (getTypeId() != TypeIdWander && !door.getCellRef().getTeleport() && door.getClass().getDoorState(door) == 0)
+    if (getTypeId() != TypeIdWander && !door.getCellRef().getTeleport() && door.getClass().getDoorState(door) == MWWorld::DoorState::Idle)
     {
         if ((door.getCellRef().getTrap().empty() && door.getCellRef().getLockLevel() <= 0 ))
         {
@@ -301,7 +301,7 @@ bool MWMechanics::AiPackage::checkWayIsClearForActor(const osg::Vec3f& startPoin
         return true;
 
     const float actorSpeed = actor.getClass().getSpeed(actor);
-    const float maxAvoidDist = AI_REACTION_TIME * actorSpeed + actorSpeed / MAX_VEL_ANGULAR_RADIANS * 2; // *2 - for reliability
+    const float maxAvoidDist = AI_REACTION_TIME * actorSpeed + actorSpeed / getAngularVelocity(actorSpeed) * 2; // *2 - for reliability
     const float distToTarget = osg::Vec2f(endPoint.x(), endPoint.y()).length();
 
     const float offsetXY = distToTarget > maxAvoidDist*1.5? maxAvoidDist : maxAvoidDist/2;
@@ -363,7 +363,7 @@ bool MWMechanics::AiPackage::isReachableRotatingOnTheRun(const MWWorld::Ptr& act
     // get actor's shortest radius for moving in circle
     float speed = actor.getClass().getSpeed(actor);
     speed += speed * 0.1f; // 10% real speed inaccuracy
-    float radius = speed / MAX_VEL_ANGULAR_RADIANS;
+    float radius = speed / getAngularVelocity(speed);
 
     // get radius direction to the center
     const float* rot = actor.getRefData().getPosition().rot;
