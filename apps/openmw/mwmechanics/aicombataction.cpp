@@ -18,7 +18,6 @@
 #include "combat.hpp"
 #include "weaponpriority.hpp"
 #include "spellpriority.hpp"
-#include "weapontype.hpp"
 
 namespace MWMechanics
 {
@@ -126,7 +125,8 @@ namespace MWMechanics
         }
 
         const ESM::Weapon* weapon = mWeapon.get<ESM::Weapon>()->mBase;
-        if (MWMechanics::getWeaponType(weapon->mData.mType)->mWeaponClass != ESM::WeaponType::Melee)
+
+        if (weapon->mData.mType >= ESM::Weapon::MarksmanBow)
         {
             isRanged = true;
             return fProjectileMaxSpeed;
@@ -194,12 +194,11 @@ namespace MWMechanics
                 if (rating > bestActionRating)
                 {
                     const ESM::Weapon* weapon = it->get<ESM::Weapon>()->mBase;
-                    int ammotype = getWeaponType(weapon->mData.mType)->mAmmoType;
 
                     MWWorld::Ptr ammo;
-                    if (ammotype == ESM::Weapon::Arrow)
+                    if (weapon->mData.mType == ESM::Weapon::MarksmanBow)
                         ammo = bestArrow;
-                    else if (ammotype == ESM::Weapon::Bolt)
+                    else if (weapon->mData.mType == ESM::Weapon::MarksmanCrossbow)
                         ammo = bestBolt;
 
                     bestActionRating = rating;
@@ -368,7 +367,7 @@ namespace MWMechanics
         else if (!activeWeapon.isEmpty())
         {
             const ESM::Weapon* esmWeap = activeWeapon.get<ESM::Weapon>()->mBase;
-            if (MWMechanics::getWeaponType(esmWeap->mData.mType)->mWeaponClass != ESM::WeaponType::Melee)
+            if (esmWeap->mData.mType >= ESM::Weapon::MarksmanBow)
             {
                 static const float fTargetSpellMaxSpeed = gmst.find("fProjectileMaxSpeed")->mValue.getFloat();
                 dist = fTargetSpellMaxSpeed;
@@ -421,11 +420,6 @@ namespace MWMechanics
         {
             if (MWBase::Environment::get().getWorld()->getLOS(actor, enemy))
                 return true;
-        }
-
-        if (actor.getClass().isPureLandCreature(actor) && MWBase::Environment::get().getWorld()->isWalkingOnWater(enemy))
-        {
-            return false;
         }
 
         if (actor.getClass().isPureFlyingCreature(actor) || actor.getClass().isPureLandCreature(actor))

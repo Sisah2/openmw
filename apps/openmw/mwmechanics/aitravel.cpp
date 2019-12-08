@@ -88,7 +88,6 @@ namespace MWMechanics
         // that is the user's responsibility
         MWBase::Environment::get().getWorld()->moveObject(actor, mX, mY, mZ);
         actor.getClass().adjustPosition(actor, false);
-        reset();
     }
 
     void AiTravel::writeState(ESM::AiSequence::AiSequence &sequence) const

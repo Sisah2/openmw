@@ -16,7 +16,7 @@
 #include "../mwmechanics/npcstats.hpp"
 #include "../mwmechanics/spellcasting.hpp"
 #include "../mwmechanics/actorutil.hpp"
-#include "../mwmechanics/weapontype.hpp"
+
 
 #include "esmstore.hpp"
 #include "class.hpp"
@@ -332,7 +332,7 @@ void MWWorld::InventoryStore::autoEquipWeapon (const MWWorld::Ptr& actor, TSlots
 
             const ESM::Weapon* esmWeapon = iter->get<ESM::Weapon>()->mBase;
 
-            if (MWMechanics::getWeaponType(esmWeapon->mData.mType)->mWeaponClass == ESM::WeaponType::Ammo)
+            if (esmWeapon->mData.mType == ESM::Weapon::Arrow || esmWeapon->mData.mType == ESM::Weapon::Bolt)
                 continue;
 
             if (iter->getClass().getEquipmentSkill(*iter) == weaponSkills[maxWeaponSkill])
@@ -357,21 +357,31 @@ void MWWorld::InventoryStore::autoEquipWeapon (const MWWorld::Ptr& actor, TSlots
             }
         }
 
+        bool isBow = false;
+        bool isCrossbow = false;
+        if (weapon != end())
+        {
+            const MWWorld::LiveCellRef<ESM::Weapon> *ref = weapon->get<ESM::Weapon>();
+            ESM::Weapon::Type type = (ESM::Weapon::Type)ref->mBase->mData.mType;
+
+            if (type == ESM::Weapon::MarksmanBow)
+                isBow = true;
+            else if (type == ESM::Weapon::MarksmanCrossbow)
+                isCrossbow = true;
+        }
+
         if (weapon != end() && weapon->getClass().canBeEquipped(*weapon, actor).first)
         {
             // Do not equip ranged weapons, if there is no suitable ammo
             bool hasAmmo = true;
-            const MWWorld::LiveCellRef<ESM::Weapon> *ref = weapon->get<ESM::Weapon>();
-            int type = ref->mBase->mData.mType;
-            int ammotype = MWMechanics::getWeaponType(type)->mAmmoType;
-            if (ammotype == ESM::Weapon::Arrow)
+            if (isBow == true)
             {
                 if (arrow == end())
                     hasAmmo = false;
                 else
                     slots_[Slot_Ammunition] = arrow;
             }
-            else if (ammotype == ESM::Weapon::Bolt)
+            if (isCrossbow == true)
             {
                 if (bolt == end())
                     hasAmmo = false;
@@ -396,7 +406,7 @@ void MWWorld::InventoryStore::autoEquipWeapon (const MWWorld::Ptr& actor, TSlots
                     int slot = itemsSlots.first.front();
                     slots_[slot] = weapon;
 
-                    if (ammotype == ESM::Weapon::None)
+                    if (!isBow && !isCrossbow)
                         slots_[Slot_Ammunition] = end();
                 }
 

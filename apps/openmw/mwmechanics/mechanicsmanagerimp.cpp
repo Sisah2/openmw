@@ -457,11 +457,6 @@ namespace MWMechanics
         }
     }
 
-    void MechanicsManager::notifyDied(const MWWorld::Ptr& actor)
-    {
-        mActors.notifyDied(actor);
-    }
-
     float MechanicsManager::getActorsProcessingRange() const
     {
         return mActors.getProcessingRange();
@@ -484,12 +479,7 @@ namespace MWMechanics
 
     bool MechanicsManager::isSneaking(const MWWorld::Ptr& ptr)
     {
-        CreatureStats& stats = ptr.getClass().getCreatureStats(ptr);
-        MWBase::World* world = MWBase::Environment::get().getWorld();
-        bool animActive = mActors.isSneaking(ptr);
-        bool stanceOn = stats.getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool inair = !world->isOnGround(ptr) && !world->isSwimming(ptr) && !world->isFlying(ptr);
-        return stanceOn && (animActive || inair);
+        return mActors.isSneaking(ptr);
     }
 
     void MechanicsManager::getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo)
@@ -982,7 +972,8 @@ namespace MWMechanics
                 return true;
 
             // check if a player tries to pickpocket a target NPC
-            if (target.getClass().getCreatureStats(target).getKnockedDown() || isSneaking(ptr))
+            if(ptr.getClass().getCreatureStats(ptr).getStance(MWMechanics::CreatureStats::Stance_Sneak)
+                || target.getClass().getCreatureStats(target).getKnockedDown())
                 return false;
 
             return true;
@@ -1041,7 +1032,7 @@ namespace MWMechanics
             return false;
     }
 
-    void MechanicsManager::unlockAttempted(const MWWorld::Ptr &ptr, const MWWorld::Ptr &item)
+    void MechanicsManager::objectOpened(const MWWorld::Ptr &ptr, const MWWorld::Ptr &item)
     {
         MWWorld::Ptr victim;
         if (isAllowedToUse(ptr, item, victim))
@@ -1459,6 +1450,7 @@ namespace MWMechanics
 
         if (reported)
         {
+            MWBase::Environment::get().getWindowManager()->messageBox("#{sCrimeMessage}");
             player.getClass().getNpcStats(player).setBounty(player.getClass().getNpcStats(player).getBounty()
                                                       + arg);
 
@@ -1601,7 +1593,9 @@ namespace MWMechanics
             return false;
 
         float sneakTerm = 0;
-        if (isSneaking(ptr))
+        if (ptr.getClass().getCreatureStats(ptr).getStance(CreatureStats::Stance_Sneak)
+                && !MWBase::Environment::get().getWorld()->isSwimming(ptr)
+                && MWBase::Environment::get().getWorld()->isOnGround(ptr))
         {
             static float fSneakSkillMult = store.find("fSneakSkillMult")->mValue.getFloat();
             static float fSneakBootMult = store.find("fSneakBootMult")->mValue.getFloat();
@@ -1609,7 +1603,7 @@ namespace MWMechanics
             int agility = stats.getAttribute(ESM::Attribute::Agility).getModified();
             int luck = stats.getAttribute(ESM::Attribute::Luck).getModified();
             float bootWeight = 0;
-            if (ptr.getClass().isNpc() && MWBase::Environment::get().getWorld()->isOnGround(ptr))
+            if (ptr.getClass().isNpc())
             {
                 const MWWorld::InventoryStore& inv = ptr.getClass().getInventoryStore(ptr);
                 MWWorld::ConstContainerStoreIterator it = inv.getSlot(MWWorld::InventoryStore::Slot_Boots);
@@ -1798,8 +1792,8 @@ namespace MWMechanics
         if (ptr.getClass().isNpc())
             disposition = getDerivedDisposition(ptr, true);
 
-        int fight = ptr.getClass().getCreatureStats(ptr).getAiSetting(CreatureStats::AI_Fight).getModified()
-                + static_cast<int>(getFightDistanceBias(ptr, target) + getFightDispositionBias(static_cast<float>(disposition)));
+        int fight = std::max(0, ptr.getClass().getCreatureStats(ptr).getAiSetting(CreatureStats::AI_Fight).getModified()
+                + static_cast<int>(getFightDistanceBias(ptr, target) + getFightDispositionBias(static_cast<float>(disposition))));
 
         if (ptr.getClass().isNpc() && target.getClass().isNpc())
         {
@@ -1929,6 +1923,7 @@ namespace MWMechanics
                 {
                     npcStats.setBounty(npcStats.getBounty()+
                                        gmst.find("iWereWolfBounty")->mValue.getInteger());
+                    windowManager->messageBox("#{sCrimeMessage}");
                 }
             }
         }

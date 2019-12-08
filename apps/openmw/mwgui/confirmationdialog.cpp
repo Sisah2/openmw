@@ -40,13 +40,14 @@ namespace MWGui
 
     bool ConfirmationDialog::exit()
     {
-        setVisible(false);
         eventCancelClicked();
         return true;
     }
 
     void ConfirmationDialog::onCancelButtonClicked(MyGUI::Widget* _sender)
     {
+        setVisible(false);
+
         exit();
     }
 

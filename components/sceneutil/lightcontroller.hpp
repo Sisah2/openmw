@@ -32,10 +32,9 @@ namespace SceneUtil
         LightType mType;
         osg::Vec4f mDiffuseColor;
         float mPhase;
-        float mBrightness;
-        double mStartTime;
+        float mDeltaCount;
+        int mDirection;
         double mLastTime;
-        float mTicksToAdvance;
     };
 
 }

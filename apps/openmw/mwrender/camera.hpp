@@ -39,6 +39,7 @@ namespace MWRender
 
         bool mFirstPersonView;
         bool mPreviewMode;
+        bool mFreeLook;
         float mNearest;
         float mFurthest;
         bool mIsNearest;
@@ -121,6 +122,8 @@ namespace MWRender
 
         /// Stores focal and camera world positions in passed arguments
         void getPosition(osg::Vec3f &focal, osg::Vec3f &camera);
+
+        void togglePlayerLooking(bool enable);
 
         bool isVanityOrPreviewModeEnabled();
 

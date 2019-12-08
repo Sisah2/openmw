@@ -22,35 +22,29 @@ namespace SceneUtil
         float linearAttenuation = 0.f;
         float constantAttenuation = 0.f;
 
-        static const bool useConstant = Fallback::Map::getBool("LightAttenuation_UseConstant");
-        static const bool useLinear = Fallback::Map::getBool("LightAttenuation_UseLinear");
-        static const bool useQuadratic = Fallback::Map::getBool("LightAttenuation_UseQuadratic");
-        static const float constantValue = Fallback::Map::getFloat("LightAttenuation_ConstantValue");
-        static const float linearValue = Fallback::Map::getFloat("LightAttenuation_LinearValue");
-        static const float quadraticValue = Fallback::Map::getFloat("LightAttenuation_QuadraticValue");
-        static const float linearRadiusMult = Fallback::Map::getFloat("LightAttenuation_LinearRadiusMult");
-        static const float quadraticRadiusMult = Fallback::Map::getFloat("LightAttenuation_QuadraticRadiusMult");
-        static const int linearMethod = Fallback::Map::getInt("LightAttenuation_LinearMethod");
-        static const int quadraticMethod = Fallback::Map::getInt("LightAttenuation_QuadraticMethod");
-        static const bool outQuadInLin = Fallback::Map::getBool("LightAttenuation_OutQuadInLin");
-
+        const bool useConstant = Fallback::Map::getBool("LightAttenuation_UseConstant");
         if (useConstant)
-            constantAttenuation = constantValue;
-
-        if (useLinear)
         {
-            linearAttenuation = linearMethod == 0 ? linearValue : 0.01f;
-            float r = radius * linearRadiusMult;
-            if (r && (linearMethod == 1 || linearMethod == 2))
-                linearAttenuation = linearValue / std::pow(r, linearMethod);
+            constantAttenuation = Fallback::Map::getFloat("LightAttenuation_ConstantValue");
         }
 
+        const bool useLinear = Fallback::Map::getBool("LightAttenuation_UseLinear");
+        if (useLinear)
+        {
+            const float linearValue = Fallback::Map::getFloat("LightAttenuation_LinearValue");
+            const float linearRadiusMult = Fallback::Map::getFloat("LightAttenuation_LinearRadiusMult");
+            float r = radius * linearRadiusMult;
+            if (r) linearAttenuation = linearValue / r;
+        }
+
+        const bool useQuadratic = Fallback::Map::getBool("LightAttenuation_UseQuadratic");
+        const bool outQuadInLin = Fallback::Map::getBool("LightAttenuation_OutQuadInLin");
         if (useQuadratic && (!outQuadInLin || isExterior))
         {
-            quadraticAttenuation = quadraticMethod == 0 ? quadraticValue : 0.01f;
+            const float quadraticValue = Fallback::Map::getFloat("LightAttenuation_QuadraticValue");
+            const float quadraticRadiusMult = Fallback::Map::getFloat("LightAttenuation_QuadraticRadiusMult");
             float r = radius * quadraticRadiusMult;
-            if (r && (quadraticMethod == 1 || quadraticMethod == 2))
-                quadraticAttenuation = quadraticValue / std::pow(r, quadraticMethod);
+            if (r) quadraticAttenuation = quadraticValue / std::pow(r, 2);
         }
 
         light->setConstantAttenuation(constantAttenuation);

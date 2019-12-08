@@ -15,7 +15,6 @@
 
 #include "../mwmechanics/creaturestats.hpp"
 #include "../mwmechanics/combat.hpp"
-#include "../mwmechanics/weapontype.hpp"
 
 #include "animation.hpp"
 #include "rotatecontroller.hpp"
@@ -68,10 +67,8 @@ void WeaponAnimation::attachArrow(MWWorld::Ptr actor)
         return;
     if (weaponSlot->getTypeName() != typeid(ESM::Weapon).name())
         return;
-
-    int type = weaponSlot->get<ESM::Weapon>()->mBase->mData.mType;
-    ESM::WeaponType::Class weapclass = MWMechanics::getWeaponType(type)->mWeaponClass;
-    if (weapclass == ESM::WeaponType::Thrown)
+    int weaponType = weaponSlot->get<ESM::Weapon>()->mBase->mData.mType;
+    if (weaponType == ESM::Weapon::MarksmanThrown)
     {
         std::string soundid = weaponSlot->getClass().getUpSoundId(*weaponSlot);
         if(!soundid.empty())
@@ -81,7 +78,7 @@ void WeaponAnimation::attachArrow(MWWorld::Ptr actor)
         }
         showWeapon(true);
     }
-    else if (weapclass == ESM::WeaponType::Ranged)
+    else if (weaponType == ESM::Weapon::MarksmanBow || weaponType == ESM::Weapon::MarksmanCrossbow)
     {
         osg::Group* parent = getArrowBone();
         if (!parent)
@@ -116,7 +113,7 @@ void WeaponAnimation::releaseArrow(MWWorld::Ptr actor, float attackStrength)
 
     MWMechanics::applyFatigueLoss(actor, *weapon, attackStrength);
 
-    if (MWMechanics::getWeaponType(weapon->get<ESM::Weapon>()->mBase->mData.mType)->mWeaponClass == ESM::WeaponType::Thrown)
+    if (weapon->get<ESM::Weapon>()->mBase->mData.mType == ESM::Weapon::MarksmanThrown)
     {
         // Thrown weapons get detached now
         osg::Node* weaponNode = getWeaponNode();

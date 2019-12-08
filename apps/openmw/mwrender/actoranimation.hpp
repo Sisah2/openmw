@@ -40,15 +40,18 @@ class ActorAnimation : public Animation, public MWWorld::ContainerStoreListener
         virtual bool isArrowAttached() const { return false; }
 
     protected:
-        osg::Group* getBoneByName(const std::string& boneName);
+        bool mWeaponSheathing;
+        osg::Group* getBoneByName(std::string boneName);
         virtual void updateHolsteredWeapon(bool showHolsteredWeapons);
+        virtual void injectWeaponBones();
         virtual void updateQuiver();
         virtual std::string getHolsteredWeaponBoneName(const MWWorld::ConstPtr& weapon);
-        virtual PartHolderPtr attachMesh(const std::string& model, const std::string& bonename, bool enchantedGlow, osg::Vec4f* glowColor);
-        virtual PartHolderPtr attachMesh(const std::string& model, const std::string& bonename)
+        virtual std::string getHolsteredWeaponBoneName(const unsigned int weaponType);
+        virtual PartHolderPtr getWeaponPart(const std::string& model, const std::string& bonename, bool enchantedGlow, osg::Vec4f* glowColor);
+        virtual PartHolderPtr getWeaponPart(const std::string& model, const std::string& bonename)
         {
             osg::Vec4f stubColor = osg::Vec4f(0,0,0,0);
-            return attachMesh(model, bonename, false, &stubColor);
+            return getWeaponPart(model, bonename, false, &stubColor);
         };
 
         PartHolderPtr mScabbard;

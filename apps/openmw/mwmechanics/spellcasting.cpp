@@ -26,7 +26,6 @@
 #include "npcstats.hpp"
 #include "actorutil.hpp"
 #include "aifollow.hpp"
-#include "weapontype.hpp"
 
 namespace MWMechanics
 {
@@ -242,7 +241,7 @@ namespace MWMechanics
         float castChance = 100.f;
         if (spell != nullptr && !caster.isEmpty() && caster.getClass().isActor())
         {
-            castChance = getSpellSuccessChance(spell, caster, nullptr, false, false); // Uncapped casting chance
+            castChance = getSpellSuccessChance(spell, caster, nullptr, false); // Uncapped casting chance
         }
         if (castChance > 0)
             x *= 50 / castChance;
@@ -712,6 +711,9 @@ namespace MWMechanics
                     if (target.getCellRef().getLockLevel() > 0)
                     {
                         MWBase::Environment::get().getSoundManager()->playSound3D(target, "Open Lock", 1.f, 1.f);
+                        if (!caster.isEmpty())
+                            MWBase::Environment::get().getMechanicsManager()->objectOpened(getPlayer(), target);
+                            // Use the player instead of the caster for vanilla crime compatibility
 
                         if (caster == getPlayer())
                             MWBase::Environment::get().getWindowManager()->messageBox("#{sMagicOpenSuccess}");
@@ -720,10 +722,6 @@ namespace MWMechanics
                 }
                 else
                     MWBase::Environment::get().getSoundManager()->playSound3D(target, "Open Lock Fail", 1.f, 1.f);
-
-                if (!caster.isEmpty())
-                    MWBase::Environment::get().getMechanicsManager()->unlockAttempted(getPlayer(), target);
-                    // Use the player instead of the caster for vanilla crime compatibility
                 return true;
             }
         }
@@ -825,22 +823,17 @@ namespace MWMechanics
         mStack = false;
 
         bool godmode = mCaster == MWMechanics::getPlayer() && MWBase::Environment::get().getWorld()->getGodModeState();
-        bool isProjectile = false;
-        if (item.getTypeName() == typeid(ESM::Weapon).name())
-        {
-            int type = item.get<ESM::Weapon>()->mBase->mData.mType;
-            ESM::WeaponType::Class weapclass = MWMechanics::getWeaponType(type)->mWeaponClass;
-            isProjectile = (weapclass == ESM::WeaponType::Thrown || weapclass == ESM::WeaponType::Ranged);
-        }
-        int type = enchantment->mData.mType;
 
         // Check if there's enough charge left
-        if (!godmode && (type == ESM::Enchantment::WhenUsed || (!isProjectile && type == ESM::Enchantment::WhenStrikes)))
+        if (enchantment->mData.mType == ESM::Enchantment::WhenUsed || enchantment->mData.mType == ESM::Enchantment::WhenStrikes)
         {
             int castCost = getEffectiveEnchantmentCastCost(static_cast<float>(enchantment->mData.mCost), mCaster);
 
             if (item.getCellRef().getEnchantmentCharge() == -1)
                 item.getCellRef().setEnchantmentCharge(static_cast<float>(enchantment->mData.mCharge));
+
+            if (godmode)
+                castCost = 0;
 
             if (item.getCellRef().getEnchantmentCharge() < castCost)
             {
@@ -869,23 +862,30 @@ namespace MWMechanics
             item.getCellRef().setEnchantmentCharge(item.getCellRef().getEnchantmentCharge() - castCost);
         }
 
-        if (type == ESM::Enchantment::WhenUsed)
+        if (enchantment->mData.mType == ESM::Enchantment::WhenUsed)
         {
             if (mCaster == getPlayer())
                 mCaster.getClass().skillUsageSucceeded (mCaster, ESM::Skill::Enchant, 1);
         }
-        else if (type == ESM::Enchantment::CastOnce)
+        else if (enchantment->mData.mType == ESM::Enchantment::CastOnce)
         {
             if (!godmode)
                 item.getContainerStore()->remove(item, 1, mCaster);
         }
-        else if (type == ESM::Enchantment::WhenStrikes)
+        else if (enchantment->mData.mType == ESM::Enchantment::WhenStrikes)
         {
             if (mCaster == getPlayer())
                 mCaster.getClass().skillUsageSucceeded (mCaster, ESM::Skill::Enchant, 3);
         }
 
         inflict(mCaster, mCaster, enchantment->mEffects, ESM::RT_Self);
+
+        bool isProjectile = false;
+        if (item.getTypeName() == typeid(ESM::Weapon).name())
+        {
+            const MWWorld::LiveCellRef<ESM::Weapon> *ref = item.get<ESM::Weapon>();
+            isProjectile = ref->mBase->mData.mType == ESM::Weapon::Arrow || ref->mBase->mData.mType == ESM::Weapon::Bolt || ref->mBase->mData.mType == ESM::Weapon::MarksmanThrown;
+        }
 
         if (isProjectile || !mTarget.isEmpty())
             inflict(mTarget, mCaster, enchantment->mEffects, ESM::RT_Touch);
@@ -942,7 +942,7 @@ namespace MWMechanics
                 bool fail = false;
 
                 // Check success
-                float successChance = getSpellSuccessChance(spell, mCaster, nullptr, true, false);
+                float successChance = getSpellSuccessChance(spell, mCaster);
                 if (Misc::Rng::roll0to99() >= successChance)
                 {
                     if (mCaster == getPlayer())

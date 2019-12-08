@@ -39,7 +39,6 @@ namespace MWInput
             osg::ref_ptr<osgViewer::ScreenCaptureHandler> screenCaptureHandler,
             osgViewer::ScreenCaptureHandler::CaptureOperation *screenCaptureOperation,
             const std::string& userFile, bool userFileExists,
-            const std::string& userControllerBindingsFile,
             const std::string& controllerBindingsFile, bool grab)
         : mWindow(window)
         , mWindowVisible(true)
@@ -114,13 +113,9 @@ namespace MWInput
 
         // Load controller mappings
 #if SDL_VERSION_ATLEAST(2,0,2)
-        if(!controllerBindingsFile.empty())
+        if(controllerBindingsFile!="")
         {
             SDL_GameControllerAddMappingsFromFile(controllerBindingsFile.c_str());
-        }
-        if(!userControllerBindingsFile.empty())
-        {
-            SDL_GameControllerAddMappingsFromFile(userControllerBindingsFile.c_str());
         }
 #endif
 
@@ -202,11 +197,6 @@ namespace MWInput
 
     void InputManager::handleGuiArrowKey(int action)
     {
-        // This is currently keyboard-specific code
-        // TODO: see if GUI controls can be refactored into a single function
-        if (mJoystickLastUsed)
-            return;
-
         if (SDL_IsTextInputActive())
             return;
 
@@ -234,10 +224,13 @@ namespace MWInput
         MWBase::Environment::get().getWindowManager()->injectKeyPress(key, 0, false);
     }
 
-    bool InputManager::gamepadToGuiControl(const SDL_ControllerButtonEvent &arg)
+    bool InputManager::gamepadToGuiControl(const SDL_ControllerButtonEvent &arg, bool release=false)
     {
         // Presumption of GUI mode will be removed in the future.
         // MyGUI KeyCodes *may* change.
+        // Currently button releases are ignored.
+        if (release)
+            return false;
 
         MyGUI::KeyCode key = MyGUI::KeyCode::None;
         switch (arg.button)
@@ -388,6 +381,9 @@ namespace MWInput
             case A_GameMenu:
                 toggleMainMenu ();
                 break;
+            case A_OptionsMenu:
+                toggleOptionsMenu();
+                break;
             case A_Screenshot:
                 screenshot();
                 break;
@@ -405,7 +401,8 @@ namespace MWInput
             case A_MoveRight:
             case A_MoveForward:
             case A_MoveBackward:
-                handleGuiArrowKey(action);
+                // Temporary shut-down of this function until deemed necessary.
+                //handleGuiArrowKey(action);
                 break;
             case A_Journal:
                 toggleJournal ();
@@ -592,7 +589,7 @@ namespace MWInput
                 rot[2] = xAxis * (dt * 100.0f) * 10.0f * mCameraSensitivity * (1.0f/256.f) * (mInvertX ? -1 : 1);
 
                 // Only actually turn player when we're not in vanity mode
-                if(!MWBase::Environment::get().getWorld()->vanityRotateCamera(rot) && mControlSwitch["playerlooking"])
+                if(!MWBase::Environment::get().getWorld()->vanityRotateCamera(rot))
                 {
                     mPlayer->yaw(rot[2]);
                     mPlayer->pitch(rot[0]);
@@ -830,6 +827,9 @@ namespace MWInput
 
     void InputManager::toggleControlSwitch (const std::string& sw, bool value)
     {
+        if (mControlSwitch[sw] == value) {
+            return;
+        }
         /// \note 7 switches at all, if-else is relevant
         if (sw == "playercontrols" && !value) {
             mPlayer->setLeftRight(0);
@@ -841,8 +841,8 @@ namespace MWInput
             mPlayer->setUpDown(0);
         } else if (sw == "vanitymode") {
             MWBase::Environment::get().getWorld()->allowVanityMode(value);
-        } else if (sw == "playerlooking" && !value) {
-            MWBase::Environment::get().getWorld()->rotateObject(mPlayer->getPlayer(), 0.f, 0.f, 0.f);
+        } else if (sw == "playerlooking") {
+            MWBase::Environment::get().getWorld()->togglePlayerLooking(value);
         }
         mControlSwitch[sw] = value;
     }
@@ -976,7 +976,7 @@ namespace MWInput
             rot[2] = -x;
 
             // Only actually turn player when we're not in vanity mode
-            if(!MWBase::Environment::get().getWorld()->vanityRotateCamera(rot) && mControlSwitch["playerlooking"])
+            if(!MWBase::Environment::get().getWorld()->vanityRotateCamera(rot))
             {
                 mPlayer->yaw(x);
                 mPlayer->pitch(y);
@@ -1000,9 +1000,9 @@ namespace MWInput
         mJoystickLastUsed = true;
         if (MWBase::Environment::get().getWindowManager()->isGuiMode())
         {
-            if (gamepadToGuiControl(arg))
+            if (gamepadToGuiControl(arg, false))
                 return;
-            if (mGamepadGuiCursorEnabled)
+            else if (mGamepadGuiCursorEnabled)
             {
                 // Temporary mouse binding until keyboard controls are available:
                 if (arg.button == SDL_CONTROLLER_BUTTON_A) // We'll pretend that A is left click.
@@ -1043,7 +1043,9 @@ namespace MWInput
         mJoystickLastUsed = true;
         if (MWBase::Environment::get().getWindowManager()->isGuiMode())
         {
-            if (mGamepadGuiCursorEnabled)
+            if (gamepadToGuiControl(arg, true))
+                return;
+            else if (mGamepadGuiCursorEnabled)
             {
                 // Temporary mouse binding until keyboard controls are available:
                 if (arg.button == SDL_CONTROLLER_BUTTON_A) // We'll pretend that A is left click.
@@ -1142,19 +1144,37 @@ namespace MWInput
         }
 
         if (MWBase::Environment::get().getWindowManager()->isConsoleMode())
+            return;
+
+        bool inGame = MWBase::Environment::get().getStateManager()->getState() != MWBase::StateManager::State_NoGame;
+        MWGui::GuiMode mode = MWBase::Environment::get().getWindowManager()->getMode();
+
+        if ((inGame && mode == MWGui::GM_MainMenu) || mode == MWGui::GM_Settings)
+            MWBase::Environment::get().getWindowManager()->popGuiMode();
+
+        if (inGame && mode != MWGui::GM_MainMenu)
+            MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_MainMenu);
+    }
+
+    void InputManager::toggleOptionsMenu()
+    {
+        if (MyGUI::InputManager::getInstance().isModalAny())
         {
-            MWBase::Environment::get().getWindowManager()->toggleConsole();
+            MWBase::Environment::get().getWindowManager()->exitCurrentModal();
             return;
         }
 
-        if (!MWBase::Environment::get().getWindowManager()->isGuiMode()) //No open GUIs, open up the MainMenu
-        {
-            MWBase::Environment::get().getWindowManager()->pushGuiMode (MWGui::GM_MainMenu);
-        }
-        else //Close current GUI
-        {
-            MWBase::Environment::get().getWindowManager()->exitCurrentGuiMode();
-        }
+        if (MWBase::Environment::get().getWindowManager()->isConsoleMode())
+            return;
+
+        MWGui::GuiMode mode = MWBase::Environment::get().getWindowManager()->getMode();
+        bool inGame = MWBase::Environment::get().getStateManager()->getState() != MWBase::StateManager::State_NoGame;
+
+        if ((inGame && mode == MWGui::GM_MainMenu) || mode == MWGui::GM_Settings)
+            MWBase::Environment::get().getWindowManager()->popGuiMode();
+
+        if (inGame && mode != MWGui::GM_Settings)
+            MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_Settings);
     }
 
     void InputManager::quickLoad() {
@@ -1509,6 +1529,7 @@ namespace MWInput
         defaultButtonBindings[A_TogglePOV] = SDL_CONTROLLER_BUTTON_RIGHTSTICK;
         defaultButtonBindings[A_Inventory] = SDL_CONTROLLER_BUTTON_B;
         defaultButtonBindings[A_GameMenu] = SDL_CONTROLLER_BUTTON_START;
+        defaultButtonBindings[A_OptionsMenu] = SDL_CONTROLLER_BUTTON_BACK;
         defaultButtonBindings[A_QuickSave] = SDL_CONTROLLER_BUTTON_GUIDE;
         defaultButtonBindings[A_MoveForward] = SDL_CONTROLLER_BUTTON_DPAD_UP;
         defaultButtonBindings[A_MoveLeft] = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
@@ -1589,6 +1610,7 @@ namespace MWInput
         descriptions[A_Journal] = "sJournal";
         descriptions[A_Rest] = "sRestKey";
         descriptions[A_Inventory] = "sInventory";
+        descriptions[A_OptionsMenu] = "sPreferences";
         descriptions[A_TogglePOV] = "sTogglePOVCmd";
         descriptions[A_QuickKeysMenu] = "sQuickMenu";
         descriptions[A_QuickKey1] = "sQuick1Cmd";
@@ -1726,6 +1748,7 @@ namespace MWInput
         ret.push_back(A_Inventory);
         ret.push_back(A_Journal);
         ret.push_back(A_Rest);
+        ret.push_back(A_OptionsMenu);
         ret.push_back(A_Console);
         ret.push_back(A_QuickSave);
         ret.push_back(A_QuickLoad);
@@ -1758,6 +1781,7 @@ namespace MWInput
         ret.push_back(A_Inventory);
         ret.push_back(A_Journal);
         ret.push_back(A_Rest);
+        ret.push_back(A_OptionsMenu);
         ret.push_back(A_QuickSave);
         ret.push_back(A_QuickLoad);
         ret.push_back(A_Screenshot);
