@@ -92,6 +92,8 @@ namespace MWWorld
           : mIter(iter)
         {}
 
+        SharedIterator& operator=(const SharedIterator&) = default;
+
         SharedIterator &operator++() {
             ++mIter;
             return *this;
@@ -380,6 +382,30 @@ namespace MWWorld
 
         const ESM::Attribute *search(size_t index) const;
         const ESM::Attribute *find(size_t index) const;
+
+        void setUp();
+
+        size_t getSize() const;
+        iterator begin() const;
+        iterator end() const;
+    };
+
+    template <>
+    class Store<ESM::WeaponType> : public StoreBase
+    {
+        std::map<int, ESM::WeaponType> mStatic;
+
+    public:
+        typedef std::map<int, ESM::WeaponType>::const_iterator iterator;
+
+        Store();
+
+        const ESM::WeaponType *search(const int id) const;
+        const ESM::WeaponType *find(const int id) const;
+
+        RecordId load(ESM::ESMReader &esm) { return RecordId(0, false); }
+
+        ESM::WeaponType* insert(const ESM::WeaponType &weaponType);
 
         void setUp();
 

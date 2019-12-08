@@ -25,6 +25,7 @@
 #include "../mwmechanics/creaturestats.hpp"
 #include "../mwmechanics/npcstats.hpp"
 #include "../mwmechanics/actorutil.hpp"
+#include "../mwmechanics/spellcasting.hpp"
 
 #include "ref.hpp"
 
@@ -480,7 +481,18 @@ namespace MWScript
                     std::string id = runtime.getStringLiteral (runtime[0].mInteger);
                     runtime.pop();
 
-                    ptr.getClass().getCreatureStats (ptr).getSpells().remove (id);
+                    MWMechanics::CreatureStats& creatureStats = ptr.getClass().getCreatureStats(ptr);
+                    // The spell may have an instant effect which must be handled before the spell's removal.
+                    for (const auto& effect : creatureStats.getSpells().getMagicEffects())
+                    {
+                        if (effect.second.getMagnitude() <= 0)
+                            continue;
+                        MWMechanics::CastSpell cast(ptr, ptr);
+                        if (cast.applyInstantEffect(ptr, ptr, effect.first, effect.second.getMagnitude()))
+                            creatureStats.getSpells().purgeEffect(effect.first.mId);
+                    }
+
+                    creatureStats.getSpells().remove (id);
 
                     MWBase::WindowManager *wm = MWBase::Environment::get().getWindowManager();
 
@@ -1173,7 +1185,7 @@ namespace MWScript
 
                     if (ptr == MWMechanics::getPlayer())
                     {
-                        ptr.getClass().getCreatureStats(ptr).resurrect();
+                        MWBase::Environment::get().getMechanicsManager()->resurrect(ptr);
                         if (MWBase::Environment::get().getStateManager()->getState() == MWBase::StateManager::State_Ended)
                             MWBase::Environment::get().getStateManager()->resumeGame();
                     }

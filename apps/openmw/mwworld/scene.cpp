@@ -40,6 +40,8 @@
 
 namespace
 {
+    using MWWorld::RotationOrder;
+
     osg::Quat makeActorOsgQuat(const ESM::Position& position)
     {
         return osg::Quat(position.rot[2], osg::Vec3(0, 0, -1));
@@ -67,7 +69,7 @@ namespace
             * osg::Quat(xr, osg::Vec3(-1, 0, 0));
     }
 
-    void setNodeRotation(const MWWorld::Ptr& ptr, MWRender::RenderingManager& rendering, const bool inverseRotationOrder)
+    void setNodeRotation(const MWWorld::Ptr& ptr, MWRender::RenderingManager& rendering, RotationOrder order)
     {
         if (!ptr.getRefData().getBaseNode())
             return;
@@ -75,7 +77,7 @@ namespace
         rendering.rotateObject(ptr,
             ptr.getClass().isActor()
             ? makeActorOsgQuat(ptr.getRefData().getPosition())
-            : (inverseRotationOrder
+            : (order == RotationOrder::inverse
                 ? makeInversedOrderObjectOsgQuat(ptr.getRefData().getPosition())
                 : makeObjectOsgQuat(ptr.getRefData().getPosition()))
         );
@@ -100,7 +102,7 @@ namespace
             model = ""; // marker objects that have a hardcoded function in the game logic, should be hidden from the player
 
         ptr.getClass().insertObjectRendering(ptr, model, rendering);
-        setNodeRotation(ptr, rendering, false);
+        setNodeRotation(ptr, rendering, RotationOrder::direct);
 
         ptr.getClass().insertObject (ptr, model, physics);
 
@@ -179,9 +181,9 @@ namespace
     }
 
     void updateObjectRotation (const MWWorld::Ptr& ptr, MWPhysics::PhysicsSystem& physics,
-                                    MWRender::RenderingManager& rendering, bool inverseRotationOrder)
+                                    MWRender::RenderingManager& rendering, RotationOrder order)
     {
-        setNodeRotation(ptr, rendering, inverseRotationOrder);
+        setNodeRotation(ptr, rendering, order);
         physics.updateRotation(ptr);
     }
 
@@ -278,9 +280,9 @@ namespace
 namespace MWWorld
 {
 
-    void Scene::updateObjectRotation (const Ptr& ptr, bool inverseRotationOrder)
+    void Scene::updateObjectRotation(const Ptr& ptr, RotationOrder order)
     {
-        ::updateObjectRotation(ptr, *mPhysics, mRendering, inverseRotationOrder);
+        ::updateObjectRotation(ptr, *mPhysics, mRendering, order);
     }
 
     void Scene::updateObjectScale(const Ptr &ptr)
@@ -683,11 +685,9 @@ namespace MWWorld
     void Scene::changeToInteriorCell (const std::string& cellName, const ESM::Position& position, bool adjustPlayerPos, bool changeEvent)
     {
         CellStore *cell = MWBase::Environment::get().getWorld()->getInterior(cellName);
-        bool loadcell = (mCurrentCell == nullptr);
-        if(!loadcell)
-            loadcell = *mCurrentCell != *cell;
-
-        MWBase::Environment::get().getWindowManager()->fadeScreenOut(0.5);
+        bool useFading = (mCurrentCell != nullptr);
+        if (useFading)
+            MWBase::Environment::get().getWindowManager()->fadeScreenOut(0.5);
 
         Loading::Listener* loadingListener = MWBase::Environment::get().getWindowManager()->getLoadingScreen();
         int messagesCount = MWBase::Environment::get().getWindowManager()->getMessagesCount();
@@ -695,7 +695,7 @@ namespace MWWorld
         loadingListener->setLabel(loadingInteriorText, false, messagesCount > 0);
         Loading::ScopedLoad load(loadingListener);
 
-        if(!loadcell)
+        if(mCurrentCell != nullptr && *mCurrentCell == *cell)
         {
             MWBase::World *world = MWBase::Environment::get().getWorld();
             world->moveObject(world->getPlayerPtr(), position.pos[0], position.pos[1], position.pos[2]);
@@ -734,7 +734,8 @@ namespace MWWorld
         if (changeEvent)
             mCellChanged = true;
 
-        MWBase::Environment::get().getWindowManager()->fadeScreenIn(0.5);
+        if (useFading)
+            MWBase::Environment::get().getWindowManager()->fadeScreenIn(0.5);
 
         MWBase::Environment::get().getWindowManager()->changeCell(mCurrentCell);
     }
