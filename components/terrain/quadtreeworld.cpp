@@ -243,7 +243,7 @@ private:
     osg::ref_ptr<RootNode> mRootNode;
 };
 
-QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resource::ResourceSystem *resourceSystem, Storage *storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float compMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize)
+QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resource::ResourceSystem *resourceSystem, Storage *storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float compMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize, bool useTerrain)
     : TerrainGrid(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask)
     , mViewDataMap(new ViewDataMap)
     , mQuadTreeBuilt(false)
@@ -254,7 +254,8 @@ QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resour
     mChunkManager->setCompositeMapSize(compMapResolution);
     mChunkManager->setCompositeMapLevel(compMapLevel);
     mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
-    mChunkManagers.push_back(mChunkManager.get());
+    if (useTerrain)
+        mChunkManagers.push_back(mChunkManager.get());
 }
 
 QuadTreeWorld::~QuadTreeWorld()

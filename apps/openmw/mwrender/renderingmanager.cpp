@@ -78,6 +78,50 @@
 
 namespace MWRender
 {
+    class GroundcoverUpdater : public SceneUtil::StateSetUpdater
+    {
+    public:
+        GroundcoverUpdater()
+            : mWindSpeed(0.f)
+            , mPlayerPos(osg::Vec3f())
+        {
+        }
+
+        void setWindSpeed(float windSpeed)
+        {
+            mWindSpeed = windSpeed;
+        }
+
+        void setPlayerPos(osg::Vec3f playerPos)
+        {
+            mPlayerPos = playerPos;
+        }
+
+    protected:
+        virtual void setDefaults(osg::StateSet *stateset)
+        {
+            osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", 0.0f);
+            stateset->addUniform(windUniform.get());
+
+            osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
+            stateset->addUniform(playerPosUniform.get());
+        }
+
+        virtual void apply(osg::StateSet *stateset, osg::NodeVisitor *nv)
+        {
+            osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windSpeed");
+            if (windUniform != nullptr)
+                windUniform->set(mWindSpeed);
+
+            osg::ref_ptr<osg::Uniform> playerPosUniform = stateset->getUniform("playerPos");
+            if (playerPosUniform != nullptr)
+                playerPosUniform->set(mPlayerPos);
+        }
+
+    private:
+        float mWindSpeed;
+        osg::Vec3f mPlayerPos;
+    };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
     {
@@ -206,8 +250,13 @@ namespace MWRender
     {
         resourceSystem->getSceneManager()->setParticleSystemMask(MWRender::Mask_ParticleSystem);
         resourceSystem->getSceneManager()->setShaderPath(resourcePath + "/shaders");
-        // Shadows and radial fog have problems with fixed-function mode
-        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || Settings::Manager::getBool("force shaders", "Shaders") || Settings::Manager::getBool("enable shadows", "Shadows");
+        // Shadows and radial fog have problems with fixed-function mode.
+        // Groundcover fading and animation are implemented via shader too.
+        bool forceShaders =
+            Settings::Manager::getBool("radial fog", "Shaders") ||
+            Settings::Manager::getBool("force shaders", "Shaders") ||
+            Settings::Manager::getBool("enable shadows", "Shadows") ||
+            Settings::Manager::getBool("enabled", "Groundcover");
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
         resourceSystem->getSceneManager()->setClampLighting(Settings::Manager::getBool("clamp lighting", "Shaders"));
@@ -248,6 +297,11 @@ namespace MWRender
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
+        globalDefines["groundcoverAnimation"] = Settings::Manager::getBool("animation", "Groundcover") ? "1" : "0";
+
+        float groundcoverDistance = (Constants::CellSizeInUnits * Settings::Manager::getFloat("distance", "Groundcover") - 1024) * 0.93;
+        globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
+        globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
@@ -277,16 +331,17 @@ namespace MWRender
 
         mTerrainStorage = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
 
+        const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
+        int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
+        compMapPower = std::max(-3, compMapPower);
+        float compMapLevel = pow(2, compMapPower);
+        const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
+        const int vertexLodMod = Settings::Manager::getInt("vertex lod mod", "Terrain");
+        float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
+        maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
+
         if (Settings::Manager::getBool("distant terrain", "Terrain"))
         {
-            const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
-            int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
-            compMapPower = std::max(-3, compMapPower);
-            float compMapLevel = pow(2, compMapPower);
-            const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
-            const int vertexLodMod = Settings::Manager::getInt("vertex lod mod", "Terrain");
-            float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
-            maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
             mTerrain.reset(new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
@@ -303,6 +358,31 @@ namespace MWRender
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
 
+        if (Settings::Manager::getBool("enabled", "Groundcover"))
+        {
+            osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
+            groundcoverRoot->setNodeMask(Mask_Groundcover);
+            groundcoverRoot->setName("Groundcover Root");
+            sceneRoot->addChild(groundcoverRoot);
+
+            if (Settings::Manager::getBool("animation", "Groundcover"))
+            {
+                mGroundcoverUpdater = new GroundcoverUpdater;
+                groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
+            }
+
+            auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
+            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
+                groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Groundcover, Mask_PreCompile, Mask_Debug,
+                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
+
+            mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
+            static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
+            mResourceSystem->addResourceManager(mGroundcoverPaging.get());
+
+            mGroundcoverWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
+            mGroundcoverWorld->setWorkQueue(mWorkQueue.get());
+        }
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(mRootNode, sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
 
@@ -511,7 +591,11 @@ namespace MWRender
         mWater->changeCell(store);
 
         if (store->getCell()->isExterior())
+        {
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+        }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore *store)
     {
@@ -520,7 +604,11 @@ namespace MWRender
         mObjects->removeCell(store);
 
         if (store->getCell()->isExterior())
+        {
             mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+        }
 
         mWater->removeCell(store);
     }
@@ -530,6 +618,8 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -615,6 +705,16 @@ namespace MWRender
             mEffectManager->update(dt);
             mSky->update(dt);
             mWater->update(dt);
+
+            if (mGroundcoverUpdater)
+            {
+                const MWWorld::Ptr& player = mPlayerAnimation->getPtr();
+                osg::Vec3f playerPos(player.getRefData().getPosition().asVec3());
+
+                float windSpeed = mSky->getBaseWindSpeed();
+                mGroundcoverUpdater->setWindSpeed(windSpeed);
+                mGroundcoverUpdater->setPlayerPos(playerPos);
+            }
         }
 
         updateNavMesh();
@@ -1075,7 +1175,7 @@ namespace MWRender
         mIntersectionVisitor->setIntersector(intersector);
 
         int mask = ~0;
-        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater);
+        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Groundcover);
         if (ignorePlayer)
             mask &= ~(Mask_Player);
         if (ignoreActors)
@@ -1139,6 +1239,8 @@ namespace MWRender
         notifyWorldSpaceChanged();
         if (mObjectPaging)
             mObjectPaging->clear();
+        if (mGroundcoverPaging)
+            mGroundcoverPaging->clear();
     }
 
     MWRender::Animation* RenderingManager::getAnimation(const MWWorld::Ptr &ptr)
@@ -1234,6 +1336,12 @@ namespace MWRender
         fov = std::min(mFieldOfView, 140.f);
         float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
+
+        if (mGroundcoverWorld)
+        {
+            float groundcoverDistance = Constants::CellSizeInUnits * Settings::Manager::getFloat("distance", "Groundcover");
+            mGroundcoverWorld->setViewDistance(groundcoverDistance * (distanceMult ? 1.f/distanceMult : 1.f));
+        }
     }
 
     void RenderingManager::updateTextureFiltering()
@@ -1248,6 +1356,8 @@ namespace MWRender
         );
 
         mTerrain->updateTextureFiltering();
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->updateTextureFiltering();
 
         mViewer->startThreading();
     }
@@ -1278,6 +1388,9 @@ namespace MWRender
             stats->setAttribute(frameNumber, "UnrefQueue", mUnrefQueue->getNumItems());
 
             mTerrain->reportStats(frameNumber, stats);
+
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->reportStats(frameNumber, stats);
         }
     }
 
@@ -1428,17 +1541,26 @@ namespace MWRender
     void RenderingManager::setActiveGrid(const osg::Vec4i &grid)
     {
         mTerrain->setActiveGrid(grid);
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->setActiveGrid(grid);
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
+        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
             return false;
-        if (mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+
+        bool result = false;
+        if (mObjectPaging && mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
         {
             mTerrain->rebuildViews();
-            return true;
+            result = true;
         }
-        return false;
+        if (mGroundcoverPaging && mGroundcoverPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+        {
+            mGroundcoverWorld->rebuildViews();
+            result = true;
+        }
+        return result;
     }
     void RenderingManager::pagingBlacklistObject(int type, const MWWorld::ConstPtr &ptr)
     {
@@ -1448,19 +1570,29 @@ namespace MWRender
         if (!refnum.hasContentFile()) return;
         if (mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
             mTerrain->rebuildViews();
+
+        if (mGroundcoverPaging && mGroundcoverPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
+            mGroundcoverWorld->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()
     {
+        bool result = false;
         if (mObjectPaging && mObjectPaging->unlockCache())
         {
             mTerrain->rebuildViews();
-            return true;
+            result = true;
         }
-        return false;
+        if (mGroundcoverPaging && mGroundcoverPaging->unlockCache())
+        {
+            mGroundcoverWorld->rebuildViews();
+            result = true;
+        }
+        return result;
     }
     void RenderingManager::getPagedRefnums(const osg::Vec4i &activeGrid, std::set<ESM::RefNum> &out)
     {
         if (mObjectPaging)
             mObjectPaging->getPagedRefnums(activeGrid, out);
     }
+
 }

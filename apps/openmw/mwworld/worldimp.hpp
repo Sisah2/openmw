@@ -176,7 +176,7 @@ namespace MWWorld
              * @param contentLoader -
              */
             void loadContentFiles(const Files::Collections& fileCollections,
-                const std::vector<std::string>& content, ContentLoader& contentLoader);
+                const std::vector<std::string>& content, const std::vector<std::string>& groundcover, ContentLoader& contentLoader);
 
             float feetToGameUnits(float feet);
             float getActivationDistancePlusTelekinesis();
@@ -195,6 +195,7 @@ namespace MWWorld
                 Resource::ResourceSystem* resourceSystem, SceneUtil::WorkQueue* workQueue,
                 const Files::Collections& fileCollections,
                 const std::vector<std::string>& contentFiles,
+                const std::vector<std::string>& groundcoverFiles,
                 ToUTF8::Utf8Encoder* encoder, int activationDistanceOverride,
                 const std::string& startCell, const std::string& startupScript,
                 const std::string& resourcePath, const std::string& userDataPath);
