@@ -13,6 +13,7 @@
 #include <components/misc/stringops.hpp>
 #include <components/terrain/world.hpp>
 #include <components/sceneutil/unrefqueue.hpp>
+#include <components/settings/settings.hpp>
 #include <components/esm/loadcell.hpp>
 
 #include "../mwbase/environment.hpp"
@@ -31,11 +32,27 @@ namespace MWWorld
     {
         ListModelsVisitor(std::vector<std::string>& out)
             : mOut(out)
+            , mCurrentGroundcover(0.f)
         {
         }
 
         virtual bool operator()(const MWWorld::Ptr& ptr)
         {
+            static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
+            static const float density = Settings::Manager::getFloat("density", "Groundcover");
+
+            if (groundcoverEnabled && ptr.getTypeName()==typeid (ESM::Static).name())
+            {
+                const MWWorld::LiveCellRef<ESM::Static> *ref = ptr.get<ESM::Static>();
+                if (ref->mBase->mIsGroundcover)
+                {
+                    mCurrentGroundcover += density;
+                    if (mCurrentGroundcover < 1.f) return true;
+
+                    mCurrentGroundcover -= 1.f;
+                }
+            }
+
             ptr.getClass().getModelsToPreload(ptr, mOut);
 
             return true;
@@ -44,6 +61,7 @@ namespace MWWorld
         virtual ~ListModelsVisitor() = default;
 
         std::vector<std::string>& mOut;
+        float mCurrentGroundcover;
     };
 
     /// Worker thread item: preload models in a cell.

@@ -13,16 +13,14 @@
 namespace Terrain
 {
 
-World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask)
+World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask, bool useTerrain)
     : mStorage(storage)
     , mParent(parent)
     , mResourceSystem(resourceSystem)
     , mBorderVisible(false)
-    , mHeightCullCallback(new HeightCullCallback)
 {
     mTerrainRoot = new osg::Group;
     mTerrainRoot->setNodeMask(nodeMask);
-    mTerrainRoot->setName("Terrain Root");
 
     osg::ref_ptr<osg::Camera> compositeCam = new osg::Camera;
     compositeCam->setRenderOrder(osg::Camera::PRE_RENDER, -1);
@@ -38,28 +36,35 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
     mCompositeMapRenderer = new CompositeMapRenderer;
     compositeCam->addChild(mCompositeMapRenderer);
 
+    if (useTerrain)
+    {
+        mHeightCullCallback = new HeightCullCallback();
+
+        mTerrainRoot->setName("Terrain Root");
+
+        mTextureManager.reset(new TextureManager(mResourceSystem->getSceneManager()));
+        mChunkManager.reset(new ChunkManager(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer));
+        mChunkManager->setNodeMask(nodeMask);
+        mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask));
+
+        mResourceSystem->addResourceManager(mChunkManager.get());
+        mResourceSystem->addResourceManager(mTextureManager.get());
+    }
+
     mParent->addChild(mTerrainRoot);
-
-    mTextureManager.reset(new TextureManager(mResourceSystem->getSceneManager()));
-    mChunkManager.reset(new ChunkManager(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer));
-    mChunkManager->setNodeMask(nodeMask);
-    mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask));
-
-    mResourceSystem->addResourceManager(mChunkManager.get());
-    mResourceSystem->addResourceManager(mTextureManager.get());
 }
 
 World::~World()
 {
-    mResourceSystem->removeResourceManager(mChunkManager.get());
-    mResourceSystem->removeResourceManager(mTextureManager.get());
+    if (mChunkManager)
+        mResourceSystem->removeResourceManager(mChunkManager.get());
+    if (mTextureManager)
+        mResourceSystem->removeResourceManager(mTextureManager.get());
 
     mParent->removeChild(mTerrainRoot);
 
     mCompositeMapCamera->removeChild(mCompositeMapRenderer);
     mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
-
-    delete mStorage;
 }
 
 void World::setWorkQueue(SceneUtil::WorkQueue* workQueue)
@@ -108,16 +113,20 @@ float World::getHeightAt(const osg::Vec3f &worldPos)
 
 void World::updateTextureFiltering()
 {
-    mTextureManager->updateTextureFiltering();
+    if (mTextureManager)
+        mTextureManager->updateTextureFiltering();
 }
 
 void World::clearAssociatedCaches()
 {
-    mChunkManager->clearCache();
+    if (mChunkManager)
+        mChunkManager->clearCache();
 }
 
 osg::Callback* World::getHeightCullCallback(float highz, unsigned int mask)
 {
+    if (!mHeightCullCallback) return nullptr;
+
     mHeightCullCallback->setHighZ(highz);
     mHeightCullCallback->setCullMask(mask);
     return mHeightCullCallback;

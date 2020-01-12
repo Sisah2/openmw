@@ -20,8 +20,8 @@ public:
     virtual void reset() {}
 };
 
-TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask)
-    : Terrain::World(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask)
+TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask, bool useTerrain)
+    : Terrain::World(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask, useTerrain)
     , mNumSplits(4)
 {
 }
@@ -107,6 +107,8 @@ void TerrainGrid::unloadCell(int x, int y)
 
 void TerrainGrid::updateWaterCulling()
 {
+    if (!mHeightCullCallback) return;
+
     osg::ComputeBoundsVisitor computeBoundsVisitor;
     mTerrainRoot->accept(computeBoundsVisitor);
     float lowZ = computeBoundsVisitor.getBoundingBox()._min.z();
