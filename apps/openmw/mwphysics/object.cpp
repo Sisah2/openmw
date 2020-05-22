@@ -1,4 +1,5 @@
 #include "object.hpp"
+#include "apps/openmw/mwphysics/mtphysics.hpp"
 
 #include <components/debug/debuglog.hpp>
 #include <components/nifosg/particle.hpp>
@@ -8,7 +9,6 @@
 
 #include <BulletCollision/CollisionShapes/btCompoundShape.h>
 #include <BulletCollision/CollisionDispatch/btCollisionObject.h>
-#include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
 #include <LinearMath/btTransform.h>
 
@@ -76,7 +76,7 @@ namespace MWPhysics
         return !mShapeInstance->mAnimatedShapes.empty();
     }
 
-    void Object::animateCollisionShapes(btCollisionWorld* collisionWorld)
+    void Object::animateCollisionShapes(PhysicsTaskScheduler* scheduler)
     {
         if (mShapeInstance->mAnimatedShapes.empty())
             return;
@@ -123,6 +123,6 @@ namespace MWPhysics
                 compound->updateChildTransform(shapeIndex, transform);
         }
 
-        collisionWorld->updateSingleAabb(mCollisionObject.get());
+        scheduler->updateSingleAabb(mCollisionObject.get());
     }
 }

@@ -91,17 +91,18 @@ namespace MWWorld
             std::string mCurrentWorldSpace;
 
             std::unique_ptr<MWWorld::Player> mPlayer;
+            std::unique_ptr<MWWorld::Scene> mWorldScene;
+            std::unique_ptr<MWWorld::WeatherManager> mWeatherManager;
             std::unique_ptr<MWPhysics::PhysicsSystem> mPhysics;
             std::unique_ptr<DetourNavigator::Navigator> mNavigator;
             std::unique_ptr<MWRender::RenderingManager> mRendering;
-            std::unique_ptr<MWWorld::Scene> mWorldScene;
-            std::unique_ptr<MWWorld::WeatherManager> mWeatherManager;
             std::unique_ptr<MWWorld::DateTimeManager> mCurrentDate;
             std::shared_ptr<ProjectileManager> mProjectileManager;
 
             bool mSky;
             bool mGodMode;
             bool mScriptsEnabled;
+            bool mDiscardMovements;
             std::vector<std::string> mContentFiles;
 
             std::string mUserDataPath;

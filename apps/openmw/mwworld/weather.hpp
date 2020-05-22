@@ -1,6 +1,7 @@
 #ifndef GAME_MWWORLD_WEATHER_H
 #define GAME_MWWORLD_WEATHER_H
 
+#include <atomic>
 #include <stdint.h>
 #include <string>
 #include <map>
@@ -340,7 +341,7 @@ namespace MWWorld
         float mWindSpeed;
         float mCurrentWindSpeed;
         float mNextWindSpeed;
-        bool mIsStorm;
+        std::atomic<bool> mIsStorm;
         bool mPrecipitation;
         osg::Vec3f mStormDirection;
 

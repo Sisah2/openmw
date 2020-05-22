@@ -14,12 +14,13 @@ namespace Resource
 }
 
 class btCollisionObject;
-class btCollisionWorld;
 class btQuaternion;
 class btVector3;
 
 namespace MWPhysics
 {
+    class PhysicsTaskScheduler;
+
     class Object : public PtrHolder
     {
     public:
@@ -35,7 +36,7 @@ namespace MWPhysics
         bool isSolid() const;
         void setSolid(bool solid);
         bool isAnimated() const;
-        void animateCollisionShapes(btCollisionWorld* collisionWorld);
+        void animateCollisionShapes(PhysicsTaskScheduler* scheduler);
 
     private:
         std::unique_ptr<btCollisionObject> mCollisionObject;
