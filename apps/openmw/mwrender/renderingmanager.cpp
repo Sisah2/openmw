@@ -289,6 +289,7 @@ namespace MWRender
             mTerrain.reset(new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
+            static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->setOcclusionCullingSettings(Settings::Manager::getBool("debug occlusion culling", "Terrain"), Settings::Manager::getInt("occlusion culling maximum active", "Terrain"), Settings::Manager::getFloat("occlusion culling minimum volume", "Terrain"), Settings::Manager::getFloat("occlusion culling zfactor", "Terrain"), Settings::Manager::getFloat("occlusion culling zbias", "Terrain"));
             if (Settings::Manager::getBool("object paging", "Terrain"))
             {
                 mObjectPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager()));
@@ -341,6 +342,9 @@ namespace MWRender
         sceneRoot->addUpdateCallback(mStateUpdater);
 
         osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+
+        if (!Settings::Manager::getBool("occlusion culling", "Terrain"))
+            cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
 
         if (!Settings::Manager::getBool("small feature culling", "Camera"))
             cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
