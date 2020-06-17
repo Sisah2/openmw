@@ -238,6 +238,8 @@ osg::ref_ptr<osg::Node> ChunkManager::createChunk(float chunkSize, const osg::Ve
     }
     geometry->setNodeMask(mNodeMask);
 
+    geometry->createOccluders(chunkCenter * mStorage->getCellWorldSize());
+
     if (mDebugChunks)
     {
         osg::ref_ptr<osg::Group> result(new osg::Group);

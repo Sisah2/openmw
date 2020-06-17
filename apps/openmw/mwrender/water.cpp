@@ -2,6 +2,7 @@
 
 #include <iomanip>
 
+#include <osg/PolygonMode>
 #include <osg/Fog>
 #include <osg/Depth>
 #include <osg/Group>
@@ -279,8 +280,31 @@ public:
         camera->setName("RefractionCamera");
         camera->addCullCallback(new InheritViewPointCallback);
         camera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
+        camera->setRenderOrder(osg::Camera::PRE_RENDER, 1);
+        camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+        camera->osg::Camera::setName("RefractionCamera");
+
+        osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+        cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
+
+        if (!Settings::Manager::getBool("small feature culling", "Camera"))
+            cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
+        else
+        {
+            cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
+            camera->setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+        }
+        camera->setCullingMode(cullingMode);
 
         camera->setCullMask(Mask_Effect | Mask_Scene | Mask_Object | Mask_Static | Mask_Terrain | Mask_Actor | Mask_ParticleSystem | Mask_Sky | Mask_Sun | Mask_Player | Mask_Lighting | Mask_Groundcover);
+        setNodeMask(Mask_RenderToTexture);
+        unsigned int rttSize = Settings::Manager::getInt("rtt size", "Water");
+        camera->setViewport(0, 0, rttSize, rttSize);
+
+        // No need for Update traversal since the scene is already updated as part of the main scene graph
+        // A double update would mess with the light collection (in addition to being plain redundant)
+        setUpdateCallback(new NoTraverseCallback);
 
         // No need for fog here, we are already applying fog on the water surface itself as well as underwater fog
         // assign large value to effectively turn off fog
@@ -344,6 +368,22 @@ public:
         camera->setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
         camera->setName("ReflectionCamera");
         camera->addCullCallback(new InheritViewPointCallback);
+        camera->setRenderOrder(osg::Camera::PRE_RENDER);
+        camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        camera-> setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
+
+        osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+        if (!Settings::Manager::getBool("reflection occlusion culling", "Terrain"))
+            cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
+
+        if (!Settings::Manager::getBool("small feature culling", "Camera"))
+            cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
+        else
+        {
+            cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
+            camera->setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+        }
+        camera->setCullingMode(cullingMode);
 
         // XXX: should really flip the FrontFace on each renderable instead of forcing clockwise.
         osg::ref_ptr<osg::FrontFace> frontFace(new osg::FrontFace);
