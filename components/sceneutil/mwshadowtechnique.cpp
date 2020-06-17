@@ -571,6 +571,7 @@ MWShadowTechnique::ShadowData::ShadowData(MWShadowTechnique::ViewDependentData* 
 
     // switch off small feature culling as this can cull out geometry that will still be large enough once perspective correction takes effect.
     _camera->setCullingMode(_camera->getCullingMode() & ~osg::CullSettings::SMALL_FEATURE_CULLING);
+    _camera->setCullingMode(_camera->getCullingMode() & ~osg::CullSettings::SHADOW_OCCLUSION_CULLING);
 
     // set viewport
     _camera->setViewport(0,0,textureSize.x(),textureSize.y());
