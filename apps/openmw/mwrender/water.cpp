@@ -2,6 +2,7 @@
 
 #include <iomanip>
 
+#include <osg/PolygonMode>
 #include <osg/Fog>
 #include <osg/Depth>
 #include <osg/Group>
@@ -244,6 +245,18 @@ public:
         setCullCallback(new InheritViewPointCallback);
         setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
 
+        osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+        cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
+
+        if (!Settings::Manager::getBool("small feature culling", "Camera"))
+            cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
+        else
+        {
+            cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
+            setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+        }
+        setCullingMode(cullingMode);
+
         setCullMask(Mask_Effect|Mask_Scene|Mask_Object|Mask_Static|Mask_Terrain|Mask_Actor|Mask_ParticleSystem|Mask_Sky|Mask_Sun|Mask_Player|Mask_Lighting|Mask_Groundcover);
         setNodeMask(Mask_RenderToTexture);
         setViewport(0, 0, rttSize, rttSize);
@@ -337,6 +350,19 @@ public:
         setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
         osg::Camera::setName("ReflectionCamera");
         setCullCallback(new InheritViewPointCallback);
+
+        osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+        if (!Settings::Manager::getBool("reflection occlusion culling", "Terrain"))
+            cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
+
+        if (!Settings::Manager::getBool("small feature culling", "Camera"))
+            cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
+        else
+        {
+            cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
+            setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+        }
+        setCullingMode(cullingMode);
 
         setInterior(isInterior);
         setNodeMask(Mask_RenderToTexture);
