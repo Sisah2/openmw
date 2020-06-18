@@ -64,6 +64,8 @@ centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
+uniform float gamma;
+
 #include "shadows_fragment.glsl"
 #include "lighting.glsl"
 #include "parallax.glsl"
@@ -204,6 +206,8 @@ void main()
     float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+
+    if(gamma != 1.0) gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/gamma));
 
     applyShadowDebugOverlay();
 }

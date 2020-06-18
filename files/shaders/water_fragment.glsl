@@ -146,6 +146,8 @@ uniform float rainIntensity;
 
 float frustumDepth;
 
+uniform float gamma;
+
 float linearizeDepth(float depth)
   {
     float z_n = 2.0 * depth - 1.0;
@@ -261,6 +263,8 @@ void main(void)
     float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz,  fogValue);
+
+    if(gamma != 1.0) gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/gamma));
 
     applyShadowDebugOverlay();
 }

@@ -633,6 +633,11 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
         shaderStateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
     }
 
+    static float gamma = 1.0;
+    const char *s = getenv("OPENMW_GAMMA");
+    if (s) gamma = atof(s);
+    shaderStateset->addUniform(new osg::Uniform("gamma", gamma));
+
     shaderStateset->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
 
     shaderStateset->addUniform(mRainIntensityUniform.get());
