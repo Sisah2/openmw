@@ -30,6 +30,7 @@
 #include "apps/openmw/mwbase/environment.hpp"
 #include "apps/openmw/mwbase/world.hpp"
 
+#include "grass.hpp"
 #include "vismask.hpp"
 
 namespace MWRender
@@ -476,6 +477,7 @@ namespace MWRender
             int type = store.findStatic(ref.mRefID);
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
+            if (Grass::isGrassItem(model)) continue;
             model = "meshes/" + model;
 
             if (activeGrid && type != ESM::REC_STAT)
@@ -571,6 +573,7 @@ namespace MWRender
                 copyop.mSqrDistance = (viewPoint - pos).length2();
                 copyop.mViewVector = (viewPoint - worldCenter);
                 copyop.copy(cnode, trans);
+                copyop.mNodePath.pop_back();
 
                 if (activeGrid)
                 {
