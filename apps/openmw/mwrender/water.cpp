@@ -576,6 +576,11 @@ void Water::createSimpleWaterStateSet(osg::Node* node, float alpha)
     controller->setSource(std::shared_ptr<SceneUtil::ControllerSource>(new SceneUtil::FrameTimeSource));
     node->setUpdateCallback(controller);
 
+    static float gamma = 1.0;
+    const char *s = getenv("OPENMW_GAMMA");
+    if (s) gamma = atof(s);
+    stateset->addUniform(new osg::Uniform("gamma", gamma));
+
     stateset->setTextureAttributeAndModes(0, textures[0], osg::StateAttribute::ON);
 
     // use a shader to render the simple water, ensuring that fog is applied per pixel as required.
