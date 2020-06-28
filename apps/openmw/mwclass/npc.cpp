@@ -784,7 +784,22 @@ namespace MWClass
                 MWWorld::InventoryStore &inv = getInventoryStore(ptr);
                 MWWorld::ContainerStoreIterator armorslot = inv.getSlot(hitslot);
                 MWWorld::Ptr armor = ((armorslot != inv.end()) ? *armorslot : MWWorld::Ptr());
-                if(!armor.isEmpty() && armor.getTypeName() == typeid(ESM::Armor).name())
+                bool hasArmor = !armor.isEmpty() && armor.getTypeName() == typeid(ESM::Armor).name();
+                // If there's no item in the carried left slot or if it is not a shield redistribute the hit.
+                if (!hasArmor && hitslot == MWWorld::InventoryStore::Slot_CarriedLeft)
+                {
+                    if (Misc::Rng::rollDice(2) == 0)
+                        hitslot = MWWorld::InventoryStore::Slot_Cuirass;
+                    else
+                        hitslot = MWWorld::InventoryStore::Slot_LeftPauldron;
+                    armorslot = inv.getSlot(hitslot);
+                    if (armorslot != inv.end())
+                    {
+                        armor = *armorslot;
+                        hasArmor = !armor.isEmpty() && armor.getTypeName() == typeid(ESM::Armor).name();
+                    }
+                }
+                if (hasArmor)
                 {
                     if (!object.isEmpty() || attacker.isEmpty() || attacker.getClass().isNpc()) // Unarmed creature attacks don't affect armor condition
                     {
@@ -966,13 +981,14 @@ namespace MWClass
             moveSpeed = getRunSpeed(ptr);
         else
             moveSpeed = getWalkSpeed(ptr);
-        if(getMovementSettings(ptr).mPosition[0] != 0 && getMovementSettings(ptr).mPosition[1] == 0)
-            moveSpeed *= 0.75f;
 
         if(npcdata->mNpcStats.isWerewolf() && running && npcdata->mNpcStats.getDrawState() == MWMechanics::DrawState_Nothing)
             moveSpeed *= gmst.fWereWolfRunMult->mValue.getFloat();
 
-        moveSpeed *= ptr.getClass().getMovementSettings(ptr).mSpeedFactor;
+        const MWMechanics::Movement& movementSettings = ptr.getClass().getMovementSettings(ptr);
+        if (movementSettings.mIsStrafing)
+            moveSpeed *= 0.75f;
+        moveSpeed *= movementSettings.mSpeedFactor;
 
         return moveSpeed;
     }

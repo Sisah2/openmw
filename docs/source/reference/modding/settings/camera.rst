@@ -113,3 +113,29 @@ because the Bethesda provided Morrowind assets do not adapt well to large values
 while small values can result in the hands not being visible.
 
 This setting can only be configured by editing the settings configuration file.
+
+view over shoulder
+------------------
+
+:Type:		boolean
+:Range:		True/False
+:Default:	False
+
+This setting controls third person view mode.
+False: View is centered on the character's head. Crosshair is hidden.
+True: In non-combat mode camera is positioned behind the character's shoulder. Crosshair is visible in third person mode as well.
+
+This setting can only be configured by editing the settings configuration file.
+
+view over shoulder offset
+-------------------------
+
+:Type:		2D vector floating point
+:Range:		Any
+:Default:	30 -10
+
+This setting makes sense only if 'view over shoulder' is enabled. Controls horizontal (first number) and vertical (second number) offset of the camera in third person mode.
+Recommened values: 30 -10 for the right shoulder, -30 -10 for the left shoulder.
+
+This setting can only be configured by editing the settings configuration file.
+

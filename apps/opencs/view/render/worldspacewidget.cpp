@@ -33,7 +33,7 @@
 #include "cameracontroller.hpp"
 
 CSVRender::WorldspaceWidget::WorldspaceWidget (CSMDoc::Document& document, QWidget* parent)
-    : SceneWidget (document.getData().getResourceSystem(), parent, 0, false)
+    : SceneWidget (document.getData().getResourceSystem(), parent, Qt::WindowFlags(), false)
     , mSceneElements(0)
     , mRun(0)
     , mDocument(document)
@@ -646,13 +646,8 @@ void CSVRender::WorldspaceWidget::mouseMoveEvent (QMouseEvent *event)
 
         if (mDragging)
         {
-#if QT_VERSION >= QT_VERSION_CHECK(5,0,0)
             mDragX = event->localPos().x();
             mDragY = height() - event->localPos().y();
-#else
-            mDragX = event->posF().x();
-            mDragY = height() - event->posF().y();
-#endif
         }
     }
     else
@@ -682,8 +677,7 @@ void CSVRender::WorldspaceWidget::wheelEvent (QWheelEvent *event)
             factor *= mDragShiftFactor;
 
         EditMode& editMode = dynamic_cast<CSVRender::EditMode&> (*mEditMode->getCurrent());
-
-        editMode.dragWheel (event->delta(), factor);
+        editMode.dragWheel (event->angleDelta().y(), factor);
     }
     else
         SceneWidget::wheelEvent(event);
