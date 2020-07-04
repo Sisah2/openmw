@@ -14,6 +14,11 @@
 
 #include "../mwbase/soundmanager.hpp"
 
+#include "regionsoundselector.hpp"
+#include "watersoundupdater.hpp"
+#include "type.hpp"
+#include "volumesettings.hpp"
+
 namespace VFS
 {
     class Manager;
@@ -22,6 +27,7 @@ namespace VFS
 namespace ESM
 {
     struct Sound;
+    struct Cell;
 }
 
 namespace MWSound
@@ -53,18 +59,10 @@ namespace MWSound
         std::unordered_map<std::string, std::vector<int>> mMusicToPlay; // A list with music files not yet played
         std::string mLastPlayedMusic; // The music file that was last played
 
-        float mMasterVolume;
-        float mSFXVolume;
-        float mMusicVolume;
-        float mVoiceVolume;
-        float mFootstepsVolume;
+        VolumeSettings mVolumeSettings;
 
-        int mNearWaterRadius;
-        int mNearWaterPoints;
-        float mNearWaterIndoorTolerance;
-        float mNearWaterOutdoorTolerance;
-        std::string mNearWaterIndoorID;
-        std::string mNearWaterOutdoorID;
+        WaterSoundUpdater mWaterSoundUpdater;
+
         typedef std::unique_ptr<std::deque<Sound_Buffer> > SoundBufferList;
         // List of sound buffers, grown as needed. New enties are added to the
         // back, allowing existing Sound_Buffer references/pointers to remain
@@ -115,6 +113,12 @@ namespace MWSound
         std::string mNextMusic;
         bool mPlaybackPaused;
 
+        RegionSoundSelector mRegionSoundSelector;
+
+        float mTimePassed = 0;
+
+        const ESM::Cell *mLastCell = nullptr;
+
         Sound_Buffer *insertSound(const std::string &soundId, const ESM::Sound *sound);
 
         Sound_Buffer *lookupSound(const std::string &soundId) const;
@@ -134,10 +138,21 @@ namespace MWSound
 
         void updateSounds(float duration);
         void updateRegionSound(float duration);
-        void updateWaterSound(float duration);
+        void updateWaterSound();
         void updateMusic(float duration);
 
         float volumeFromType(Type type) const;
+
+        enum class WaterSoundAction
+        {
+            DoNothing,
+            SetVolume,
+            FinishSound,
+            PlaySound,
+        };
+
+        std::pair<WaterSoundAction, Sound_Buffer*> getWaterSoundAction(const WaterSoundUpdate& update,
+                                                                       const ESM::Cell* cell) const;
 
         SoundManager(const SoundManager &rhs);
         SoundManager& operator=(const SoundManager &rhs);
@@ -232,9 +247,6 @@ namespace MWSound
 
         virtual void stopSound(const MWWorld::CellStore *cell);
         ///< Stop all sounds for the given cell.
-
-        virtual void stopSound(const std::string& soundId);
-        ///< Stop a non-3d looping sound
 
         virtual void fadeOutSound3D(const MWWorld::ConstPtr &reference, const std::string& soundId, float duration);
         ///< Fade out given sound (that is already playing) of given object

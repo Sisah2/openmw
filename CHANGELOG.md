@@ -29,11 +29,14 @@
     Bug #5441: Enemies can't push a player character when in critical strike stance
     Bug #5451: Magic projectiles don't disappear with the caster
     Bug #5452: Autowalk is being included in savegames
+    Bug #5472: Mistify mod causes CTD in 0.46 on Mac
     Bug #5479: NPCs who should be walking around town are standing around without walking
     Bug #5484: Zero value items shouldn't be able to be bought or sold for 1 gold
     Bug #5485: Intimidate doesn't increase disposition on marginal wins
     Bug #5490: Hits to carried left slot aren't redistributed if there's no shield equipped
     Bug #5499: Faction advance is available when requirements not met
+    Bug #5502: Dead zone for analogue stick movement is too small
+    Bug #5507: Sound volume is not clamped on ingame settings update
     Feature #390: 3rd person look "over the shoulder"
     Feature #2386: Distant Statics in the form of Object Paging
     Feature #5297: Add a search function to the "Datafiles" tab of the OpenMW launcher

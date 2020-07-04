@@ -1485,6 +1485,8 @@ namespace MWRender
         {
             if (mLightListCallback)
                 mObjectRoot->removeCullCallback(mLightListCallback);
+            if (mTransparencyUpdater)
+                mObjectRoot->removeCullCallback(mTransparencyUpdater);
             previousStateset = mObjectRoot->getStateSet();
             mObjectRoot->getParent(0)->removeChild(mObjectRoot);
         }
@@ -1576,6 +1578,8 @@ namespace MWRender
         if (!mLightListCallback)
             mLightListCallback = new SceneUtil::LightListCallback;
         mObjectRoot->addCullCallback(mLightListCallback);
+        if (mTransparencyUpdater)
+            mObjectRoot->addCullCallback(mTransparencyUpdater);
     }
 
     osg::Group* Animation::getObjectRoot()
