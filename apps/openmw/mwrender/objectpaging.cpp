@@ -449,6 +449,8 @@ namespace MWRender
         float minSize = mMinSize;
         if (mMinSizeMergeFactor)
             minSize *= mMinSizeMergeFactor;
+
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
         for (const auto& pair : refs)
         {
             const ESM::CellRef& ref = pair.second;
@@ -477,7 +479,7 @@ namespace MWRender
             int type = store.findStatic(ref.mRefID);
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
-            if (Grass::isGrassItem(model)) continue;
+            if (grassEnabled && Grass::isGrassItem(model)) continue;
             model = "meshes/" + model;
 
             if (activeGrid && type != ESM::REC_STAT)
