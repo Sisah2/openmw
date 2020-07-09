@@ -105,12 +105,7 @@ namespace MWPhysics
             delete heightField.second;
         }
 
-        for (auto& object : mObjects)
-        {
-            mTaskScheduler->removeCollisionObject(object.second->getCollisionObject());
-            delete object.second;
-        }
-
+        mObjects.clear();
         mActors.clear();
 
     }
@@ -460,11 +455,11 @@ namespace MWPhysics
         if (!shapeInstance || !shapeInstance->getCollisionShape())
             return;
 
-        Object *obj = new Object(ptr, shapeInstance);
+        auto obj = std::make_shared<Object>(ptr, shapeInstance, mTaskScheduler.get());
         mObjects.emplace(ptr, obj);
 
         if (obj->isAnimated())
-            mAnimatedObjects.insert(obj);
+            mAnimatedObjects.insert(obj.get());
 
         mTaskScheduler->addCollisionObject(obj->getCollisionObject(), collisionType,
                                            CollisionType_Actor|CollisionType_HeightMap|CollisionType_Projectile);
@@ -475,14 +470,11 @@ namespace MWPhysics
         ObjectMap::iterator found = mObjects.find(ptr);
         if (found != mObjects.end())
         {
-            mTaskScheduler->removeCollisionObject(found->second->getCollisionObject());
-
             if (mUnrefQueue.get())
                 mUnrefQueue->push(found->second->getShapeInstance());
 
-            mAnimatedObjects.erase(found->second);
+            mAnimatedObjects.erase(found->second.get());
 
-            delete found->second;
             mObjects.erase(found);
         }
 
@@ -514,10 +506,10 @@ namespace MWPhysics
         ObjectMap::iterator found = mObjects.find(old);
         if (found != mObjects.end())
         {
-            Object* obj = found->second;
+            auto obj = found->second;
             obj->updatePtr(updated);
             mObjects.erase(found);
-            mObjects.emplace(updated, obj);
+            mObjects.emplace(updated, std::move(obj));
         }
 
         ActorMap::iterator foundActor = mActors.find(old);
@@ -552,7 +544,7 @@ namespace MWPhysics
     {
         ObjectMap::const_iterator found = mObjects.find(ptr);
         if (found != mObjects.end())
-            return found->second;
+            return found->second.get();
         return nullptr;
     }
 
@@ -563,14 +555,14 @@ namespace MWPhysics
         {
             float scale = ptr.getCellRef().getScale();
             found->second->setScale(scale);
-            mTaskScheduler->updateSingleAabb(found->second->getCollisionObject());
+            mTaskScheduler->updateSingleAabb(found->second);
             return;
         }
         ActorMap::iterator foundActor = mActors.find(ptr);
         if (foundActor != mActors.end())
         {
             foundActor->second->updateScale();
-            mTaskScheduler->updateSingleAabb(foundActor->second->getCollisionObject());
+            mTaskScheduler->updateSingleAabb(foundActor->second);
             return;
         }
     }
@@ -581,7 +573,7 @@ namespace MWPhysics
         if (found != mObjects.end())
         {
             found->second->setRotation(Misc::Convert::toBullet(ptr.getRefData().getBaseNode()->getAttitude()));
-            mTaskScheduler->updateSingleAabb(found->second->getCollisionObject());
+            mTaskScheduler->updateSingleAabb(found->second);
             return;
         }
         ActorMap::iterator foundActor = mActors.find(ptr);
@@ -590,7 +582,7 @@ namespace MWPhysics
             if (!foundActor->second->isRotationallyInvariant())
             {
                 foundActor->second->updateRotation();
-                mTaskScheduler->updateSingleAabb(foundActor->second->getCollisionObject());
+                mTaskScheduler->updateSingleAabb(foundActor->second);
             }
             return;
         }
@@ -602,14 +594,14 @@ namespace MWPhysics
         if (found != mObjects.end())
         {
             found->second->setOrigin(Misc::Convert::toBullet(ptr.getRefData().getPosition().asVec3()));
-            mTaskScheduler->updateSingleAabb(found->second->getCollisionObject());
+            mTaskScheduler->updateSingleAabb(found->second);
             return;
         }
         ActorMap::iterator foundActor = mActors.find(ptr);
         if (foundActor != mActors.end())
         {
             foundActor->second->updatePosition();
-            mTaskScheduler->updateSingleAabb(foundActor->second->getCollisionObject());
+            mTaskScheduler->updateSingleAabb(foundActor->second);
             return;
         }
     }
@@ -734,8 +726,12 @@ namespace MWPhysics
 
     void PhysicsSystem::stepSimulation(float dt)
     {
-        for (Object* animatedObject :  mAnimatedObjects)
-            animatedObject->animateCollisionShapes(mTaskScheduler.get());
+        for (Object* animatedObject : mAnimatedObjects)
+            if (animatedObject->animateCollisionShapes())
+            {
+                auto obj = mObjects.find(animatedObject->getPtr());
+                mTaskScheduler->updateSingleAabb(obj->second);
+            }
 
 #ifndef BT_NO_PROFILE
         CProfileManager::Reset();
@@ -747,7 +743,8 @@ namespace MWPhysics
     {
         ObjectMap::iterator found = mObjects.find(object);
         if (found != mObjects.end())
-            found->second->animateCollisionShapes(mTaskScheduler.get());
+            if (found->second->animateCollisionShapes())
+                mTaskScheduler->updateSingleAabb(found->second);
     }
 
     void PhysicsSystem::debugDraw()

@@ -12,6 +12,7 @@
 #include "actor.hpp"
 #include "movementsolver.hpp"
 #include "mtphysics.hpp"
+#include "object.hpp"
 #include "physicssystem.hpp"
 
 class btIParallelSumBody; // needed to compile with bullet < 2.88
@@ -284,24 +285,33 @@ namespace MWPhysics
 
     void PhysicsTaskScheduler::removeCollisionObject(btCollisionObject* collisionObject)
     {
-        std::unique_lock<std::shared_timed_mutex> lock1(mCollisionWorldMutex, std::defer_lock);
-        std::unique_lock<std::mutex> lock2(mUpdateAabbMutex, std::defer_lock);
-        std::lock(lock1, lock2);
+        std::unique_lock<std::shared_timed_mutex> lock(mCollisionWorldMutex);
         mCollisionWorld->removeCollisionObject(collisionObject);
-        mUpdateAabb.erase(collisionObject);
     }
 
-    void PhysicsTaskScheduler::updateSingleAabb(btCollisionObject* collisionObject)
+    void PhysicsTaskScheduler::updateSingleAabb(std::weak_ptr<PtrHolder> ptr)
     {
         if (mDeferAabbUpdate)
         {
             std::unique_lock<std::mutex> lock(mUpdateAabbMutex);
-            mUpdateAabb.insert(collisionObject);
+            mUpdateAabb.insert(std::move(ptr));
         }
         else
         {
             std::unique_lock<std::shared_timed_mutex> lock(mCollisionWorldMutex);
-            mCollisionWorld->updateSingleAabb(collisionObject);
+            if (auto p = ptr.lock())
+            {
+                if (auto actor = std::dynamic_pointer_cast<Actor>(p))
+                {
+                    actor->commitPositionChange();
+                    mCollisionWorld->updateSingleAabb(actor->getCollisionObject());
+                }
+                else if (auto object = std::dynamic_pointer_cast<Object>(p))
+                {
+                    object->commitPositionChange();
+                    mCollisionWorld->updateSingleAabb(object->getCollisionObject());
+                }
+            }
         }
     }
 
@@ -361,7 +371,20 @@ namespace MWPhysics
         std::unique_lock<std::mutex> lock2(mUpdateAabbMutex, std::defer_lock);
         std::lock(lock1, lock2);
         std::for_each(mUpdateAabb.begin(), mUpdateAabb.end(),
-            [&](btCollisionObject* obj) { mCollisionWorld->updateSingleAabb(obj); });
+            [&](std::weak_ptr<PtrHolder> ptr) {
+                if (auto p = ptr.lock())
+                {
+                    if (auto actor = std::dynamic_pointer_cast<Actor>(p))
+                    {
+                        actor->commitPositionChange();
+                        mCollisionWorld->updateSingleAabb(actor->getCollisionObject());
+                    }
+                    else if (auto object = std::dynamic_pointer_cast<Object>(p))
+                    {
+                        object->commitPositionChange();
+                        mCollisionWorld->updateSingleAabb(object->getCollisionObject());
+                    }
+                }});
         mUpdateAabb.clear();
     }
 

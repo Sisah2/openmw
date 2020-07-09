@@ -36,7 +36,7 @@ namespace MWPhysics
             void setCollisionFilterMask(btCollisionObject* collisionObject, int collisionFilterMask);
             void addCollisionObject(btCollisionObject* collisionObject, int collisionFilterGroup, int collisionFilterMask);
             void removeCollisionObject(btCollisionObject* collisionObject);
-            void updateSingleAabb(btCollisionObject* collisionObject);
+            void updateSingleAabb(std::weak_ptr<PtrHolder> ptr);
             bool getLineOfSight(const std::weak_ptr<Actor>& actor1, const std::weak_ptr<Actor>& actor2);
 
         private:
@@ -77,7 +77,7 @@ namespace MWPhysics
             std::shared_ptr<btCollisionWorld> mCollisionWorld;
             CollisionMap mStandingCollisions;
             std::vector<LOSRequest> mLOSCache;
-            std::set<btCollisionObject*> mUpdateAabb;
+            std::set<std::weak_ptr<PtrHolder>, std::owner_less<>> mUpdateAabb;
             std::unique_ptr<Barrier> mBarrier; // TODO: use std::experimental::flex_barrier or std::barrier once it becomes a thing
 
             int mNumThreads;

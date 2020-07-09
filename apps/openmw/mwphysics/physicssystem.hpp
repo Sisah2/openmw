@@ -246,7 +246,7 @@ namespace MWPhysics
             std::unique_ptr<Resource::BulletShapeManager> mShapeManager;
             Resource::ResourceSystem* mResourceSystem;
 
-            typedef std::map<MWWorld::ConstPtr, Object*> ObjectMap;
+            typedef std::map<MWWorld::ConstPtr, std::shared_ptr<Object>> ObjectMap;
             ObjectMap mObjects;
 
             std::set<Object*> mAnimatedObjects; // stores pointers to elements in mObjects
