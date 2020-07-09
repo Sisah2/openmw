@@ -80,6 +80,7 @@ Actor::Actor(const MWWorld::Ptr& ptr, osg::ref_ptr<const Resource::BulletShape> 
     updatePosition();
 
     addCollisionMask(getCollisionMask());
+    mCollisionObject->setWorldTransform(mLocalTransform);
 }
 
 Actor::~Actor()
