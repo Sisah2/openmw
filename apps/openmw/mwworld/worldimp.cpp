@@ -1540,7 +1540,7 @@ namespace MWWorld
             *object->getShapeInstance()->getCollisionShape(),
             object->getShapeInstance()->getAvoidCollisionShape()
         };
-        return mNavigator->updateObject(DetourNavigator::ObjectId(object), shapes, object->getCollisionObject()->getWorldTransform());
+        return mNavigator->updateObject(DetourNavigator::ObjectId(object), shapes, object->getTransform());
     }
 
     bool World::castRay (float x1, float y1, float z1, float x2, float y2, float z2)
@@ -3889,7 +3889,7 @@ namespace MWWorld
         btVector3 aabbMax;
         object->getShapeInstance()->getCollisionShape()->getAabb(btTransform::getIdentity(), aabbMin, aabbMax);
 
-        const auto toLocal = object->getCollisionObject()->getWorldTransform().inverse();
+        const auto toLocal = object->getTransform().inverse();
         const auto localFrom = toLocal(Misc::Convert::toBullet(position));
         const auto localTo = toLocal(Misc::Convert::toBullet(destination));
 

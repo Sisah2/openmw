@@ -83,6 +83,12 @@ namespace MWPhysics
         return mCollisionObject.get();
     }
 
+    btTransform Object::getTransform() const
+    {
+        std::unique_lock<std::mutex> lock(mPositionMutex);
+        return mLocalTransform;
+    }
+
     bool Object::isSolid() const
     {
         return mSolid;

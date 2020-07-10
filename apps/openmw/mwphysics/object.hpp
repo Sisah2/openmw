@@ -36,6 +36,7 @@ namespace MWPhysics
         void commitPositionChange();
         btCollisionObject* getCollisionObject();
         const btCollisionObject* getCollisionObject() const;
+        btTransform getTransform() const;
         /// Return solid flag. Not used by the object itself, true by default.
         bool isSolid() const;
         void setSolid(bool solid);
