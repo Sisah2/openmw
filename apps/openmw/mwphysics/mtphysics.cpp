@@ -351,18 +351,17 @@ namespace MWPhysics
                 req.mStale = true;
             else
                 req.mResult = hasLineOfSight(actorPtr1.get(), actorPtr2.get());
-
-            const auto cleanCache = [&]()
-            {
-                mLOSCache.erase(
-                        std::remove_if(mLOSCache.begin(), mLOSCache.end(),
-                            [](const LOSRequest& req){ return req.mStale; }),
-                        mLOSCache.end());
-            };
-
-            mBarrier->wait(cleanCache);
         }
 
+        const auto cleanCache = [&]()
+        {
+            mLOSCache.erase(
+                    std::remove_if(mLOSCache.begin(), mLOSCache.end(),
+                        [](const LOSRequest& req){ return req.mStale; }),
+                    mLOSCache.end());
+        };
+
+        mBarrier->wait(cleanCache);
     }
 
     void PhysicsTaskScheduler::updateAabbs()
