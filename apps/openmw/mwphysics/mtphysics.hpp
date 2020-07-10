@@ -10,6 +10,7 @@
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 
 #include "physicssystem.hpp"
+#include "ptrholder.hpp"
 
 namespace MWPhysics
 {
@@ -77,7 +78,7 @@ namespace MWPhysics
             std::shared_ptr<btCollisionWorld> mCollisionWorld;
             CollisionMap mStandingCollisions;
             std::vector<LOSRequest> mLOSCache;
-            std::set<std::weak_ptr<PtrHolder>, std::owner_less<>> mUpdateAabb;
+            std::set<std::weak_ptr<PtrHolder>, std::owner_less<std::weak_ptr<PtrHolder>>> mUpdateAabb;
             std::unique_ptr<Barrier> mBarrier; // TODO: use std::experimental::flex_barrier or std::barrier once it becomes a thing
 
             int mNumThreads;
