@@ -79,7 +79,11 @@ namespace MWPhysics
             CollisionMap mStandingCollisions;
             std::vector<LOSRequest> mLOSCache;
             std::set<std::weak_ptr<PtrHolder>, std::owner_less<std::weak_ptr<PtrHolder>>> mUpdateAabb;
-            std::unique_ptr<Barrier> mBarrier; // TODO: use std::experimental::flex_barrier or std::barrier once it becomes a thing
+
+            // TODO: use std::experimental::flex_barrier or std::barrier once it becomes a thing
+            std::unique_ptr<Barrier> mPreStepBarrier;
+            std::unique_ptr<Barrier> mPostStepBarrier;
+            std::unique_ptr<Barrier> mPostSimBarrier;
 
             int mNumThreads;
             int mNumJobs;

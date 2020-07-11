@@ -181,7 +181,9 @@ namespace MWPhysics
             mDeferAabbUpdate = false;
         }
 
-        mBarrier = std::make_unique<Barrier>(mNumThreads);
+        mPreStepBarrier = std::make_unique<Barrier>(mNumThreads);
+        mPostStepBarrier = std::make_unique<Barrier>(mNumThreads);
+        mPostSimBarrier = std::make_unique<Barrier>(mNumThreads);
     }
 
     PhysicsTaskScheduler::~PhysicsTaskScheduler()
@@ -353,15 +355,6 @@ namespace MWPhysics
                 req.mResult = hasLineOfSight(actorPtr1.get(), actorPtr2.get());
         }
 
-        const auto cleanCache = [&]()
-        {
-            mLOSCache.erase(
-                    std::remove_if(mLOSCache.begin(), mLOSCache.end(),
-                        [](const LOSRequest& req){ return req.mStale; }),
-                    mLOSCache.end());
-        };
-
-        mBarrier->wait(cleanCache);
     }
 
     void PhysicsTaskScheduler::updateAabbs()
@@ -396,7 +389,7 @@ namespace MWPhysics
                 mHasJob.wait(lock, [&]() { return mQuit || mNewFrame; });
 
             if (mDeferAabbUpdate)
-                mBarrier->wait([&]() { updateAabbs(); });
+                mPreStepBarrier->wait([&]() { updateAabbs(); });
 
             int job = 0;
             while ((job = mNextJob.fetch_add(1, std::memory_order_relaxed)) < mNumJobs)
@@ -426,10 +419,22 @@ namespace MWPhysics
                 }
             };
 
-            mBarrier->wait(oncePerStep);
+            mPostStepBarrier->wait(oncePerStep);
 
             if (!mRemainingSteps && mLOSCacheExpiry >= 0)
+            {
                 refreshLOSCache();
+                const auto cleanCache = [&]()
+                {
+                    std::unique_lock<std::shared_timed_mutex> lock(mLOSCacheMutex);
+                    mLOSCache.erase(
+                            std::remove_if(mLOSCache.begin(), mLOSCache.end(),
+                                [](const LOSRequest& req){ return req.mStale; }),
+                            mLOSCache.end());
+                };
+
+                mPostSimBarrier->wait(cleanCache);
+            }
         }
     }
 
