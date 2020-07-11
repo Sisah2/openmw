@@ -1,7 +1,6 @@
 #ifndef GAME_MWMECHANICS_CREATURESTATS_H
 #define GAME_MWMECHANICS_CREATURESTATS_H
 
-#include <atomic>
 #include <set>
 #include <string>
 #include <stdexcept>

@@ -5,9 +5,12 @@
 
 #include <osg/Vec3f>
 
-#include "../mwworld/ptr.hpp"
-
 class btCollisionWorld;
+
+namespace MWWorld
+{
+    class Ptr;
+}
 
 namespace MWPhysics
 {

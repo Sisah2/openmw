@@ -12,7 +12,6 @@
 #include <osg/Quat>
 #include <osg/ref_ptr>
 
-class btCollisionWorld;
 class btCollisionShape;
 class btCollisionObject;
 class btConvexShape;

@@ -5,7 +5,6 @@
 #include <memory>
 #include <map>
 #include <set>
-#include <algorithm>
 
 #include <osg/Quat>
 #include <osg/BoundingBox>
