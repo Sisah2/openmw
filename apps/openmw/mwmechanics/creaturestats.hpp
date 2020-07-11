@@ -1,6 +1,7 @@
 #ifndef GAME_MWMECHANICS_CREATURESTATS_H
 #define GAME_MWMECHANICS_CREATURESTATS_H
 
+#include <mutex>
 #include <set>
 #include <string>
 #include <stdexcept>
@@ -59,6 +60,7 @@ namespace MWMechanics
         unsigned int mMovementFlags;
 
         float mFallHeight;
+        mutable std::mutex mFallHeightMutex;
 
         std::string mLastHitObject; // The last object to hit this actor
         std::string mLastHitAttemptObject; // The last object to attempt to hit this actor
@@ -99,6 +101,7 @@ namespace MWMechanics
 
     public:
         CreatureStats();
+        CreatureStats(const CreatureStats& other);
 
         DrawState_ getDrawState() const;
         void setDrawState(DrawState_ state);
