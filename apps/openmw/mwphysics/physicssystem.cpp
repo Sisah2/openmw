@@ -672,7 +672,7 @@ namespace MWPhysics
         mTimeAccum -= numSteps * mPhysicsDt;
 
         auto frameData = prepareFrameData();
-        return mTaskScheduler->moveActors(numSteps, mTimeAccum, std::move(frameData), mStandingCollisions, WorldFrameData());
+        return mTaskScheduler->moveActors(numSteps, mTimeAccum, std::move(frameData), mStandingCollisions);
     }
 
     std::vector<ActorFrameData> PhysicsSystem::prepareFrameData()

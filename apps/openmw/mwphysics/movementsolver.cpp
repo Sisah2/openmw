@@ -76,7 +76,7 @@ namespace MWPhysics
 
     void MovementSolver::move(ActorFrameData& actor, float time, const btCollisionWorld* collisionWorld,
                                            std::map<MWWorld::Ptr, MWWorld::Ptr>& standingCollisionTracker,
-                                           WorldFrameData worldData)
+                                           WorldFrameData& worldData)
     {
         auto* physicActor = actor.mActorRaw;
         auto ptr = actor.mPtr;

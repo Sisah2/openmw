@@ -94,6 +94,16 @@ namespace
         return actorData.mPosition * interpolationFactor + actorData.mActorRaw->getPreviousPosition() * (1.f - interpolationFactor);
     }
 
+    struct WorldFrameData
+    {
+        WorldFrameData() : mIsInStorm(MWBase::Environment::get().getWorld()->isInStorm())
+                         , mStormDirection(MWBase::Environment::get().getWorld()->getStormDirection())
+        {}
+
+        bool mIsInStorm;
+        osg::Vec3f mStormDirection;
+    };
+
     namespace Config
     {
         /* The purpose of these 2 classes is to make OpenMW works with Bullet compiled with either single or multithread support.
@@ -195,7 +205,7 @@ namespace MWPhysics
         mActorsFrameData.clear();
     }
 
-    const PtrPositionList& PhysicsTaskScheduler::moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions, WorldFrameData worldData)
+    const PtrPositionList& PhysicsTaskScheduler::moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions)
     {
         std::lock_guard<std::shared_timed_mutex> lock(mSimulationMutex);
 
@@ -216,10 +226,12 @@ namespace MWPhysics
 
         mRemainingSteps = numSteps;
         mTimeAccum = timeAccum;
-        mWorldFrameData = worldData;
         mActorsFrameData = std::move(actorsData);
 
         mAdvanceSimulation = (mRemainingSteps != 0);
+
+        if (mAdvanceSimulation)
+            mWorldFrameData = std::make_unique<WorldFrameData>();
 
         mMovementResults.clear();
         for (auto const& m : mActorsFrameData)
@@ -405,7 +417,7 @@ namespace MWPhysics
                 if(const auto actor = mActorsFrameData[job].mActor.lock())
                 {
                     if (mRemainingSteps)
-                        MovementSolver::move(mActorsFrameData[job], mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, mWorldFrameData);
+                        MovementSolver::move(mActorsFrameData[job], mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, *mWorldFrameData);
                     else
                     {
                         const auto& actorData = mActorsFrameData[job];
@@ -494,7 +506,7 @@ namespace MWPhysics
         while (mRemainingSteps--)
         {
             for (auto& actorData : mActorsFrameData)
-                MovementSolver::move(actorData, mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, mWorldFrameData);
+                MovementSolver::move(actorData, mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, *mWorldFrameData);
 
             perSimulationStepUpdate();
         }
