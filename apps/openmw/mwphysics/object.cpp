@@ -1,5 +1,5 @@
 #include "object.hpp"
-#include "apps/openmw/mwphysics/mtphysics.hpp"
+#include "mtphysics.hpp"
 
 #include <components/debug/debuglog.hpp>
 #include <components/nifosg/particle.hpp>
