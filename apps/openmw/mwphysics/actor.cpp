@@ -230,6 +230,7 @@ void Actor::updateScale()
 
 osg::Vec3f Actor::getHalfExtents() const
 {
+    std::unique_lock<std::mutex> lock(mPositionMutex);
     return osg::componentMultiply(mHalfExtents, mScale);
 }
 
