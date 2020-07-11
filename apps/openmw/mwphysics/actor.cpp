@@ -121,7 +121,6 @@ int Actor::getCollisionMask()
     if (mCanWaterWalk)
         collisionMask |= CollisionType_Water;
     return collisionMask;
-    
 }
 
 void Actor::updatePosition()
@@ -236,11 +235,13 @@ osg::Vec3f Actor::getHalfExtents() const
 
 osg::Vec3f Actor::getOriginalHalfExtents() const
 {
+    std::unique_lock<std::mutex> lock(mPositionMutex);
     return mHalfExtents;
 }
 
 osg::Vec3f Actor::getRenderingHalfExtents() const
 {
+    std::unique_lock<std::mutex> lock(mPositionMutex);
     return osg::componentMultiply(mHalfExtents, mRenderingScale);
 }
 
@@ -271,6 +272,7 @@ void Actor::setWalkingOnWater(bool walkingOnWater)
 
 void Actor::setCanWaterWalk(bool waterWalk)
 {
+    std::unique_lock<std::mutex> lock(mPositionMutex);
     if (waterWalk != mCanWaterWalk)
     {
         mCanWaterWalk = waterWalk;
