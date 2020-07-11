@@ -723,13 +723,13 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
         mNextWindSpeed = mResult.mNextWindSpeed;
     }
 
-    mIsStorm.store(mResult.mIsStorm, std::memory_order_release);
+    mIsStorm = mResult.mIsStorm;
 
     // For some reason Ash Storm is not considered as a precipitation weather in game
     mPrecipitation = !(mResult.mParticleEffect.empty() && mResult.mRainEffect.empty())
                                     && mResult.mParticleEffect != "meshes\\ashcloud.nif";
 
-    if (mIsStorm.load(std::memory_order_acquire))
+    if (mIsStorm)
     {
         osg::Vec3f stormDirection(0, 1, 0);
         if (mResult.mParticleEffect == "meshes\\ashcloud.nif" || mResult.mParticleEffect == "meshes\\blightcloud.nif")
@@ -836,7 +836,7 @@ float WeatherManager::getWindSpeed() const
 
 bool WeatherManager::isInStorm() const
 {
-    return mIsStorm.load(std::memory_order_acquire);
+    return mIsStorm;
 }
 
 osg::Vec3f WeatherManager::getStormDirection() const

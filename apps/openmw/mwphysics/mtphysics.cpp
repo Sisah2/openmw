@@ -195,7 +195,7 @@ namespace MWPhysics
         mActorsFrameData.clear();
     }
 
-    const PtrPositionList& PhysicsTaskScheduler::moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions)
+    const PtrPositionList& PhysicsTaskScheduler::moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions, WorldFrameData worldData)
     {
         std::lock_guard<std::shared_timed_mutex> lock(mSimulationMutex);
 
@@ -210,6 +210,7 @@ namespace MWPhysics
 
         mRemainingSteps = numSteps;
         mTimeAccum = timeAccum;
+        mWorldFrameData = worldData;
         mActorsFrameData = std::move(actorsData);
 
         mAdvanceSimulation = (mRemainingSteps != 0);
@@ -398,7 +399,7 @@ namespace MWPhysics
                 if(const auto actor = mActorsFrameData[job].mActor.lock())
                 {
                     if (mRemainingSteps)
-                        MovementSolver::move(mActorsFrameData[job], mPhysicsDt, mCollisionWorld.get(), mStandingCollisions);
+                        MovementSolver::move(mActorsFrameData[job], mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, mWorldFrameData);
                     else
                     {
                         const auto& actorData = mActorsFrameData[job];
@@ -487,7 +488,7 @@ namespace MWPhysics
         while (mRemainingSteps--)
         {
             for (auto& actorData : mActorsFrameData)
-                MovementSolver::move(actorData, mPhysicsDt, mCollisionWorld.get(), mStandingCollisions);
+                MovementSolver::move(actorData, mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, mWorldFrameData);
 
             perSimulationStepUpdate();
         }

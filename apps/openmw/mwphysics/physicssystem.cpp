@@ -672,7 +672,7 @@ namespace MWPhysics
         mTimeAccum -= numSteps * mPhysicsDt;
 
         auto frameData = prepareFrameData();
-        return mTaskScheduler->moveActors(numSteps, mTimeAccum, std::move(frameData), mStandingCollisions);
+        return mTaskScheduler->moveActors(numSteps, mTimeAccum, std::move(frameData), mStandingCollisions, WorldFrameData());
     }
 
     std::vector<ActorFrameData> PhysicsSystem::prepareFrameData()
@@ -869,6 +869,11 @@ namespace MWPhysics
         mWasOnGround = actor->getOnGround();
         mRefpos = mPtr.getRefData().getPosition();
     }
+
+    WorldFrameData::WorldFrameData()
+        : mIsInStorm(MWBase::Environment::get().getWorld()->isInStorm())
+        , mStormDirection(MWBase::Environment::get().getWorld()->getStormDirection())
+    {}
 
     LOSRequest::LOSRequest(const std::weak_ptr<Actor>& a1, const std::weak_ptr<Actor>& a2)
         : mResult(false), mStale(false), mAge(0)

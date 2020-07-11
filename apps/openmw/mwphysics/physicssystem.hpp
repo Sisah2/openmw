@@ -88,6 +88,13 @@ namespace MWPhysics
         ESM::Position mRefpos;
     };
 
+    struct WorldFrameData
+    {
+        WorldFrameData();
+        bool mIsInStorm;
+        osg::Vec3f mStormDirection;
+    };
+
     class PhysicsSystem
     {
         public:

@@ -79,7 +79,8 @@ namespace MWPhysics
     }
 
     void MovementSolver::move(ActorFrameData& actor, float time, const btCollisionWorld* collisionWorld,
-                                           std::map<MWWorld::Ptr, MWWorld::Ptr>& standingCollisionTracker)
+                                           std::map<MWWorld::Ptr, MWWorld::Ptr>& standingCollisionTracker,
+                                           WorldFrameData worldData)
     {
         auto* physicActor = actor.mActorRaw;
         auto ptr = actor.mPtr;
@@ -140,9 +141,9 @@ namespace MWPhysics
             actor.mDidJump = true;
 
         // Now that we have the effective movement vector, apply wind forces to it
-        if (MWBase::Environment::get().getWorld()->isInStorm())
+        if (worldData.mIsInStorm)
         {
-            osg::Vec3f stormDirection = MWBase::Environment::get().getWorld()->getStormDirection();
+            osg::Vec3f stormDirection = worldData.mStormDirection;
             float angleDegrees = osg::RadiansToDegrees(std::acos(stormDirection * velocity / (stormDirection.length() * velocity.length())));
             static const float fStromWalkMult = MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>().find("fStromWalkMult")->mValue.getFloat();
             velocity *= 1.f-(fStromWalkMult * (angleDegrees/180.f));

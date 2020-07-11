@@ -25,7 +25,7 @@ namespace MWPhysics
             /// @param timeAccum accumulated time from previous run to interpolate movements
             /// @param actorsData per actor data needed to compute new positions
             /// @return new position of each actor
-            const PtrPositionList& moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions);
+            const PtrPositionList& moveActors(int numSteps, float timeAccum, std::vector<ActorFrameData>&& actorsData, CollisionMap& standingCollisions, WorldFrameData worldData);
 
             // Thread safe wrappers
             void rayTest(const btVector3& rayFromWorld, const btVector3& rayToWorld, btCollisionWorld::RayResultCallback& resultCallback) const; 
@@ -70,6 +70,7 @@ namespace MWPhysics
             void refreshLOSCache();
             void updateAabbs();
 
+            WorldFrameData mWorldFrameData;
             std::vector<ActorFrameData> mActorsFrameData;
             PtrPositionList mMovementResults;
             PtrPositionList mPreviousMovementResults;
