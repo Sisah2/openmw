@@ -201,6 +201,12 @@ namespace MWPhysics
 
         for (const auto& data : mActorsFrameData)
         {
+            // Remove actors that were deleted while the background thread was running
+            if (!data.mActor.lock())
+            {
+                mMovementResults.erase(data.mPtr);
+                continue;
+            }
             if (data.mDidJump)
                 handleJump(data.mPtr);
         }
