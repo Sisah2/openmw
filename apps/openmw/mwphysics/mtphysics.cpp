@@ -83,6 +83,18 @@ namespace
         ptr.getClass().getMovementSettings(ptr).mPosition[2] = 0;
     }
 
+    void updateMechanics(MWPhysics::ActorFrameData& actorData)
+    {
+        if (actorData.mDidJump)
+            handleJump(actorData.mPtr);
+
+        MWMechanics::CreatureStats& stats = actorData.mPtr.getClass().getCreatureStats(actorData.mPtr);
+        if (actorData.mNeedLand)
+            stats.land(actorData.mPtr == MWMechanics::getPlayer() && (actorData.mFlying || actorData.mSwimming));
+        else if (actorData.mFallHeight < 0)
+            stats.addToFallHeight(-actorData.mFallHeight);
+    }
+
     osg::Vec3f interpolateMovements(const MWPhysics::ActorFrameData& actorData, float timeAccum, float physicsDt)
     {
         const float interpolationFactor = timeAccum / physicsDt;
@@ -225,26 +237,22 @@ namespace MWPhysics
     {
         std::lock_guard<std::shared_timed_mutex> lock(mSimulationMutex);
 
-        for (const auto& data : mActorsFrameData)
+        if (mNumThreads != 0)
         {
-            // Remove actors that were deleted while the background thread was running
-            if (!data.mActor.lock())
+            for (auto& data : mActorsFrameData)
             {
-                mMovementResults.erase(data.mPtr);
-                continue;
+                // Remove actors that were deleted while the background thread was running
+                if (!data.mActor.lock())
+                {
+                    mMovementResults.erase(data.mPtr);
+                    continue;
+                }
+                updateMechanics(data);
             }
-            if (data.mDidJump)
-                handleJump(data.mPtr);
 
-            MWMechanics::CreatureStats& stats = data.mPtr.getClass().getCreatureStats(data.mPtr);
-            if (data.mNeedLand)
-                stats.land(data.mPtr == MWMechanics::getPlayer() && (data.mFlying || data.mSwimming));
-            else if (data.mFallHeight < 0)
-                stats.addToFallHeight(-data.mFallHeight);
+            std::swap(mMovementResults, mPreviousMovementResults);
+            std::swap(standingCollisions, mStandingCollisions);
         }
-
-        std::swap(mMovementResults, mPreviousMovementResults);
-        std::swap(standingCollisions, mStandingCollisions);
 
         mRemainingSteps = numSteps;
         mTimeAccum = timeAccum;
@@ -260,7 +268,11 @@ namespace MWPhysics
             mMovementResults[m.mPtr] = m.mPosition;
 
         if (mNumThreads == 0)
+        {
             syncComputation();
+            std::swap(mMovementResults, mPreviousMovementResults);
+            std::swap(standingCollisions, mStandingCollisions);
+        }
         else
             asyncComputation();
 
@@ -517,6 +529,7 @@ namespace MWPhysics
         {
             handleFall(actorData, mAdvanceSimulation);
             mMovementResults[actorData.mPtr] = interpolateMovements(actorData, mTimeAccum, mPhysicsDt);
+            updateMechanics(actorData);
         }
         perFrameUpdate();
 
