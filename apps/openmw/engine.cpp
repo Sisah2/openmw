@@ -2,6 +2,8 @@
 
 #include <iomanip>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 #include <boost/filesystem/fstream.hpp>
 
@@ -886,7 +888,7 @@ void OMW::Engine::go()
 
         if (!frame(dt))
         {
-            OpenThreads::Thread::microSleep(5000);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             continue;
         }
         else
@@ -906,7 +908,14 @@ void OMW::Engine::go()
         if (stats)
         {
             const auto frameNumber = mViewer->getFrameStamp()->getFrameNumber();
-            mViewer->getViewerStats()->report(stats, frameNumber);
+            if (frameNumber >= 2)
+            {
+                mViewer->getViewerStats()->report(stats, frameNumber - 2);
+                osgViewer::Viewer::Cameras cameras;
+                mViewer->getCameras(cameras);
+                for (auto camera : cameras)
+                    camera->getStats()->report(stats, frameNumber - 2);
+            }
         }
 
         mEnvironment.limitFrameRate(frameTimer.time_s());

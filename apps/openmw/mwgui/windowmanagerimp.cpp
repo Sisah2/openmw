@@ -1,6 +1,8 @@
 #include "windowmanagerimp.hpp"
 
 #include <cassert>
+#include <chrono>
+#include <thread>
 
 #include <osgViewer/Viewer>
 
@@ -572,6 +574,11 @@ namespace MWGui
         }
     }
 
+    void WindowManager::updateConsoleObjectPtr(const MWWorld::Ptr& currentPtr, const MWWorld::Ptr& newPtr)
+    {
+        mConsole->updateSelectedObjectPtr(currentPtr, newPtr);
+    }
+
     void WindowManager::updateVisible()
     {
         bool loading = (getMode() == GM_Loading || getMode() == GM_LoadingWallpaper);
@@ -715,7 +722,7 @@ namespace MWGui
                 MWBase::Environment::get().getInputManager()->update(dt, true, false);
 
                 if (!mWindowVisible)
-                    OpenThreads::Thread::microSleep(5000);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 else
                 {
                     mViewer->eventTraversal();
@@ -1754,7 +1761,7 @@ namespace MWGui
             if (!mWindowVisible)
             {
                 mVideoWidget->pause();
-                OpenThreads::Thread::microSleep(5000);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
             else
             {

@@ -8,6 +8,7 @@
     Bug #3714: Savegame fails to load due to conflict between SpellState and MagicEffects
     Bug #4021: Attributes and skills are not stored as floats
     Bug #4623: Corprus implementation is incorrect
+    Bug #4764: Data race in osg ParticleSystem
     Bug #4774: Guards are ignorant of an invisible player that tries to attack them
     Bug #5108: Savegame bloating due to inefficient fog textures format
     Bug #5165: Active spells should use real time intead of timestamps
@@ -17,6 +18,8 @@
     Bug #5367: Selecting a spell on an enchanted item per hotkey always plays the equip sound
     Bug #5369: Spawnpoint in the Grazelands doesn't produce oversized creatures
     Bug #5370: Opening an unlocked but trapped door uses the key
+    Bug #5384: openmw-cs: deleting an instance requires reload of scene window to show in editor
+    Bug #5387: Move/MoveWorld don't update the object's cell properly
     Bug #5397: NPC greeting does not reset if you leave + reenter area
     Bug #5400: Editor: Verifier checks race of non-skin bodyparts
     Bug #5403: Enchantment effect doesn't show on an enemy during death animation
@@ -43,6 +46,7 @@
     Feature #5362: Show the soul gems' trapped soul in count dialog
     Feature #5445: Handle NiLines
     Feature #5457: Realistic diagonal movement
+    Feature #5486: Fixes trainers to choose their training skills based on their base skill points
     Task #5480: Drop Qt4 support
 
 0.46.0
