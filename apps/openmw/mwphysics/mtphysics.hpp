@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <thread>
 #include <shared_mutex>
 
@@ -45,12 +46,12 @@ namespace MWPhysics
             class Barrier
             {
                 public:
+                    using BarrierCallback = std::function<void(void)>;
                     /// @param count number of threads to wait on
-                    explicit Barrier(int count);
-                    /// @brief stop execution of threads until count distinct threads reach this point
                     /// @param func callable to be executed once after all threads have met
-                    template<typename F>
-                    void wait(F&& func);
+                    explicit Barrier(int count, BarrierCallback func);
+                    /// @brief stop execution of threads until count distinct threads reach this point
+                    void wait();
 
                 private:
                     int mThreadCount;
@@ -58,6 +59,7 @@ namespace MWPhysics
                     int mGeneration;
                     mutable std::mutex mMutex;
                     std::condition_variable mRendezvous;
+                    BarrierCallback mFunc;
 
             };
 

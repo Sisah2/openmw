@@ -191,9 +191,30 @@ namespace MWPhysics
             mDeferAabbUpdate = false;
         }
 
-        mPreStepBarrier = std::make_unique<Barrier>(mNumThreads);
-        mPostStepBarrier = std::make_unique<Barrier>(mNumThreads);
-        mPostSimBarrier = std::make_unique<Barrier>(mNumThreads);
+        mPreStepBarrier = std::make_unique<Barrier>(mNumThreads, [&]()
+            {
+                updateAabbs();
+            });
+
+        mPostStepBarrier = std::make_unique<Barrier>(mNumThreads, [&]()
+            {
+                mNextJob.store(0, std::memory_order_release);
+                perSimulationStepUpdate();
+                if (!mRemainingSteps--)
+                {
+                    perFrameUpdate();
+                    mNewFrame = false;
+                }
+            });
+
+        mPostSimBarrier = std::make_unique<Barrier>(mNumThreads, [&]()
+            {
+                std::unique_lock<std::shared_timed_mutex> lock(mLOSCacheMutex);
+                mLOSCache.erase(
+                    std::remove_if(mLOSCache.begin(), mLOSCache.end(),
+                        [](const LOSRequest& req) { return req.mStale; }),
+                    mLOSCache.end());
+            });
     }
 
     PhysicsTaskScheduler::~PhysicsTaskScheduler()
@@ -408,7 +429,7 @@ namespace MWPhysics
                 mHasJob.wait(lock, [&]() { return mQuit || mNewFrame; });
 
             if (mDeferAabbUpdate)
-                mPreStepBarrier->wait([&]() { updateAabbs(); });
+                mPreStepBarrier->wait();
 
             int job = 0;
             while ((job = mNextJob.fetch_add(1, std::memory_order_relaxed)) < mNumJobs)
@@ -427,32 +448,12 @@ namespace MWPhysics
                 }
             }
 
-            const auto oncePerStep = [&]()
-            {
-                mNextJob.store(0, std::memory_order_release);
-                perSimulationStepUpdate();
-                if (!mRemainingSteps--)
-                {
-                    perFrameUpdate();
-                    mNewFrame = false;
-                }
-            };
-
-            mPostStepBarrier->wait(oncePerStep);
+            mPostStepBarrier->wait();
 
             if (!mRemainingSteps && mLOSCacheExpiry >= 0)
             {
                 refreshLOSCache();
-                const auto cleanCache = [&]()
-                {
-                    std::unique_lock<std::shared_timed_mutex> lock(mLOSCacheMutex);
-                    mLOSCache.erase(
-                            std::remove_if(mLOSCache.begin(), mLOSCache.end(),
-                                [](const LOSRequest& req){ return req.mStale; }),
-                            mLOSCache.end());
-                };
-
-                mPostSimBarrier->wait(cleanCache);
+                mPostSimBarrier->wait();
             }
         }
     }
@@ -530,10 +531,9 @@ namespace MWPhysics
         mHasJob.notify_all();
     }
 
-    PhysicsTaskScheduler::Barrier::Barrier(int count) : mThreadCount(count), mRendezvousCount(0), mGeneration(0) {}
+    PhysicsTaskScheduler::Barrier::Barrier(int count, BarrierCallback func) : mThreadCount(count), mRendezvousCount(0), mGeneration(0), mFunc(func) {}
 
-    template<typename F>
-    void PhysicsTaskScheduler::Barrier::wait(F&& func)
+    void PhysicsTaskScheduler::Barrier::wait()
     {
         std::unique_lock<std::mutex> lock(mMutex);
 
@@ -543,7 +543,7 @@ namespace MWPhysics
         {
             ++mGeneration;
             mRendezvousCount = 0;
-            func();
+            mFunc();
             mRendezvous.notify_all();
         }
         else
