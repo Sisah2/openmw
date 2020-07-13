@@ -80,9 +80,11 @@ namespace MWPhysics
         bool mWantJump;
         bool mDidJump;
         bool mIsDead;
+        bool mNeedLand;
         float mWaterlevel;
         float mSlowFall;
         float mOldHeight;
+        float mFallHeight;
         osg::Vec3f mMovement;
         osg::Vec3f mPosition;
         ESM::Position mRefpos;

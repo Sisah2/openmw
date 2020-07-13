@@ -46,21 +46,16 @@ namespace
             bool mCanBeSharedLock;
     };
 
-    void handleFall(const MWPhysics::ActorFrameData& actorData, bool simulationPerformed)
+    void handleFall(MWPhysics::ActorFrameData& actorData, bool simulationPerformed)
     {
-        const MWWorld::Ptr player = MWMechanics::getPlayer();
         const float heightDiff = actorData.mPosition.z() - actorData.mOldHeight;
-
-        const auto& character = actorData.mPtr;
-
-        MWMechanics::CreatureStats& stats = character.getClass().getCreatureStats(character);
 
         const bool isStillOnGround = (simulationPerformed && actorData.mWasOnGround && actorData.mActorRaw->getOnGround());
 
         if (isStillOnGround || actorData.mFlying || actorData.mSwimming || actorData.mSlowFall < 1)
-            stats.land(character == player && (actorData.mFlying || actorData.mSwimming));
+            actorData.mNeedLand = true;
         else if (heightDiff < 0)
-            stats.addToFallHeight(-heightDiff);
+            actorData.mFallHeight += heightDiff;
     }
 
     void handleJump(const MWWorld::Ptr &ptr)
@@ -240,6 +235,12 @@ namespace MWPhysics
             }
             if (data.mDidJump)
                 handleJump(data.mPtr);
+
+            MWMechanics::CreatureStats& stats = data.mPtr.getClass().getCreatureStats(data.mPtr);
+            if (data.mNeedLand)
+                stats.land(data.mPtr == MWMechanics::getPlayer() && (data.mFlying || data.mSwimming));
+            else if (data.mFallHeight < 0)
+                stats.addToFallHeight(-data.mFallHeight);
         }
 
         std::swap(mMovementResults, mPreviousMovementResults);
@@ -441,7 +442,7 @@ namespace MWPhysics
                         MovementSolver::move(mActorsFrameData[job], mPhysicsDt, mCollisionWorld.get(), mStandingCollisions, *mWorldFrameData);
                     else
                     {
-                        const auto& actorData = mActorsFrameData[job];
+                        auto& actorData = mActorsFrameData[job];
                         handleFall(actorData, mAdvanceSimulation);
                         mMovementResults[actorData.mPtr] = interpolateMovements(actorData, mTimeAccum, mPhysicsDt);
                     }
@@ -512,7 +513,7 @@ namespace MWPhysics
             perSimulationStepUpdate();
         }
 
-        for (const auto& actorData : mActorsFrameData)
+        for (auto& actorData : mActorsFrameData)
         {
             handleFall(actorData, mAdvanceSimulation);
             mMovementResults[actorData.mPtr] = interpolateMovements(actorData, mTimeAccum, mPhysicsDt);

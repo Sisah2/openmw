@@ -856,7 +856,7 @@ namespace MWPhysics
     }
 
     ActorFrameData::ActorFrameData(const std::shared_ptr<Actor>& actor, const MWWorld::Ptr character, osg::Vec3f movement, float slowFall, float waterlevel)
-        : mActor(actor), mActorRaw(actor.get()), mPositionChanged(false), mDidJump(false), mWaterlevel(waterlevel), mSlowFall(slowFall), mMovement(movement)
+        : mActor(actor), mActorRaw(actor.get()), mPositionChanged(false), mDidJump(false), mNeedLand(false),mWaterlevel(waterlevel), mSlowFall(slowFall), mFallHeight(0), mMovement(movement)
     {
         const MWBase::World *world = MWBase::Environment::get().getWorld();
         mPtr = actor->getPtr();

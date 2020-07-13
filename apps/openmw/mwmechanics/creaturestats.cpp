@@ -29,13 +29,6 @@ namespace MWMechanics
             mAiSettings[i] = 0;
     }
 
-    CreatureStats::CreatureStats(const CreatureStats& other)
-    {
-        ESM::CreatureStats state;
-        other.writeState(state);
-        readState(state);
-    }
-
     const AiSequence& CreatureStats::getAiSequence() const
     {
         return mAiSequence;
@@ -389,19 +382,16 @@ namespace MWMechanics
 
     void CreatureStats::addToFallHeight(float height)
     {
-        std::unique_lock<std::mutex> lock(mFallHeightMutex);
         mFallHeight += height;
     }
 
     float CreatureStats::getFallHeight() const
     {
-        std::unique_lock<std::mutex> lock(mFallHeightMutex);
         return mFallHeight;
     }
 
     float CreatureStats::land(bool isPlayer)
     {
-        std::unique_lock<std::mutex> lock(mFallHeightMutex);
         if (isPlayer)
             MWBase::Environment::get().getWorld()->getPlayer().setJumping(false);
 
