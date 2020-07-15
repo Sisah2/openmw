@@ -114,6 +114,17 @@ while small values can result in the hands not being visible.
 
 This setting can only be configured by editing the settings configuration file.
 
+third person camera distance
+----------------------------
+
+:Type:		floating point
+:Range:		30-800
+:Default:	192.0
+
+Distance from the camera to the character in third person mode.
+
+This setting can be changed in game using "Zoom In" / "Zoom Out" controls.
+
 view over shoulder
 ------------------
 
@@ -136,6 +147,30 @@ view over shoulder offset
 
 This setting makes sense only if 'view over shoulder' is enabled. Controls horizontal (first number) and vertical (second number) offset of the camera in third person mode.
 Recommened values: 30 -10 for the right shoulder, -30 -10 for the left shoulder.
+
+This setting can only be configured by editing the settings configuration file.
+
+auto switch shoulder
+--------------------
+
+:Type:		boolean
+:Range:		True/False
+:Default:	True
+
+This setting makes difference only in third person mode if 'view over shoulder' is enabled.
+When player is close to an obstacle, automatically switches camera to the shoulder that is farther away from the obstacle.
+
+This setting can only be configured by editing the settings configuration file.
+
+zoom out when move coef
+-----------------------
+
+:Type:		floating point
+:Range:		Any
+:Default:	20
+
+This setting makes difference only in third person mode if 'view over shoulder' is enabled.
+Slightly pulls camera away (or closer in case of negative value) when the character moves. To disable set it to zero.
 
 This setting can only be configured by editing the settings configuration file.
 

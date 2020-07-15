@@ -3,6 +3,7 @@
 #include <osg/Camera>
 
 #include <components/sceneutil/positionattitudetransform.hpp>
+#include <components/settings/settings.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -56,14 +57,19 @@ namespace MWRender
       mFurthest(800.f),
       mIsNearest(false),
       mHeight(124.f),
-      mBaseCameraDistance(192.f),
+      mBaseCameraDistance(Settings::Manager::getFloat("third person camera distance", "Camera")),
       mVanityToggleQueued(false),
       mVanityToggleQueuedValue(false),
       mViewModeToggleQueued(false),
       mCameraDistance(0.f),
-      mThirdPersonMode(ThirdPersonViewMode::Standard),
-      mOverShoulderOffset(osg::Vec2f(30.0f, -10.0f)),
-      mSmoothTransitionToCombatMode(0.f)
+      mFocalPointCurrentOffset(osg::Vec2d()),
+      mFocalPointTargetOffset(osg::Vec2d()),
+      mFocalPointTransitionSpeedCoef(1.f),
+      mPreviousTransitionInfluence(0.f),
+      mSmoothedSpeed(0.f),
+      mZoomOutWhenMoveCoef(Settings::Manager::getFloat("zoom out when move coef", "Camera")),
+      mDynamicCameraDistanceEnabled(false),
+      mShowCrosshairInThirdPersonMode(false)
     {
         mVanity.enabled = false;
         mVanity.allowed = true;
@@ -120,14 +126,11 @@ namespace MWRender
     osg::Vec3d Camera::getFocalPointOffset() const
     {
         osg::Vec3d offset(0, 0, 10.f);
-        if (mThirdPersonMode == ThirdPersonViewMode::OverShoulder && !mPreviewMode && !mVanity.enabled)
+        if (!mPreviewMode && !mVanity.enabled)
         {
-            float horizontalOffset = mOverShoulderOffset.x() * (1.f - mSmoothTransitionToCombatMode);
-            float verticalOffset = mSmoothTransitionToCombatMode * 15.f + (1.f - mSmoothTransitionToCombatMode) * mOverShoulderOffset.y();
-
-            offset.x() += horizontalOffset * cos(getYaw());
-            offset.y() += horizontalOffset * sin(getYaw());
-            offset.z() += verticalOffset;
+            offset.x() += mFocalPointCurrentOffset.x() * cos(getYaw());
+            offset.y() += mFocalPointCurrentOffset.x() * sin(getYaw());
+            offset.z() += mFocalPointCurrentOffset.y();
         }
         return offset;
     }
@@ -245,35 +248,58 @@ namespace MWRender
         // only show the crosshair in game mode
         MWBase::WindowManager *wm = MWBase::Environment::get().getWindowManager();
         wm->showCrosshair(!wm->isGuiMode() && !mVanity.enabled && !mPreviewMode
-                          && (mFirstPersonView || mThirdPersonMode != ThirdPersonViewMode::Standard));
+                          && (mFirstPersonView || mShowCrosshairInThirdPersonMode));
 
         if(mVanity.enabled)
         {
             rotateCamera(0.f, osg::DegreesToRadians(3.f * duration), true);
         }
 
-        updateSmoothTransitionToCombatMode(duration);
+        updateFocalPointOffset(duration);
+
+        float speed = mTrackingPtr.getClass().getSpeed(mTrackingPtr);
+        float maxDelta = 300.f * duration;
+        mSmoothedSpeed += osg::clampBetween(speed - mSmoothedSpeed, -maxDelta, maxDelta);
     }
 
-    void Camera::setOverShoulderOffset(float horizontal, float vertical)
+    void Camera::setFocalPointTargetOffset(osg::Vec2d v)
     {
-        mOverShoulderOffset = osg::Vec2f(horizontal, vertical);
+        mFocalPointTargetOffset = v;
+        mPreviousTransitionSpeed = mFocalPointTransitionSpeed;
+        mPreviousTransitionInfluence = 1.0f;
     }
 
-    void Camera::updateSmoothTransitionToCombatMode(float duration)
+    void Camera::updateFocalPointOffset(float duration)
     {
-        bool combatMode = true;
-        if (mTrackingPtr.getClass().isActor())
-            combatMode = mTrackingPtr.getClass().getCreatureStats(mTrackingPtr).getDrawState() != MWMechanics::DrawState_Nothing;
-        float speed = ((combatMode ? 1.f : 0.f) - mSmoothTransitionToCombatMode) * 5;
-        if (speed != 0)
-            speed += speed > 0 ? 1 : -1;
+        if (duration <= 0)
+            return;
 
-        mSmoothTransitionToCombatMode += speed * duration;
-        if (mSmoothTransitionToCombatMode > 1)
-            mSmoothTransitionToCombatMode = 1;
-        if (mSmoothTransitionToCombatMode < 0)
-            mSmoothTransitionToCombatMode = 0;
+        osg::Vec2d oldOffset = mFocalPointCurrentOffset;
+
+        if (mPreviousTransitionInfluence > 0)
+        {
+            mFocalPointCurrentOffset -= mPreviousExtraOffset;
+            mPreviousExtraOffset = mPreviousExtraOffset / mPreviousTransitionInfluence + mPreviousTransitionSpeed * duration;
+            mPreviousTransitionInfluence =
+                std::max(0.f, mPreviousTransitionInfluence - duration * mFocalPointTransitionSpeedCoef);
+            mPreviousExtraOffset *= mPreviousTransitionInfluence;
+            mFocalPointCurrentOffset += mPreviousExtraOffset;
+        }
+
+        osg::Vec2d delta = mFocalPointTargetOffset - mFocalPointCurrentOffset;
+        if (delta.length2() > 0)
+        {
+            float coef = duration * (1.0 + 5.0 / delta.length()) *
+                         mFocalPointTransitionSpeedCoef * (1.0f - mPreviousTransitionInfluence);
+            mFocalPointCurrentOffset += delta * std::min(coef, 1.0f);
+        }
+        else
+        {
+            mPreviousExtraOffset = osg::Vec2d();
+            mPreviousTransitionInfluence = 0.f;
+        }
+
+        mFocalPointTransitionSpeed = (mFocalPointCurrentOffset - oldOffset) / duration;
     }
 
     void Camera::setBobbingInfo(BobbingInfo& bobbingInfo)
@@ -419,7 +445,7 @@ namespace MWRender
         return mCameraDistance;
     }
 
-    void Camera::setBaseCameraDistance(float dist, bool adjust)
+    void Camera::updateBaseCameraDistance(float dist, bool adjust)
     {
         if(mFirstPersonView && !mPreviewMode && !mVanity.enabled)
             return;
@@ -446,7 +472,10 @@ namespace MWRender
         if (mVanity.enabled || mPreviewMode)
             mPreviewCam.offset = dist;
         else if (!mFirstPersonView)
+        {
             mBaseCameraDistance = dist;
+            Settings::Manager::setFloat("third person camera distance", "Camera", dist);
+        }
         setCameraDistance();
     }
 
@@ -466,7 +495,15 @@ namespace MWRender
 
     float Camera::getCameraDistanceCorrection() const
     {
-        return mThirdPersonMode != ThirdPersonViewMode::Standard ? std::max(-getPitch(), 0.f) * 50.f : 0;
+        if (!mDynamicCameraDistanceEnabled)
+            return 0;
+
+        float pitchCorrection = std::max(-getPitch(), 0.f) * 50.f;
+
+        float smoothedSpeedSqr = mSmoothedSpeed * mSmoothedSpeed;
+        float speedCorrection = smoothedSpeedSqr / (smoothedSpeedSqr + 300.f*300.f) * mZoomOutWhenMoveCoef;
+
+        return pitchCorrection + speedCorrection;
     }
 
     void Camera::setCameraDistance()

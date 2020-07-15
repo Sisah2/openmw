@@ -428,7 +428,7 @@ namespace MWRender
 
         if (activeGrid)
         {
-            OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mRefTrackerMutex);
+            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
             for (auto ref : getRefTracker().mBlacklist)
                 refs.erase(ref);
         }
@@ -464,7 +464,7 @@ namespace MWRender
             float dSqr = (viewPoint - pos).length2();
             if (!activeGrid)
             {
-                OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mSizeCacheMutex);
+                std::lock_guard<std::mutex> lock(mSizeCacheMutex);
                 SizeCache::iterator found = mSizeCache.find(pair.first);
                 if (found != mSizeCache.end() && found->second < dSqr*minSize*minSize)
                     continue;
@@ -501,7 +501,7 @@ namespace MWRender
             }
 
             {
-                OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mRefTrackerMutex);
+                std::lock_guard<std::mutex> lock(mRefTrackerMutex);
                 if (getRefTracker().mDisabled.count(pair.first))
                     continue;
             }
@@ -509,7 +509,7 @@ namespace MWRender
             float radius2 = cnode->getBound().radius2() * ref.mScale*ref.mScale;
             if (radius2 < dSqr*minSize*minSize && !activeGrid)
             {
-                OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mSizeCacheMutex);
+                std::lock_guard<std::mutex> lock(mSizeCacheMutex);
                 mSizeCache[pair.first] = radius2;
                 continue;
             }
@@ -670,22 +670,33 @@ namespace MWRender
         {
             if (mActiveGridOnly && !std::get<2>(id)) return false;
             pos /= ESM::Land::REAL_SIZE;
+            clampToCell(pos);
             osg::Vec2f center = std::get<0>(id);
             float halfSize = std::get<1>(id)/2;
             return pos.x() >= center.x()-halfSize && pos.y() >= center.y()-halfSize && pos.x() <= center.x()+halfSize && pos.y() <= center.y()+halfSize;
         }
+        void clampToCell(osg::Vec3f& cellPos)
+        {
+            osg::Vec2i min (mCell.x(), mCell.y());
+            osg::Vec2i max (mCell.x()+1, mCell.y()+1);
+            if (cellPos.x() < min.x()) cellPos.x() = min.x();
+            if (cellPos.x() > max.x()) cellPos.x() = max.x();
+            if (cellPos.y() < min.y()) cellPos.y() = min.y();
+            if (cellPos.y() > max.y()) cellPos.y() = max.y();
+        }
         osg::Vec3f mPosition;
+        osg::Vec2i mCell;
         std::set<MWRender::ChunkId> mToClear;
         bool mActiveGridOnly = false;
     };
 
-    bool ObjectPaging::enableObject(int type, const ESM::RefNum & refnum, const osg::Vec3f& pos, bool enabled)
+    bool ObjectPaging::enableObject(int type, const ESM::RefNum & refnum, const osg::Vec3f& pos, const osg::Vec2i& cell, bool enabled)
     {
         if (!typeFilter(type, false))
             return false;
 
         {
-            OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mRefTrackerMutex);
+            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
             if (enabled && !getWritableRefTracker().mDisabled.erase(refnum)) return false;
             if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second) return false;
             if (mRefTrackerLocked) return false;
@@ -693,6 +704,7 @@ namespace MWRender
 
         ClearCacheFunctor ccf;
         ccf.mPosition = pos;
+        ccf.mCell = cell;
         mCache->call(ccf);
         if (ccf.mToClear.empty()) return false;
         for (auto chunk : ccf.mToClear)
@@ -700,19 +712,20 @@ namespace MWRender
         return true;
     }
 
-    bool ObjectPaging::blacklistObject(int type, const ESM::RefNum & refnum, const osg::Vec3f& pos)
+    bool ObjectPaging::blacklistObject(int type, const ESM::RefNum & refnum, const osg::Vec3f& pos, const osg::Vec2i& cell)
     {
         if (!typeFilter(type, false))
             return false;
 
         {
-            OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mRefTrackerMutex);
+            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
             if (!getWritableRefTracker().mBlacklist.insert(refnum).second) return false;
             if (mRefTrackerLocked) return false;
         }
 
         ClearCacheFunctor ccf;
         ccf.mPosition = pos;
+        ccf.mCell = cell;
         ccf.mActiveGridOnly = true;
         mCache->call(ccf);
         if (ccf.mToClear.empty()) return false;
@@ -724,7 +737,7 @@ namespace MWRender
 
     void ObjectPaging::clear()
     {
-        OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mRefTrackerMutex);
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
         mRefTrackerNew.mDisabled.clear();
         mRefTrackerNew.mBlacklist.clear();
         mRefTrackerLocked = true;
@@ -734,7 +747,7 @@ namespace MWRender
     {
         if (!mRefTrackerLocked) return false;
         {
-            OpenThreads::ScopedLock<OpenThreads::Mutex> lock(mRefTrackerMutex);
+            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
             mRefTrackerLocked = false;
             if (mRefTracker == mRefTrackerNew)
                 return false;
