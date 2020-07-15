@@ -60,7 +60,6 @@ namespace MWRender
 
         float mCameraDistance;
 
-//<<<<<<< HEAD
         ThirdPersonViewMode mThirdPersonMode;
         osg::Vec2f mOverShoulderOffset;
         osg::Vec3d mFocalPointAdjustment;
@@ -70,9 +69,7 @@ namespace MWRender
         float mSmoothTransitionToCombatMode;
         void updateSmoothTransitionToCombatMode(float duration);
         float getCameraDistanceCorrection() const;
-//=======
         BobbingInfo mBobbingInfo;
-//>>>>>>> Stomy/openmw-head-bobbing
 
         osg::ref_ptr<osg::NodeCallback> mUpdateCallback;
 

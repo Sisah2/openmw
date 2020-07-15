@@ -333,12 +333,6 @@ NpcAnimation::NpcAnimation(const MWWorld::Ptr& ptr, osg::ref_ptr<osg::Group> par
     mShowWeapons(false),
     mShowCarriedLeft(true),
     mNpcType(getNpcType(ptr)),
-
-/*=======
-    mNpcType(getNpcType()),
-    mFirstPersonRoll(0.f),
->>>>>>> Stomy/openmw-head-bobbing
-*/
     mFirstPersonFieldOfView(firstPersonFieldOfView),
     mSoundsDisabled(disableSounds),
     mAccurateAiming(false),

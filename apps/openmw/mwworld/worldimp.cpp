@@ -1871,12 +1871,6 @@ namespace MWWorld
         auto* camera = mRendering->getCamera();
         camera->setCameraDistance();
         if(!mRendering->getCamera()->isFirstPerson())
-/*
-=======
-        mRendering->getCamera()->setCameraDistance();
-        if(!isFirstPerson)
->>>>>>> Stomy/openmw-head-bobbing
-*/
         {
             float cameraObstacleLimit = mRendering->getNearClipDistance() * 2.5f;
             float focalObstacleLimit = std::max(cameraObstacleLimit, 10.0f);
