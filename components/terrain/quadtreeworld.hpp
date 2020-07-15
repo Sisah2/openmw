@@ -4,11 +4,12 @@
 #include "world.hpp"
 #include "terraingrid.hpp"
 
-#include <OpenThreads/Mutex>
+#include <mutex>
 
 namespace osg
 {
     class NodeVisitor;
+    class CollectOccludersVisitor;
 }
 
 namespace Terrain
@@ -23,6 +24,8 @@ namespace Terrain
         QuadTreeWorld(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float comMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize);
 
         ~QuadTreeWorld();
+
+        void setOcclusionCullingSettings(bool debug, int maximumActive, float minimumVolume, float zfactor, float zbias);
 
         void accept(osg::NodeVisitor& nv);
 
@@ -61,7 +64,13 @@ namespace Terrain
 
         std::vector<ChunkManager*> mChunkManagers;
 
+        osg::ref_ptr<osg::CollectOccludersVisitor> mCollectOccludersVisitor;
+        bool mDebugOccluders;
+        float mOcclusionCullingZFactor;
+        float mOcclusionCullingZBias;
+
         OpenThreads::Mutex mQuadTreeMutex;
+        std::mutex mQuadTreeMutex;
         bool mQuadTreeBuilt;
         float mLodFactor;
         int mVertexLodMod;

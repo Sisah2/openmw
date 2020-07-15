@@ -571,6 +571,7 @@ MWShadowTechnique::ShadowData::ShadowData(MWShadowTechnique::ViewDependentData* 
 
     // switch off small feature culling as this can cull out geometry that will still be large enough once perspective correction takes effect.
     _camera->setCullingMode(_camera->getCullingMode() & ~osg::CullSettings::SMALL_FEATURE_CULLING);
+    _camera->setCullingMode(_camera->getCullingMode() & ~osg::CullSettings::SHADOW_OCCLUSION_CULLING);
 
     // set viewport
     _camera->setViewport(0,0,textureSize.x(),textureSize.y());
@@ -891,7 +892,7 @@ MWShadowTechnique::ViewDependentData* MWShadowTechnique::createViewDependentData
 
 MWShadowTechnique::ViewDependentData* MWShadowTechnique::getViewDependentData(osgUtil::CullVisitor* cv)
 {
-    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_viewDependentDataMapMutex);
+    std::lock_guard<std::mutex> lock(_viewDependentDataMapMutex);
     ViewDependentDataMap::iterator itr = _viewDependentDataMap.find(cv);
     if (itr!=_viewDependentDataMap.end()) return itr->second.get();
 
@@ -1343,7 +1344,7 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
                     std::string validRegionUniformName = "validRegionMatrix" + std::to_string(sm_i);
                     osg::ref_ptr<osg::Uniform> validRegionUniform;
 
-                    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_accessUniformsAndProgramMutex);
+                    std::lock_guard<std::mutex> lock(_accessUniformsAndProgramMutex);
 
                     for (auto uniform : _uniforms)
                     {
@@ -1467,7 +1468,7 @@ void MWShadowTechnique::createShaders()
 
     unsigned int _baseTextureUnit = 0;
 
-    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_accessUniformsAndProgramMutex);
+    std::lock_guard<std::mutex> lock(_accessUniformsAndProgramMutex);
 
     _shadowCastingStateSet = new osg::StateSet;
 
@@ -2980,7 +2981,7 @@ osg::StateSet* MWShadowTechnique::selectStateSetForRenderingShadow(ViewDependent
 
     osg::ref_ptr<osg::StateSet> stateset = vdd.getStateSet();
 
-    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_accessUniformsAndProgramMutex);
+    std::lock_guard<std::mutex> lock(_accessUniformsAndProgramMutex);
 
     vdd.getStateSet()->clear();
 
@@ -3057,7 +3058,7 @@ void MWShadowTechnique::resizeGLObjectBuffers(unsigned int /*maxSize*/)
 
 void MWShadowTechnique::releaseGLObjects(osg::State* state) const
 {
-    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_viewDependentDataMapMutex);
+    std::lock_guard<std::mutex> lock(_viewDependentDataMapMutex);
     for(ViewDependentDataMap::const_iterator itr = _viewDependentDataMap.begin();
         itr != _viewDependentDataMap.end();
         ++itr)

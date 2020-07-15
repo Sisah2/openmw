@@ -1186,7 +1186,6 @@ namespace MWWorld
                     mRendering->updatePtr(ptr, newPtr);
                     MWBase::Environment::get().getSoundManager()->updatePtr (ptr, newPtr);
                     mPhysics->updatePtr(ptr, newPtr);
-                    MWBase::Environment::get().getScriptManager()->getGlobalScripts().updatePtrs(ptr, newPtr);
 
                     MWBase::MechanicsManager *mechMgr = MWBase::Environment::get().getMechanicsManager();
                     mechMgr->updateCell(ptr, newPtr);
@@ -1202,6 +1201,9 @@ namespace MWWorld
                     }
                 }
             }
+
+            MWBase::Environment::get().getWindowManager()->updateConsoleObjectPtr(ptr, newPtr);
+            MWBase::Environment::get().getScriptManager()->getGlobalScripts().updatePtrs(ptr, newPtr);
         }
         if (haveToMove && newPtr.getRefData().getBaseNode())
         {
@@ -1391,6 +1393,9 @@ namespace MWWorld
     {
         if(ptr.getRefData().getBaseNode() != 0)
         {
+            mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
+            mWorldScene->removeFromPagedRefs(ptr);
+
             mRendering->rotateObject(ptr, rotate);
             mPhysics->updateRotation(ptr);
 
@@ -1769,6 +1774,14 @@ namespace MWWorld
         return mStore.insert(record);
     }
 
+    void World::updateGrass()
+    {
+        for (CellStore* cellstore : mWorldScene->getActiveCells())
+        {
+            cellstore->updateGrassVisibility();
+        }
+    }
+
     void World::update (float duration, bool paused)
     {
         if (mGoToJail && !paused)
@@ -1804,6 +1817,10 @@ namespace MWWorld
             mSpellPreloadTimer = 0.1f;
             preloadSpells();
         }
+
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
+        if (grassEnabled)
+            updateGrass();
     }
 
     void World::updatePhysics (float duration, bool paused)
@@ -1904,7 +1921,7 @@ namespace MWWorld
             std::string enchantId = selectedEnchantItem.getClass().getEnchantment(selectedEnchantItem);
             if (!enchantId.empty())
             {
-                const ESM::Enchantment* ench = mStore.get<ESM::Enchantment>().search(selectedEnchantItem.getClass().getEnchantment(selectedEnchantItem));
+                const ESM::Enchantment* ench = mStore.get<ESM::Enchantment>().search(enchantId);
                 if (ench)
                     preloadEffects(&ench->mEffects);
             }
@@ -2453,7 +2470,7 @@ namespace MWWorld
         rotateObject(player, 0.f, 0.f, 0.f, MWBase::RotationFlag_inverseOrder | MWBase::RotationFlag_adjust);
 
         MWBase::Environment::get().getMechanicsManager()->add(getPlayerPtr());
-        MWBase::Environment::get().getMechanicsManager()->watchActor(getPlayerPtr());
+        MWBase::Environment::get().getWindowManager()->watchActor(getPlayerPtr());
 
         std::string model = getPlayerPtr().getClass().getModel(getPlayerPtr());
         model = Misc::ResourceHelpers::correctActorModelPath(model, mResourceSystem->getVFS());

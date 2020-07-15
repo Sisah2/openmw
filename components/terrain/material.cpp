@@ -243,6 +243,10 @@ namespace Terrain
 
                 stateset->setAttributeAndModes(shaderManager->getProgram(vertexShader, fragmentShader));
                 stateset->addUniform(new osg::Uniform("colorMode", 2));
+                static float gamma = 1.0;
+                const char *s = getenv("OPENMW_GAMMA");
+                if (s) gamma = atof(s);
+                stateset->addUniform(new osg::Uniform("gamma", gamma));
             }
             else
             {

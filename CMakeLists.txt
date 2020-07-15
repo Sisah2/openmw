@@ -167,7 +167,7 @@ if(FFmpeg_FOUND)
     SET(FFVER_OK TRUE)
 
     # Can not detect FFmpeg version on Windows for now
-    if (NOT WIN32)
+    if (WIN32)
         if(FFmpeg_AVFORMAT_VERSION VERSION_LESS "57.56.100")
             message(STATUS "libavformat is too old! (${FFmpeg_AVFORMAT_VERSION}, wanted 57.56.100)")
             set(FFVER_OK FALSE)
@@ -311,7 +311,7 @@ include_directories("."
     ${Boost_INCLUDE_DIR}
     ${MyGUI_INCLUDE_DIRS}
     ${OPENAL_INCLUDE_DIR}
-    ${Bullet_INCLUDE_DIRS}
+    ${BULLET_INCLUDE_DIRS}
 )
 
 link_directories(${SDL2_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
