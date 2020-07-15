@@ -60,6 +60,11 @@ void wrap(float& rad)
         rad = std::fmod(rad-osg::PI, 2.0f*osg::PI)+osg::PI;
 }
 
+float clamp(float val, float min, float max)
+{
+    return std::min(max, std::max(min, val));
+}
+
 std::string getBestAttack (const ESM::Weapon* weapon)
 {
     int slash = (weapon->mData.mSlash[0] + weapon->mData.mSlash[1])/2;
@@ -141,7 +146,7 @@ float getFallDamage(const MWWorld::Ptr& ptr, float fallHeight)
     return 0.f;
 }
 
-}
+} // namespace
 
 namespace MWMechanics
 {
@@ -309,7 +314,7 @@ void CharacterController::refreshHitRecoilAnims(CharacterState& idle)
             mPtr.getClass().getCreatureStats(mPtr).setBlock(false);
         mHitState = CharState_None;
     }
-    else if (isKnockedOut() && mPtr.getClass().getCreatureStats(mPtr).getFatigue().getCurrent() > 0 
+    else if (isKnockedOut() && mPtr.getClass().getCreatureStats(mPtr).getFatigue().getCurrent() > 0
             && mTimeUntilWake <= 0)
     {
         mHitState = isSwimming ? CharState_SwimKnockDown : CharState_KnockDown;
@@ -672,7 +677,7 @@ void CharacterController::refreshIdleAnims(const std::string& weapShortGroup, Ch
 
                 // play until the Loop Stop key 2 to 5 times, then play until the Stop key
                 // this replicates original engine behavior for the "Idle1h" 1st-person animation
-                numLoops = 1 + Misc::Rng::rollDice(4); 
+                numLoops = 1 + Misc::Rng::rollDice(4);
             }
         }
 
@@ -853,6 +858,7 @@ CharacterController::CharacterController(const MWWorld::Ptr &ptr, MWRender::Anim
     , mAttackingOrSpell(false)
     , mCastingManualSpell(false)
     , mTimeUntilWake(0.f)
+    , mIsMovingBackward(false)
 {
     if(!mAnimation)
         return;
@@ -921,6 +927,8 @@ CharacterController::CharacterController(const MWWorld::Ptr &ptr, MWRender::Anim
         refreshCurrentAnims(mIdleState, mMovementState, mJumpState, true);
 
     mAnimation->runAnimation(0.f);
+
+    mBobbingInfo = {}; // Zero-is-initialization
 
     unpersistAnimationState();
 }
@@ -1913,6 +1921,7 @@ void CharacterController::update(float duration, bool animationOnly)
         mTimeUntilWake -= duration;
 
     bool isPlayer = mPtr == MWMechanics::getPlayer();
+    bool isFirstPersonPlayer = isPlayer && MWBase::Environment::get().getWorld()->isFirstPerson();
     bool godmode = isPlayer && MWBase::Environment::get().getWorld()->getGodModeState();
 
     float scale = mPtr.getCellRef().getScale();
@@ -1939,63 +1948,78 @@ void CharacterController::update(float duration, bool animationOnly)
         bool sneak = cls.getCreatureStats(mPtr).getStance(MWMechanics::CreatureStats::Stance_Sneak) && !flying;
         bool isrunning = cls.getCreatureStats(mPtr).getStance(MWMechanics::CreatureStats::Stance_Run) && !flying;
         CreatureStats &stats = cls.getCreatureStats(mPtr);
+        Movement& movementSettings = cls.getMovementSettings(mPtr);
 
         //Force Jump Logic
 
-        bool isMoving = (std::abs(cls.getMovementSettings(mPtr).mPosition[0]) > .5 || std::abs(cls.getMovementSettings(mPtr).mPosition[1]) > .5);
+        bool isMoving = (std::abs(movementSettings.mPosition[0]) > .5 || std::abs(movementSettings.mPosition[1]) > .5);
         if(!inwater && !flying && solid)
         {
             //Force Jump
             if(stats.getMovementFlag(MWMechanics::CreatureStats::Flag_ForceJump))
-            {
-                if(onground)
-                {
-                    cls.getMovementSettings(mPtr).mPosition[2] = 1;
-                }
-                else
-                    cls.getMovementSettings(mPtr).mPosition[2] = 0;
-            }
+                movementSettings.mPosition[2] = onground ? 1 : 0;
             //Force Move Jump, only jump if they're otherwise moving
             if(stats.getMovementFlag(MWMechanics::CreatureStats::Flag_ForceMoveJump) && isMoving)
-            {
-
-                if(onground)
-                {
-                    cls.getMovementSettings(mPtr).mPosition[2] = 1;
-                }
-                else
-                    cls.getMovementSettings(mPtr).mPosition[2] = 0;
-            }
+                movementSettings.mPosition[2] = onground ? 1 : 0;
         }
 
-        osg::Vec3f vec(cls.getMovementSettings(mPtr).asVec3());
+        osg::Vec3f rot = cls.getRotationVector(mPtr);
+        osg::Vec3f vec(movementSettings.asVec3());
         vec.normalize();
 
-        if(mHitState != CharState_None && mJumpState == JumpState_None)
-            vec = osg::Vec3f(0.f, 0.f, 0.f);
-        osg::Vec3f rot = cls.getRotationVector(mPtr);
-
-        speed = cls.getSpeed(mPtr);
-        float analogueMult = 1.f;
-        if(isPlayer)
+        float analogueMult = 1.0f;
+        if (isPlayer)
         {
+            // TODO: Move this code to mwinput.
             // Joystick analogue movement.
-            float xAxis = std::abs(cls.getMovementSettings(mPtr).mPosition[0]);
-            float yAxis = std::abs(cls.getMovementSettings(mPtr).mPosition[1]);
-            analogueMult = ((xAxis > yAxis) ? xAxis : yAxis);
-
-            // If Strafing, our max speed is slower so multiply by X axis instead.
-            if(std::abs(vec.x()/2.0f) > std::abs(vec.y()))
-                analogueMult = xAxis;
+            float xAxis = std::abs(movementSettings.mPosition[0]);
+            float yAxis = std::abs(movementSettings.mPosition[1]);
+            analogueMult = std::max(xAxis, yAxis);
 
             // Due to the half way split between walking/running, we multiply speed by 2 while walking, unless a keyboard was used.
             if(!isrunning && !sneak && !flying && analogueMult <= 0.5f)
                 analogueMult *= 2.f;
+
+            movementSettings.mSpeedFactor = analogueMult;
         }
 
-        speed *= analogueMult;
+        float effectiveRotation = rot.z();
+        static const bool turnToMovementDirection = Settings::Manager::getBool("turn to movement direction", "Game");
+        if (turnToMovementDirection && !isFirstPersonPlayer)
+        {
+            float targetMovementAngle = vec.y() >= 0 ? std::atan2(-vec.x(), vec.y()) : std::atan2(vec.x(), -vec.y());
+            movementSettings.mIsStrafing = (stats.getDrawState() != MWMechanics::DrawState_Nothing || inwater)
+                                           && std::abs(targetMovementAngle) > osg::DegreesToRadians(60.0f);
+            if (movementSettings.mIsStrafing)
+                targetMovementAngle = 0;
+            float delta = targetMovementAngle - stats.getSideMovementAngle();
+            float cosDelta = cosf(delta);
+
+            if ((vec.y() < 0) == mIsMovingBackward)
+                movementSettings.mSpeedFactor *= std::min(std::max(cosDelta, 0.f) + 0.3f, 1.f); // slow down when turn
+            if (std::abs(delta) < osg::DegreesToRadians(20.0f))
+                mIsMovingBackward = vec.y() < 0;
+
+            float maxDelta = osg::PI * duration * (2.5f - cosDelta);
+            delta = osg::clampBetween(delta, -maxDelta, maxDelta);
+            stats.setSideMovementAngle(stats.getSideMovementAngle() + delta);
+            effectiveRotation += delta;
+        }
+        else
+            movementSettings.mIsStrafing = std::abs(vec.x()) > std::abs(vec.y()) * 2;
+
+        mAnimation->setLegsYawRadians(stats.getSideMovementAngle());
+        if (stats.getDrawState() == MWMechanics::DrawState_Nothing || inwater)
+            mAnimation->setUpperBodyYawRadians(stats.getSideMovementAngle() / 2);
+        else
+            mAnimation->setUpperBodyYawRadians(stats.getSideMovementAngle() / 4);
+
+        speed = cls.getSpeed(mPtr);
         vec.x() *= speed;
         vec.y() *= speed;
+
+        if(mHitState != CharState_None && mJumpState == JumpState_None)
+            vec = osg::Vec3f();
 
         CharacterState movestate = CharState_None;
         CharacterState idlestate = CharState_SpecialIdle;
@@ -2158,7 +2182,7 @@ void CharacterController::update(float duration, bool animationOnly)
 
             inJump = false;
 
-            if(std::abs(vec.x()/2.0f) > std::abs(vec.y()))
+            if (movementSettings.mIsStrafing)
             {
                 if(vec.x() > 0.0f)
                     movestate = (inwater ? (isrunning ? CharState_SwimRunRight : CharState_SwimWalkRight)
@@ -2169,18 +2193,18 @@ void CharacterController::update(float duration, bool animationOnly)
                                          : (sneak ? CharState_SneakLeft
                                                   : (isrunning ? CharState_RunLeft : CharState_WalkLeft)));
             }
-            else if(vec.y() != 0.0f)
+            else if (vec.length2() > 0.0f)
             {
-                if(vec.y() > 0.0f)
+                if (vec.y() >= 0.0f)
                     movestate = (inwater ? (isrunning ? CharState_SwimRunForward : CharState_SwimWalkForward)
                                          : (sneak ? CharState_SneakForward
                                                   : (isrunning ? CharState_RunForward : CharState_WalkForward)));
-                else if(vec.y() < 0.0f)
+                else
                     movestate = (inwater ? (isrunning ? CharState_SwimRunBack : CharState_SwimWalkBack)
                                          : (sneak ? CharState_SneakBack
                                                   : (isrunning ? CharState_RunBack : CharState_WalkBack)));
             }
-            else if(rot.z() != 0.0f)
+            else if (effectiveRotation != 0.0f)
             {
                 // Do not play turning animation for player if rotation speed is very slow.
                 // Actual threshold should take framerate in account.
@@ -2190,12 +2214,11 @@ void CharacterController::update(float duration, bool animationOnly)
 
                 // It seems only bipedal actors use turning animations.
                 // Also do not use turning animations in the first-person view and when sneaking.
-                bool isFirstPlayer = isPlayer && MWBase::Environment::get().getWorld()->isFirstPerson();
-                if (!sneak && jumpstate == JumpState_None && !isFirstPlayer && mPtr.getClass().isBipedal(mPtr))
+                if (!sneak && jumpstate == JumpState_None && !isFirstPersonPlayer && mPtr.getClass().isBipedal(mPtr))
                 {
-                    if(rot.z() > rotationThreshold)
+                    if(effectiveRotation > rotationThreshold)
                         movestate = inwater ? CharState_SwimTurnRight : CharState_TurnRight;
-                    else if(rot.z() < -rotationThreshold)
+                    else if(effectiveRotation < -rotationThreshold)
                         movestate = inwater ? CharState_SwimTurnLeft : CharState_TurnLeft;
                 }
             }
@@ -2213,6 +2236,26 @@ void CharacterController::update(float duration, bool animationOnly)
 
             if (!sound.empty())
                 sndMgr->playSound3D(mPtr, sound, 1.f, 1.f, MWSound::Type::Foot, MWSound::PlayMode::NoPlayerLocal);
+        }
+
+        if (turnToMovementDirection)
+        {
+            float targetSwimmingPitch;
+            if (inwater && vec.y() != 0 && !isFirstPersonPlayer && !movementSettings.mIsStrafing)
+                targetSwimmingPitch = -mPtr.getRefData().getPosition().rot[0];
+            else
+                targetSwimmingPitch = 0;
+            float maxSwimPitchDelta = 3.0f * duration;
+            float swimmingPitch = mAnimation->getBodyPitchRadians();
+            swimmingPitch += osg::clampBetween(targetSwimmingPitch - swimmingPitch, -maxSwimPitchDelta, maxSwimPitchDelta);
+            mAnimation->setBodyPitchRadians(swimmingPitch);
+        }
+        if (inwater && isPlayer && !isFirstPersonPlayer)
+        {
+            static const float swimUpwardCoef = Settings::Manager::getFloat("swim upward coef", "Game");
+            static const float swimForwardCoef = sqrtf(1.0f - swimUpwardCoef * swimUpwardCoef);
+            vec.z() = std::abs(vec.y()) * swimUpwardCoef;
+            vec.y() *= swimForwardCoef;
         }
 
         // Player can not use smooth turning as NPCs, so we play turning animation a bit to avoid jittering
@@ -2316,10 +2359,120 @@ void CharacterController::update(float duration, bool animationOnly)
             // We must always queue movement, even if there is none, to apply gravity.
             world->queueMovement(mPtr, osg::Vec3f(0.f, 0.f, 0.f));
 
+        { // First Person Head Bobbing
+            static const float fSneakOffset = gmst.find("i1stPersonSneakDelta")->mValue.getFloat();
+            static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
+            static const bool isHandBobbing = Settings::Manager::getBool("hand bobbing", "Camera");
+
+            mBobbingInfo.mHeadBobEnabled = isPlayer && isHeadBobbing;
+            mBobbingInfo.mHandBobEnabled = isPlayer && isHandBobbing;
+
+            if (mBobbingInfo.mHeadBobEnabled || mBobbingInfo.mHandBobEnabled)
+            {
+                if (onground && isMoving && solid && speed > 0.f && !mSkipAnim && !animationOnly)
+                {
+                    if (mMovementAnimSpeed > mBobbingInfo.mAnimSpeed)
+                        mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
+                    else
+                    {
+                        // Changing speed downwards tends to be very jarring, it's blended over mutliple frames here to smooth it out
+                        mBobbingInfo.mAnimSpeed -= mBobbingInfo.mAnimSpeed * duration * 10.f;
+                        if (mBobbingInfo.mAnimSpeed < mMovementAnimSpeed)
+                            mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
+                    }
+
+                    float speedmult = speed / mBobbingInfo.mAnimSpeed;
+                    if (sneak)
+                        speedmult /= 3.444f;
+                    mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
+                    mBobbingInfo.mSpeedSmoothed += speed * duration * 10.f;
+                    if (mBobbingInfo.mSpeedSmoothed > speed)
+                        mBobbingInfo.mSpeedSmoothed = speed;
+                }
+                else
+                {
+                    mBobbingInfo.mSpeedSmoothed -= mBobbingInfo.mSpeedSmoothed * duration * 20.f;
+                    if (mBobbingInfo.mSpeedSmoothed < 0.0001f)
+                    {
+                        mBobbingInfo.mSpeedSmoothed = 0.f;
+                    }
+
+                    if (mBobbingInfo.mCycle != 0.f)
+                    {
+                        float speedmult = 1.f;
+                        if (sneak)
+                            speedmult /= 3.444f;
+                        if (mBobbingInfo.mCycle > osg::PI)
+                        {
+                            mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
+                            if (mBobbingInfo.mCycle > osg::PI * 2.f)
+                                mBobbingInfo.mCycle = 0.f;
+                        }
+                        else
+                        {
+                            mBobbingInfo.mCycle -= speedmult * duration * osg::PI * 2.f;
+                            if (mBobbingInfo.mCycle < 0.f)
+                                mBobbingInfo.mCycle = 0.f;
+                        }
+                    }
+                }
+
+                mBobbingInfo.mCycle = std::fmod(mBobbingInfo.mCycle, osg::PI * 2.f);
+
+                // Smoothed Sneak Offset
+                if (sneak && !inwater && !flying)
+                    mBobbingInfo.mSneakOffset += fSneakOffset * duration * 10.f;
+                else
+                    mBobbingInfo.mSneakOffset -= fSneakOffset * duration * 10.f;
+
+                mBobbingInfo.mSneakOffset = clamp(mBobbingInfo.mSneakOffset, 0.f, fSneakOffset);
+
+            } else {
+                // Original Sneak Offset
+                if (sneak && !inwater && !flying)
+                    mBobbingInfo.mSneakOffset = fSneakOffset;
+                else
+                    mBobbingInfo.mSneakOffset = 0.f;
+            }
+
+            // Landing viewshake
+            if (playLandingSound)
+                mBobbingInfo.mLandingShake = true;
+
+            // TODO Set a magnitude dependent on landing velocity
+            static const float fLandingShakeOffset = 15.f * Settings::Manager::getFloat("head landing bounce", "Camera");
+            if (mBobbingInfo.mLandingShake)
+            {
+                mBobbingInfo.mLandingOffset += fLandingShakeOffset * duration * 20.f;
+                if (mBobbingInfo.mLandingOffset >= fLandingShakeOffset)
+                {
+                    mBobbingInfo.mLandingShake = false;
+                    mBobbingInfo.mLandingOffset = fLandingShakeOffset;
+                }
+            }
+            else if (mBobbingInfo.mLandingOffset > 0.f)
+            {
+                mBobbingInfo.mLandingOffset *= 1.0f - duration * 10.f;
+                if (mBobbingInfo.mLandingOffset < 0.0001f)
+                    mBobbingInfo.mLandingOffset = 0.f;
+            }
+
+            // Hand Inertia
+            static const float limit = 1.f;
+
+            mBobbingInfo.mInertiaYaw *= 1.0f - duration * 10.f;
+            mBobbingInfo.mInertiaYaw += rot.z();
+            mBobbingInfo.mInertiaYaw = clamp(mBobbingInfo.mInertiaYaw, -limit, limit);
+
+            mBobbingInfo.mInertiaPitch *= 1.0f - duration * 10.f;
+            mBobbingInfo.mInertiaPitch += rot.x();
+            mBobbingInfo.mInertiaPitch = clamp(mBobbingInfo.mInertiaPitch, -limit, limit);
+        } // First Person Head Bobbing
+
         movement = vec;
-        cls.getMovementSettings(mPtr).mPosition[0] = cls.getMovementSettings(mPtr).mPosition[1] = 0;
+        movementSettings.mPosition[0] = movementSettings.mPosition[1] = 0;
         if (movement.z() == 0.f)
-            cls.getMovementSettings(mPtr).mPosition[2] = 0;
+            movementSettings.mPosition[2] = 0;
         // Can't reset jump state (mPosition[2]) here in full; we don't know for sure whether the PhysicSystem will actually handle it in this frame
         // due to the fixed minimum timestep used for the physics update. It will be reset in PhysicSystem::move once the jump is handled.
 
@@ -2355,20 +2508,17 @@ void CharacterController::update(float duration, bool animationOnly)
     if(speed > 0.f)
     {
         float l = moved.length();
-
-        if((movement.x() < 0.0f && movement.x() < moved.x()*2.0f) ||
-           (movement.x() > 0.0f && movement.x() > moved.x()*2.0f))
-            moved.x() = movement.x();
-        if((movement.y() < 0.0f && movement.y() < moved.y()*2.0f) ||
-           (movement.y() > 0.0f && movement.y() > moved.y()*2.0f))
-            moved.y() = movement.y();
-        if((movement.z() < 0.0f && movement.z() < moved.z()*2.0f) ||
-           (movement.z() > 0.0f && movement.z() > moved.z()*2.0f))
-            moved.z() = movement.z();
-        // but keep the original speed
-        float newLength = moved.length();
-        if (newLength > 0)
-            moved *= (l / newLength);
+        if (std::abs(movement.x() - moved.x()) > std::abs(moved.x()) / 2 ||
+            std::abs(movement.y() - moved.y()) > std::abs(moved.y()) / 2 ||
+            std::abs(movement.z() - moved.z()) > std::abs(moved.z()) / 2)
+        {
+            moved = movement;
+            // For some creatures getSpeed doesn't work, so we adjust speed to the animation.
+            // TODO: Fix Creature::getSpeed.
+            float newLength = moved.length();
+            if (newLength > 0 && !cls.isNpc())
+                moved *= (l / newLength);
+        }
     }
 
     if (mFloatToSurface && cls.isActor() && cls.getCreatureStats(mPtr).isDead() && cls.canSwim(mPtr))
@@ -2756,6 +2906,11 @@ bool CharacterController::isRunning() const
             mMovementState == CharState_SwimRunBack ||
             mMovementState == CharState_SwimRunLeft ||
             mMovementState == CharState_SwimRunRight;
+}
+
+MWRender::BobbingInfo& CharacterController::getBobbingInfo()
+{
+    return mBobbingInfo;
 }
 
 void CharacterController::setAttackingOrSpell(bool attackingOrSpell)

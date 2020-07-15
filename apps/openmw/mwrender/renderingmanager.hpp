@@ -79,6 +79,7 @@ namespace MWRender
     class NpcAnimation;
     class Pathgrid;
     class Camera;
+    class ViewOverShoulderController;
     class Water;
     class TerrainStorage;
     class LandManager;
@@ -252,6 +253,7 @@ namespace MWRender
         void updateTextureFiltering();
         void updateAmbient();
         void setFogColor(const osg::Vec4f& color);
+        void updateThirdPersonViewMode();
 
         void reportStats() const;
 
@@ -293,6 +295,7 @@ namespace MWRender
         osg::ref_ptr<NpcAnimation> mPlayerAnimation;
         osg::ref_ptr<SceneUtil::PositionAttitudeTransform> mPlayerNode;
         std::unique_ptr<Camera> mCamera;
+        std::unique_ptr<ViewOverShoulderController> mViewOverShoulderController;
         osg::Vec3f mCurrentCameraPos;
 
         osg::ref_ptr<StateUpdater> mStateUpdater;

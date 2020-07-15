@@ -8,10 +8,17 @@
 #include "actoranimation.hpp"
 #include "weaponanimation.hpp"
 
+#include <array>
+
 namespace ESM
 {
     struct NPC;
     struct BodyPart;
+}
+
+namespace MWSound
+{
+    class Sound;
 }
 
 namespace MWRender
@@ -40,7 +47,7 @@ private:
 
     // Bounded Parts
     PartHolderPtr mObjectParts[ESM::PRT_Count];
-    std::string mSoundIds[ESM::PRT_Count];
+    std::array<MWSound::Sound*, ESM::PRT_Count> mSounds;
 
     const ESM::NPC *mNpc;
     std::string    mHeadModel;
@@ -61,6 +68,9 @@ private:
     int mPartPriorities[ESM::PRT_Count];
 
     osg::Vec3f mFirstPersonOffset;
+    float mFirstPersonPitch;
+    float mFirstPersonRoll;
+    float mFirstPersonYaw;
     // Field of view to use when rendering first person meshes
     float mFirstPersonFieldOfView;
 
@@ -158,6 +168,7 @@ public:
 
     /// Set a translation offset (in object root space) to apply to meshes when in first person mode.
     void setFirstPersonOffset(const osg::Vec3f& offset);
+    void setFirstPersonRotation(float pitch, float roll, float yaw);
 
     virtual void updatePtr(const MWWorld::Ptr& updated);
 

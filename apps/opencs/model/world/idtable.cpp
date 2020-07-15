@@ -94,7 +94,7 @@ bool CSMWorld::IdTable::setData (const QModelIndex &index, const QVariant &value
                 // views that the whole row has changed.
 
                 emit dataChanged(this->index(index.row(), 0),
-                                 this->index(index.row(), columnCount(index.parent())));
+                                 this->index(index.row(), columnCount(index.parent()) - 1));
 
             } else
             {
@@ -116,7 +116,7 @@ bool CSMWorld::IdTable::setData (const QModelIndex &index, const QVariant &value
 Qt::ItemFlags CSMWorld::IdTable::flags (const QModelIndex & index) const
 {
     if (!index.isValid())
-        return 0;
+        return Qt::ItemFlags();
 
     Qt::ItemFlags flags = Qt::ItemIsSelectable | Qt::ItemIsEnabled;
 

@@ -9,6 +9,8 @@
 
 #include "../mwworld/ptr.hpp"
 
+#include "bobbing.hpp"
+
 namespace osg
 {
     class Camera;
@@ -23,6 +25,7 @@ namespace MWRender
     /// \brief Camera control
     class Camera
     {
+    private:
         struct CamData {
             float pitch, yaw, offset;
         };
@@ -45,7 +48,7 @@ namespace MWRender
             bool enabled, allowed;
         } mVanity;
 
-        float mHeight, mMaxCameraDistance;
+        float mHeight, mBaseCameraDistance;
         CamData mMainCam, mPreviewCam;
 
         bool mVanityToggleQueued;
@@ -54,6 +57,26 @@ namespace MWRender
 
         float mCameraDistance;
 
+        osg::Vec3d mFocalPointAdjustment;
+        osg::Vec2d mFocalPointCurrentOffset;
+        osg::Vec2d mFocalPointTargetOffset;
+        float mFocalPointTransitionSpeedCoef;
+
+        // This fields are used to make focal point transition smooth if previous transition was not finished.
+        float mPreviousTransitionInfluence;
+        osg::Vec2d mFocalPointTransitionSpeed;
+        osg::Vec2d mPreviousTransitionSpeed;
+        osg::Vec2d mPreviousExtraOffset;
+
+        float mSmoothedSpeed;
+        float mZoomOutWhenMoveCoef;
+        bool mDynamicCameraDistanceEnabled;
+        bool mShowCrosshairInThirdPersonMode;
+
+        void updateFocalPointOffset(float duration);
+        float getCameraDistanceCorrection() const;
+        BobbingInfo mBobbingInfo;
+
         osg::ref_ptr<osg::NodeCallback> mUpdateCallback;
 
     public:
@@ -61,6 +84,11 @@ namespace MWRender
         ~Camera();
 
         MWWorld::Ptr getTrackingPtr() const;
+
+        void setFocalPointTransitionSpeed(float v) { mFocalPointTransitionSpeedCoef = v; }
+        void setFocalPointTargetOffset(osg::Vec2d v);
+        void enableDynamicCameraDistance(bool v) { mDynamicCameraDistanceEnabled = v; }
+        void enableCrosshairInThirdPersonMode(bool v) { mShowCrosshairInThirdPersonMode = v; }
 
         /// Update the view matrix of \a cam
         void updateCamera(osg::Camera* cam);
@@ -72,10 +100,10 @@ namespace MWRender
         /// \param rot Rotation angles in radians
         void rotateCamera(float pitch, float yaw, bool adjust);
 
-        float getYaw();
+        float getYaw() const;
         void setYaw(float angle);
 
-        float getPitch();
+        float getPitch() const;
         void setPitch(float angle);
 
         /// Attach camera to object
@@ -90,8 +118,8 @@ namespace MWRender
         /// @note this may be ignored if an important animation is currently playing
         void togglePreviewMode(bool enable);
 
-        /// \brief Lowers the camera for sneak.
-        void setSneakOffset(float offset);
+        /// Parametric Head and Hand Bobbing in first person, also handles downward sneaking offset
+        void setBobbingInfo(BobbingInfo& bobbingInfo);
 
         bool isFirstPerson() const
         { return !(mVanity.enabled || mPreviewMode || !mFirstPersonView); }
@@ -100,27 +128,32 @@ namespace MWRender
 
         void update(float duration, bool paused=false);
 
+        /// Set base camera distance for current mode. Don't work on 1st person view.
+        /// \param adjust Indicates should distance be adjusted or set.
+        void updateBaseCameraDistance(float dist, bool adjust = false);
+
         /// Set camera distance for current mode. Don't work on 1st person view.
         /// \param adjust Indicates should distance be adjusted or set.
-        /// \param override If true new distance will be used as default.
-        /// If false, default distance can be restored with setCameraDistance().
-        void setCameraDistance(float dist, bool adjust = false, bool override = true);
+        /// Default distance can be restored with setCameraDistance().
+        void setCameraDistance(float dist, bool adjust = false);
 
-        /// Restore default camera distance for current mode.
+        /// Restore default camera distance and offset for current mode.
         void setCameraDistance();
 
         float getCameraDistance() const;
 
         void setAnimation(NpcAnimation *anim);
 
-        osg::Vec3d getFocalPoint();
+        osg::Vec3d getFocalPoint() const;
+        osg::Vec3d getFocalPointOffset() const;
+        void adjustFocalPoint(osg::Vec3d adjustment) { mFocalPointAdjustment = adjustment; }
 
         /// Stores focal and camera world positions in passed arguments
-        void getPosition(osg::Vec3f &focal, osg::Vec3f &camera);
+        void getPosition(osg::Vec3d &focal, osg::Vec3d &camera) const;
 
-        bool isVanityOrPreviewModeEnabled();
+        bool isVanityOrPreviewModeEnabled() const;
 
-        bool isNearest();
+        bool isNearest() const;
     };
 }
 

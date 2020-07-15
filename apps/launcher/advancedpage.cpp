@@ -90,6 +90,7 @@ bool Launcher::AdvancedPage::loadSettings()
         loadSettingBool(shieldSheathingCheckBox, "shield sheathing", "Game");
     }
     loadSettingBool(uncappedDamageFatigueCheckBox, "uncapped damage fatigue", "Game");
+    loadSettingBool(trainersTrainingSkillsBasedOnBaseSkillCheckBox, "trainers training skills based on base skill", "Game");
 
     // Input Settings
     loadSettingBool(grabCursorCheckBox, "grab cursor", "Input");
@@ -104,6 +105,7 @@ bool Launcher::AdvancedPage::loadSettings()
     loadSettingBool(showEnchantChanceCheckBox, "show enchant chance", "Game");
     loadSettingBool(showMeleeInfoCheckBox, "show melee info", "Game");
     loadSettingBool(showProjectileDamageCheckBox, "show projectile damage", "Game");
+    loadSettingBool(changeDialogTopicsCheckBox, "color topic enable", "GUI");
     int showOwnedIndex = mEngineSettings.getInt("show owned", "Game");
     // Match the index with the option (only 0, 1, 2, or 3 are valid). Will default to 0 if invalid.
     if (showOwnedIndex >= 0 && showOwnedIndex <= 3)
@@ -114,6 +116,8 @@ bool Launcher::AdvancedPage::loadSettings()
     if (screenshotFormatComboBox->findText(screenshotFormatString) == -1)
         screenshotFormatComboBox->addItem(screenshotFormatString);
     screenshotFormatComboBox->setCurrentIndex(screenshotFormatComboBox->findText(screenshotFormatString));
+    loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
+    loadSettingBool(handBobbingCheckBox, "hand bobbing", "Camera");
 
     return true;
 }
@@ -154,6 +158,7 @@ void Launcher::AdvancedPage::saveSettings()
     saveSettingBool(weaponSheathingCheckBox, "weapon sheathing", "Game");
     saveSettingBool(shieldSheathingCheckBox, "shield sheathing", "Game");
     saveSettingBool(uncappedDamageFatigueCheckBox, "uncapped damage fatigue", "Game");
+    saveSettingBool(trainersTrainingSkillsBasedOnBaseSkillCheckBox, "trainers training skills based on base skill", "Game");
 
     // Input Settings
     saveSettingBool(grabCursorCheckBox, "grab cursor", "Input");
@@ -171,6 +176,7 @@ void Launcher::AdvancedPage::saveSettings()
     saveSettingBool(showEnchantChanceCheckBox, "show enchant chance", "Game");
     saveSettingBool(showMeleeInfoCheckBox, "show melee info", "Game");
     saveSettingBool(showProjectileDamageCheckBox, "show projectile damage", "Game");
+    saveSettingBool(changeDialogTopicsCheckBox, "color topic enable", "GUI");
     int showOwnedCurrentIndex = showOwnedComboBox->currentIndex();
     if (showOwnedCurrentIndex != mEngineSettings.getInt("show owned", "Game"))
         mEngineSettings.setInt("show owned", "Game", showOwnedCurrentIndex);
@@ -179,6 +185,8 @@ void Launcher::AdvancedPage::saveSettings()
     std::string screenshotFormatString = screenshotFormatComboBox->currentText().toLower().toStdString();
     if (screenshotFormatString != mEngineSettings.getString("screenshot format", "General"))
         mEngineSettings.setString("screenshot format", "General", screenshotFormatString);
+    saveSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
+    saveSettingBool(handBobbingCheckBox, "hand bobbing", "Camera");
 }
 
 void Launcher::AdvancedPage::loadSettingBool(QCheckBox *checkbox, const std::string &setting, const std::string &group) {

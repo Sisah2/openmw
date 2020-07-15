@@ -200,14 +200,8 @@ if (USE_QT)
         helpviewer
         )
 
-    if (DESIRED_QT_VERSION MATCHES 4)
-        include(${QT_USE_FILE})
-        QT4_WRAP_UI(ESM_UI_HDR ${ESM_UI})
-        QT4_WRAP_CPP(MOC_SRCS ${COMPONENT_MOC_FILES})
-    else()
-        QT5_WRAP_UI(ESM_UI_HDR ${ESM_UI})
-        QT5_WRAP_CPP(MOC_SRCS ${COMPONENT_MOC_FILES})
-    endif()
+    QT5_WRAP_UI(ESM_UI_HDR ${ESM_UI})
+    QT5_WRAP_CPP(MOC_SRCS ${COMPONENT_MOC_FILES})
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -216,7 +210,7 @@ if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 endif ()
 
-include_directories(${Bullet_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${BULLET_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(components STATIC ${COMPONENT_FILES} ${MOC_SRCS} ${ESM_UI_HDR})
 
@@ -235,7 +229,7 @@ target_link_libraries(components
     ${OSGGA_LIBRARIES}
     ${OSGSHADOW_LIBRARIES}
     ${OSGANIMATION_LIBRARIES}
-    ${Bullet_LIBRARIES}
+    ${BULLET_LIBRARIES}
     ${SDL2_LIBRARIES}
     ${OPENGL_gl_LIBRARY}
     ${MyGUI_LIBRARIES}
@@ -252,13 +246,7 @@ if (WIN32)
 endif()
 
 if (USE_QT)
-    if (DESIRED_QT_VERSION MATCHES 4)
-        target_link_libraries(components
-        ${QT_QTCORE_LIBRARY}
-        ${QT_QTGUI_LIBRARY})
-    else()
-        target_link_libraries(components Qt5::Widgets Qt5::Core)
-    endif()
+    target_link_libraries(components Qt5::Widgets Qt5::Core)
 endif()
 
 if (GIT_CHECKOUT)

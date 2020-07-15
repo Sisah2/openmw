@@ -333,6 +333,12 @@ NpcAnimation::NpcAnimation(const MWWorld::Ptr& ptr, osg::ref_ptr<osg::Group> par
     mShowWeapons(false),
     mShowCarriedLeft(true),
     mNpcType(getNpcType(ptr)),
+
+/*=======
+    mNpcType(getNpcType()),
+    mFirstPersonRoll(0.f),
+>>>>>>> Stomy/openmw-head-bobbing
+*/
     mFirstPersonFieldOfView(firstPersonFieldOfView),
     mSoundsDisabled(disableSounds),
     mAccurateAiming(false),
@@ -348,6 +354,8 @@ NpcAnimation::NpcAnimation(const MWWorld::Ptr& ptr, osg::ref_ptr<osg::Group> par
         mPartslots[i] = -1;  //each slot is empty
         mPartPriorities[i] = 0;
     }
+
+    std::fill(mSounds.begin(), mSounds.end(), nullptr);
 
     updateNpcBase();
 }
@@ -741,11 +749,16 @@ osg::Vec3f NpcAnimation::runAnimation(float timepassed)
 
         float rotateFactor = 0.75f + 0.25f * mAimingFactor;
 
-        mFirstPersonNeckController->setRotate(osg::Quat(mPtr.getRefData().getPosition().rot[0] * rotateFactor, osg::Vec3f(-1,0,0)));
+        mFirstPersonNeckController->setRotate(
+                osg::Quat(
+                    mPtr.getRefData().getPosition().rot[0] * -rotateFactor + mFirstPersonPitch, osg::Vec3f(1,0,0),
+                    mFirstPersonRoll, osg::Vec3f(0,1,0),
+                    mFirstPersonYaw, osg::Vec3f(0,0,1))
+                );
         mFirstPersonNeckController->setOffset(mFirstPersonOffset);
     }
 
-    WeaponAnimation::configureControllers(mPtr.getRefData().getPosition().rot[0]);
+    WeaponAnimation::configureControllers(mPtr.getRefData().getPosition().rot[0] + getBodyPitchRadians());
 
     return ret;
 }
@@ -756,10 +769,10 @@ void NpcAnimation::removeIndividualPart(ESM::PartReferenceType type)
     mPartslots[type] = -1;
 
     mObjectParts[type].reset();
-    if (!mSoundIds[type].empty() && !mSoundsDisabled)
+    if (mSounds[type] != nullptr && !mSoundsDisabled)
     {
-        MWBase::Environment::get().getSoundManager()->stopSound3D(mPtr, mSoundIds[type]);
-        mSoundIds[type].clear();
+        MWBase::Environment::get().getSoundManager()->stopSound(mSounds[type]);
+        mSounds[type] = nullptr;
     }
 }
 
@@ -838,10 +851,10 @@ bool NpcAnimation::addOrReplaceIndividualPart(ESM::PartReferenceType type, int g
         MWWorld::ConstContainerStoreIterator csi = inv.getSlot(group < 0 ? MWWorld::InventoryStore::Slot_Helmet : group);
         if (csi != inv.end())
         {
-            mSoundIds[type] = csi->getClass().getSound(*csi);
-            if (!mSoundIds[type].empty())
+            const auto soundId = csi->getClass().getSound(*csi);
+            if (!soundId.empty())
             {
-                MWBase::Environment::get().getSoundManager()->playSound3D(mPtr, mSoundIds[type],
+                mSounds[type] = MWBase::Environment::get().getSoundManager()->playSound3D(mPtr, soundId,
                     1.0f, 1.0f, MWSound::Type::Sfx, MWSound::PlayMode::Loop
                 );
             }
@@ -1155,6 +1168,13 @@ void NpcAnimation::setVampire(bool vampire)
 void NpcAnimation::setFirstPersonOffset(const osg::Vec3f &offset)
 {
     mFirstPersonOffset = offset;
+}
+
+void NpcAnimation::setFirstPersonRotation(float pitch, float roll, float yaw)
+{
+    mFirstPersonPitch = pitch;
+    mFirstPersonRoll = roll;
+    mFirstPersonYaw = yaw;
 }
 
 void NpcAnimation::updatePtr(const MWWorld::Ptr &updated)

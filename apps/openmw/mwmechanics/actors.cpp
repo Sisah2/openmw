@@ -24,6 +24,7 @@
 
 #include "../mwmechanics/aibreathe.hpp"
 
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/vismask.hpp"
 
 #include "spellcasting.hpp"
@@ -1247,6 +1248,20 @@ namespace MWMechanics
         return ctrl->isSneaking();
     }
 
+    void Actors::getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo)
+    {
+        PtrActorMap::iterator it = mActors.find(ptr);
+        if (it == mActors.end())
+        {
+            outBobbingInfo.mHeadBobEnabled = false;
+            outBobbingInfo.mHandBobEnabled = false;
+            return;
+        }
+        CharacterController* ctrl = it->second->getCharacterController();
+
+        outBobbingInfo = ctrl->getBobbingInfo();
+    }
+
     void Actors::updateDrowning(const MWWorld::Ptr& ptr, float duration, bool isKnockedOut, bool isPlayer)
     {
         NpcStats &stats = ptr.getClass().getNpcStats(ptr);
@@ -1966,13 +1981,17 @@ namespace MWMechanics
             }
             else if (killResult == CharacterController::Result_DeathAnimJustFinished)
             {
+                bool isPlayer = iter->first == getPlayer();
                 notifyDied(iter->first);
 
                 // Reset magic effects and recalculate derived effects
                 // One case where we need this is to make sure bound items are removed upon death
                 stats.modifyMagicEffects(MWMechanics::MagicEffects());
                 stats.getActiveSpells().clear();
-                stats.getSpells().clear();
+
+                if (!isPlayer)
+                    stats.getSpells().clear();
+
                 // Make sure spell effects are removed
                 purgeSpellEffects(stats.getActorId());
 
@@ -1981,7 +2000,7 @@ namespace MWMechanics
                 if (iter->first.getClass().isNpc())
                     calculateNpcStatModifiers(iter->first, 0);
 
-                if( iter->first == getPlayer())
+                if (isPlayer)
                 {
                     //player's death animation is over
                     MWBase::Environment::get().getStateManager()->askLoadRecent();

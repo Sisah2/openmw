@@ -1,12 +1,14 @@
 0.47.0
 ------
 
+    Bug #1662: Qt4 and Windows binaries crash if there's a non-ASCII character in a file path/config path
     Bug #1952: Incorrect particle lighting
     Bug #2311: Targeted scripts are not properly supported on non-unique RefIDs
     Bug #3676: NiParticleColorModifier isn't applied properly
     Bug #3714: Savegame fails to load due to conflict between SpellState and MagicEffects
     Bug #4021: Attributes and skills are not stored as floats
     Bug #4623: Corprus implementation is incorrect
+    Bug #4764: Data race in osg ParticleSystem
     Bug #4774: Guards are ignorant of an invisible player that tries to attack them
     Bug #5108: Savegame bloating due to inefficient fog textures format
     Bug #5165: Active spells should use real time intead of timestamps
@@ -16,6 +18,8 @@
     Bug #5367: Selecting a spell on an enchanted item per hotkey always plays the equip sound
     Bug #5369: Spawnpoint in the Grazelands doesn't produce oversized creatures
     Bug #5370: Opening an unlocked but trapped door uses the key
+    Bug #5384: openmw-cs: deleting an instance requires reload of scene window to show in editor
+    Bug #5387: Move/MoveWorld don't update the object's cell properly
     Bug #5397: NPC greeting does not reset if you leave + reenter area
     Bug #5400: Editor: Verifier checks race of non-skin bodyparts
     Bug #5403: Enchantment effect doesn't show on an enemy during death animation
@@ -28,8 +32,25 @@
     Bug #5441: Enemies can't push a player character when in critical strike stance
     Bug #5451: Magic projectiles don't disappear with the caster
     Bug #5452: Autowalk is being included in savegames
+    Bug #5472: Mistify mod causes CTD in 0.46 on Mac
+    Bug #5479: NPCs who should be walking around town are standing around without walking
+    Bug #5484: Zero value items shouldn't be able to be bought or sold for 1 gold
+    Bug #5485: Intimidate doesn't increase disposition on marginal wins
+    Bug #5490: Hits to carried left slot aren't redistributed if there's no shield equipped
+    Bug #5499: Faction advance is available when requirements not met
+    Bug #5502: Dead zone for analogue stick movement is too small
+    Bug #5507: Sound volume is not clamped on ingame settings update
+    Bug #5531: Actors flee using current rotation by axis x
+    Feature #390: 3rd person look "over the shoulder"
+    Feature #2386: Distant Statics in the form of Object Paging
+    Feature #5297: Add a search function to the "Datafiles" tab of the OpenMW launcher
     Feature #5362: Show the soul gems' trapped soul in count dialog
     Feature #5445: Handle NiLines
+    Feature #5457: Realistic diagonal movement
+    Feature #5486: Fixes trainers to choose their training skills based on their base skill points
+    Feature #5524: Resume failed script execution after reload
+    Feature #5525: Search fields tweaks (utf-8)
+    Task #5480: Drop Qt4 support
 
 0.46.0
 ------
@@ -245,6 +266,7 @@
     Bug #5350: An attempt to launch magic bolt causes "AL error invalid value" error
     Bug #5352: Light source items' duration is decremented while they aren't visible
     Feature #1724: Handle AvoidNode
+    Feature #2159: "Graying out" exhausted dialogue topics
     Feature #2229: Improve pathfinding AI
     Feature #3025: Analogue gamepad movement controls
     Feature #3442: Default values for fallbacks from ini file
@@ -287,6 +309,7 @@
     Feature #5033: Magic armor mitigation for creatures
     Feature #5034: Make enchanting window stay open after a failed attempt
     Feature #5036: Allow scripted faction leaving
+    Feature #5043: Head bobbing
     Feature #5046: Gamepad thumbstick cursor speed
     Feature #5051: Provide a separate textures for scrollbars
     Feature #5091: Human-readable light source duration

@@ -45,6 +45,7 @@
 #include "../mwmechanics/summoning.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -1185,7 +1186,6 @@ namespace MWWorld
                     mRendering->updatePtr(ptr, newPtr);
                     MWBase::Environment::get().getSoundManager()->updatePtr (ptr, newPtr);
                     mPhysics->updatePtr(ptr, newPtr);
-                    MWBase::Environment::get().getScriptManager()->getGlobalScripts().updatePtrs(ptr, newPtr);
 
                     MWBase::MechanicsManager *mechMgr = MWBase::Environment::get().getMechanicsManager();
                     mechMgr->updateCell(ptr, newPtr);
@@ -1201,6 +1201,9 @@ namespace MWWorld
                     }
                 }
             }
+
+            MWBase::Environment::get().getWindowManager()->updateConsoleObjectPtr(ptr, newPtr);
+            MWBase::Environment::get().getScriptManager()->getGlobalScripts().updatePtrs(ptr, newPtr);
         }
         if (haveToMove && newPtr.getRefData().getBaseNode())
         {
@@ -1390,6 +1393,9 @@ namespace MWWorld
     {
         if(ptr.getRefData().getBaseNode() != 0)
         {
+            mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
+            mWorldScene->removeFromPagedRefs(ptr);
+
             mRendering->rotateObject(ptr, rotate);
             mPhysics->updateRotation(ptr);
 
@@ -1852,16 +1858,9 @@ namespace MWWorld
             MWBase::Environment::get().getWindowManager()->setWerewolfOverlay(false);
         }
 
-        // Sink the camera while sneaking
-        bool sneaking = player.getClass().getCreatureStats(getPlayerPtr()).getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool swimming = isSwimming(player);
-        bool flying = isFlying(player);
-
-        static const float i1stPersonSneakDelta = mStore.get<ESM::GameSetting>().find("i1stPersonSneakDelta")->mValue.getFloat();
-        if (sneaking && !swimming && !flying)
-            mRendering->getCamera()->setSneakOffset(i1stPersonSneakDelta);
-        else
-            mRendering->getCamera()->setSneakOffset(0.f);
+        static MWRender::BobbingInfo bobbingInfo = {};
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
+        mRendering->getCamera()->setBobbingInfo(bobbingInfo);
 
         int blind = static_cast<int>(player.getClass().getCreatureStats(player).getMagicEffects().get(ESM::MagicEffect::Blind).getMagnitude());
         MWBase::Environment::get().getWindowManager()->setBlindness(std::max(0, std::min(100, blind)));
@@ -1869,15 +1868,41 @@ namespace MWWorld
         int nightEye = static_cast<int>(player.getClass().getCreatureStats(player).getMagicEffects().get(ESM::MagicEffect::NightEye).getMagnitude());
         mRendering->setNightEyeFactor(std::min(1.f, (nightEye/100.f)));
 
-        mRendering->getCamera()->setCameraDistance();
+        auto* camera = mRendering->getCamera();
+        camera->setCameraDistance();
         if(!mRendering->getCamera()->isFirstPerson())
+/*
+=======
+        mRendering->getCamera()->setCameraDistance();
+        if(!isFirstPerson)
+>>>>>>> Stomy/openmw-head-bobbing
+*/
         {
-            osg::Vec3f focal, camera;
-            mRendering->getCamera()->getPosition(focal, camera);
-            float radius = mRendering->getNearClipDistance()*2.5f;
-            MWPhysics::PhysicsSystem::RayResult result = mPhysics->castSphere(focal, camera, radius);
+            float cameraObstacleLimit = mRendering->getNearClipDistance() * 2.5f;
+            float focalObstacleLimit = std::max(cameraObstacleLimit, 10.0f);
+
+            // Adjust focal point.
+            osg::Vec3d focal = camera->getFocalPoint();
+            osg::Vec3d focalOffset = camera->getFocalPointOffset();
+            float offsetLen = focalOffset.length();
+            if (offsetLen > 0)
+            {
+                MWPhysics::PhysicsSystem::RayResult result = mPhysics->castSphere(focal - focalOffset, focal, focalObstacleLimit);
+                if (result.mHit)
+                {
+                    double adjustmentCoef = -(result.mHitPos + result.mHitNormal * focalObstacleLimit - focal).length() / offsetLen;
+                    if (adjustmentCoef < -1)
+                        adjustmentCoef = -1;
+                    camera->adjustFocalPoint(focalOffset * adjustmentCoef);
+                }
+            }
+
+            // Adjust camera position.
+            osg::Vec3d cameraPos;
+            camera->getPosition(focal, cameraPos);
+            MWPhysics::PhysicsSystem::RayResult result = mPhysics->castSphere(focal, cameraPos, cameraObstacleLimit);
             if (result.mHit)
-                mRendering->getCamera()->setCameraDistance((result.mHitPos - focal).length() - radius, false, false);
+                mRendering->getCamera()->setCameraDistance((result.mHitPos + result.mHitNormal * cameraObstacleLimit - focal).length(), false);
         }
     }
 
@@ -1896,7 +1921,7 @@ namespace MWWorld
             std::string enchantId = selectedEnchantItem.getClass().getEnchantment(selectedEnchantItem);
             if (!enchantId.empty())
             {
-                const ESM::Enchantment* ench = mStore.get<ESM::Enchantment>().search(selectedEnchantItem.getClass().getEnchantment(selectedEnchantItem));
+                const ESM::Enchantment* ench = mStore.get<ESM::Enchantment>().search(enchantId);
                 if (ench)
                     preloadEffects(&ench->mEffects);
             }
@@ -2445,7 +2470,7 @@ namespace MWWorld
         rotateObject(player, 0.f, 0.f, 0.f, MWBase::RotationFlag_inverseOrder | MWBase::RotationFlag_adjust);
 
         MWBase::Environment::get().getMechanicsManager()->add(getPlayerPtr());
-        MWBase::Environment::get().getMechanicsManager()->watchActor(getPlayerPtr());
+        MWBase::Environment::get().getWindowManager()->watchActor(getPlayerPtr());
 
         std::string model = getPlayerPtr().getClass().getModel(getPlayerPtr());
         model = Misc::ResourceHelpers::correctActorModelPath(model, mResourceSystem->getVFS());
