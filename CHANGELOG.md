@@ -40,6 +40,7 @@
     Bug #5499: Faction advance is available when requirements not met
     Bug #5502: Dead zone for analogue stick movement is too small
     Bug #5507: Sound volume is not clamped on ingame settings update
+    Bug #5531: Actors flee using current rotation by axis x
     Feature #390: 3rd person look "over the shoulder"
     Feature #2386: Distant Statics in the form of Object Paging
     Feature #5297: Add a search function to the "Datafiles" tab of the OpenMW launcher
@@ -47,6 +48,8 @@
     Feature #5445: Handle NiLines
     Feature #5457: Realistic diagonal movement
     Feature #5486: Fixes trainers to choose their training skills based on their base skill points
+    Feature #5524: Resume failed script execution after reload
+    Feature #5525: Search fields tweaks (utf-8)
     Task #5480: Drop Qt4 support
 
 0.46.0
