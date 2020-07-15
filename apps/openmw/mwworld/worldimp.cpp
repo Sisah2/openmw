@@ -45,6 +45,7 @@
 #include "../mwmechanics/summoning.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -1773,6 +1774,14 @@ namespace MWWorld
         return mStore.insert(record);
     }
 
+    void World::updateGrass()
+    {
+        for (CellStore* cellstore : mWorldScene->getActiveCells())
+        {
+            cellstore->updateGrassVisibility();
+        }
+    }
+
     void World::update (float duration, bool paused)
     {
         if (mGoToJail && !paused)
@@ -1808,6 +1817,10 @@ namespace MWWorld
             mSpellPreloadTimer = 0.1f;
             preloadSpells();
         }
+
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
+        if (grassEnabled)
+            updateGrass();
     }
 
     void World::updatePhysics (float duration, bool paused)
@@ -1845,16 +1858,9 @@ namespace MWWorld
             MWBase::Environment::get().getWindowManager()->setWerewolfOverlay(false);
         }
 
-        // Sink the camera while sneaking
-        bool sneaking = player.getClass().getCreatureStats(getPlayerPtr()).getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool swimming = isSwimming(player);
-        bool flying = isFlying(player);
-
-        static const float i1stPersonSneakDelta = mStore.get<ESM::GameSetting>().find("i1stPersonSneakDelta")->mValue.getFloat();
-        if (sneaking && !swimming && !flying)
-            mRendering->getCamera()->setSneakOffset(i1stPersonSneakDelta);
-        else
-            mRendering->getCamera()->setSneakOffset(0.f);
+        static MWRender::BobbingInfo bobbingInfo = {};
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
+        mRendering->getCamera()->setBobbingInfo(bobbingInfo);
 
         int blind = static_cast<int>(player.getClass().getCreatureStats(player).getMagicEffects().get(ESM::MagicEffect::Blind).getMagnitude());
         MWBase::Environment::get().getWindowManager()->setBlindness(std::max(0, std::min(100, blind)));

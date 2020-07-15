@@ -2,6 +2,7 @@
 
 #include <iomanip>
 
+#include <osg/PolygonMode>
 #include <osg/Fog>
 #include <osg/Depth>
 #include <osg/Group>
@@ -239,9 +240,21 @@ public:
         setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
         setReferenceFrame(osg::Camera::RELATIVE_RF);
-        setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
         setName("RefractionCamera");
         setCullCallback(new InheritViewPointCallback);
+
+        osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+        cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
+
+        if (!Settings::Manager::getBool("small feature culling", "Camera"))
+            cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
+        else
+        {
+            cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
+            setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+        }
+        setCullingMode(cullingMode);
+
 
         setCullMask(Mask_Effect|Mask_Scene|Mask_Object|Mask_Static|Mask_Terrain|Mask_Actor|Mask_ParticleSystem|Mask_Sky|Mask_Sun|Mask_Player|Mask_Lighting);
         setNodeMask(Mask_RenderToTexture);
@@ -332,9 +345,22 @@ public:
         setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
         setReferenceFrame(osg::Camera::RELATIVE_RF);
-        setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
         setName("ReflectionCamera");
         setCullCallback(new InheritViewPointCallback);
+
+        osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+
+        if (!Settings::Manager::getBool("reflection occlusion culling", "Terrain"))
+            cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
+
+        if (!Settings::Manager::getBool("small feature culling", "Camera"))
+            cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
+        else
+        {
+            cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
+            setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+        }
+        setCullingMode(cullingMode);
 
         setInterior(isInterior);
         setNodeMask(Mask_RenderToTexture);
@@ -576,6 +602,11 @@ void Water::createSimpleWaterStateSet(osg::Node* node, float alpha)
     controller->setSource(std::shared_ptr<SceneUtil::ControllerSource>(new SceneUtil::FrameTimeSource));
     node->setUpdateCallback(controller);
 
+    static float gamma = 1.0;
+    const char *s = getenv("OPENMW_GAMMA");
+    if (s) gamma = atof(s);
+    stateset->addUniform(new osg::Uniform("gamma", gamma));
+
     stateset->setTextureAttributeAndModes(0, textures[0], osg::StateAttribute::ON);
 
     // use a shader to render the simple water, ensuring that fog is applied per pixel as required.
@@ -632,6 +663,11 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
         depth->setWriteMask(false);
         shaderStateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
     }
+
+    static float gamma = 1.0;
+    const char *s = getenv("OPENMW_GAMMA");
+    if (s) gamma = atof(s);
+    shaderStateset->addUniform(new osg::Uniform("gamma", gamma));
 
     shaderStateset->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
 

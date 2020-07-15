@@ -743,7 +743,12 @@ osg::Vec3f NpcAnimation::runAnimation(float timepassed)
 
         float rotateFactor = 0.75f + 0.25f * mAimingFactor;
 
-        mFirstPersonNeckController->setRotate(osg::Quat(mPtr.getRefData().getPosition().rot[0] * rotateFactor, osg::Vec3f(-1,0,0)));
+        mFirstPersonNeckController->setRotate(
+                osg::Quat(
+                    mPtr.getRefData().getPosition().rot[0] * -rotateFactor + mFirstPersonPitch, osg::Vec3f(1,0,0),
+                    mFirstPersonRoll, osg::Vec3f(0,1,0),
+                    mFirstPersonYaw, osg::Vec3f(0,0,1))
+                );
         mFirstPersonNeckController->setOffset(mFirstPersonOffset);
     }
 
@@ -1157,6 +1162,13 @@ void NpcAnimation::setVampire(bool vampire)
 void NpcAnimation::setFirstPersonOffset(const osg::Vec3f &offset)
 {
     mFirstPersonOffset = offset;
+}
+
+void NpcAnimation::setFirstPersonRotation(float pitch, float roll, float yaw)
+{
+    mFirstPersonPitch = pitch;
+    mFirstPersonRoll = roll;
+    mFirstPersonYaw = yaw;
 }
 
 void NpcAnimation::updatePtr(const MWWorld::Ptr &updated)

@@ -3,6 +3,7 @@
 #include <osgUtil/CullVisitor>
 #include <osg/ShapeDrawable>
 #include <osg/PolygonMode>
+#include <osg/Material>
 
 #include <limits>
 #include <sstream>
@@ -246,6 +247,9 @@ private:
 QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resource::ResourceSystem *resourceSystem, Storage *storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float compMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize)
     : TerrainGrid(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask)
     , mViewDataMap(new ViewDataMap)
+    , mDebugOccluders(false)
+    , mOcclusionCullingZFactor(0)
+    , mOcclusionCullingZBias(0)
     , mQuadTreeBuilt(false)
     , mLodFactor(lodFactor)
     , mVertexLodMod(vertexLodMod)
@@ -255,10 +259,86 @@ QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resour
     mChunkManager->setCompositeMapLevel(compMapLevel);
     mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
     mChunkManagers.push_back(mChunkManager.get());
+
+    mCollectOccludersVisitor = new osg::CollectOccludersVisitor;
+}
+
+void QuadTreeWorld::setOcclusionCullingSettings(bool debug, int maximumActive, float minimumVolume, float zfactor, float zbias)
+{
+    if (debug)
+    {
+        mTerrainRoot->getOrCreateStateSet()->setAttributeAndModes(new osg::PolygonMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::LINE), osg::StateAttribute::ON);
+        mDebugOccluders = true;
+    }
+    mCollectOccludersVisitor->setMaximumNumberOfActiveOccluders(maximumActive);
+    mCollectOccludersVisitor->setMinimumShadowOccluderVolume(minimumVolume);
+    mOcclusionCullingZFactor = zfactor;
+    mOcclusionCullingZBias = zbias;
 }
 
 QuadTreeWorld::~QuadTreeWorld()
 {
+}
+
+void collectOccluders(osg::CollectOccludersVisitor* mCollectOccludersVisitor, osgUtil::CullVisitor* cv, ViewData* vd, bool debug, float zfactor, float zbias)
+{
+    mCollectOccludersVisitor->inheritCullSettings(*cv);
+    mCollectOccludersVisitor->reset();
+    mCollectOccludersVisitor->pushViewport(cv->getViewport());
+    mCollectOccludersVisitor->pushProjectionMatrix(cv->getProjectionMatrix());
+    mCollectOccludersVisitor->pushModelViewMatrix(cv->getModelViewMatrix(),osg::Transform::ABSOLUTE_RF);
+
+    for (unsigned int i=0; i<vd->getNumEntries(); ++i)
+    {
+        ViewData::Entry& entry = vd->getEntry(i);
+        TerrainDrawable* drw = static_cast<TerrainDrawable*>(entry.mRenderingNode->asGroup()->getChild(0));
+
+        float zheight = (drw->getBoundingBox()._min.z() + 1);
+        if (zheight > 0)
+        {
+            float cuttoff = zheight * zfactor + zbias;
+            if (cv->getEyePoint().z() - drw->getBoundingBox()._min.z() > cuttoff)
+                continue;
+        }
+
+        if (debug)
+            drw->getOccluders()->accept(*cv);
+
+        drw->getOccluders()->accept(*mCollectOccludersVisitor);
+    }
+
+    mCollectOccludersVisitor->popModelViewMatrix();
+    mCollectOccludersVisitor->popProjectionMatrix();
+    mCollectOccludersVisitor->popViewport();
+
+    mCollectOccludersVisitor->removeOccludedOccluders();
+
+    if (debug)
+    {
+        static osg::ref_ptr<osg::StateSet> red = nullptr;
+        if (!red) { red = new osg::StateSet;
+        osg::Material* m = new osg::Material;
+        m->setEmission(osg::Material::FRONT_AND_BACK, osg::Vec4f(0,1,0,1));
+        m->setDiffuse(osg::Material::FRONT_AND_BACK, osg::Vec4f(0,0,0,1));
+        m->setAmbient(osg::Material::FRONT_AND_BACK, osg::Vec4f(0,0,0,1));
+        red->setAttributeAndModes(m, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
+        red->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF);
+        }
+        cv->pushStateSet(red);
+        for (auto svo : mCollectOccludersVisitor->getCollectedOccluderSet())
+        {
+            const osg::NodePath& path = svo.getNodePath();
+            osg::OccluderNode* ocn = static_cast<osg::OccluderNode*>(path.back());
+            ocn->accept(*cv);
+        }
+        cv->popStateSet();
+    }
+
+    if (debug && cv->getTraversalNumber()%50==0)
+        OSG_NOTICE << mCollectOccludersVisitor->getCollectedOccluderSet().size() << " occluders for " << cv->getCurrentCamera()->getName() << std::endl;
+
+    for (auto svo : mCollectOccludersVisitor->getCollectedOccluderSet())
+        cv->getProjectionCullingStack().back().addOccluder(svo);
 }
 
 /// get the level of vertex detail to render this node at, expressed relative to the native resolution of the data set.
@@ -347,7 +427,7 @@ void loadRenderingNode(ViewData::Entry& entry, ViewData* vd, int vertexLodMod, f
     }
 }
 
-void updateWaterCullingView(HeightCullCallback* callback, ViewData* vd, osgUtil::CullVisitor* cv, float cellworldsize, bool outofworld)
+void updateWaterCullingView(HeightCullCallback* callback, ViewData* vd, osgUtil::CullVisitor* cv, float cellworldsize, bool outofworld, bool debug)
 {
     if (!(cv->getTraversalMask() & callback->getCullMask()))
         return;
@@ -358,8 +438,6 @@ void updateWaterCullingView(HeightCullCallback* callback, ViewData* vd, osgUtil:
         callback->setLowZ(-std::numeric_limits<float>::max());
         return;
     }
-    cv->pushCurrentMask();
-    static bool debug = getenv("OPENMW_WATER_CULLING_DEBUG") != nullptr;
     for (unsigned int i=0; i<vd->getNumEntries(); ++i)
     {
         ViewData::Entry& entry = vd->getEntry(i);
@@ -397,13 +475,12 @@ void updateWaterCullingView(HeightCullCallback* callback, ViewData* vd, osgUtil:
         drw->accept(*cv);
     }
     callback->setLowZ(lowZ);
-    cv->popCurrentMask();
 }
 
 void QuadTreeWorld::accept(osg::NodeVisitor &nv)
 {
-    bool isCullVisitor = nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR;
-    if (!isCullVisitor && nv.getVisitorType() != osg::NodeVisitor::INTERSECTION_VISITOR)
+    osgUtil::CullVisitor* cv = nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR ? static_cast<osgUtil::CullVisitor*>(&nv) : nullptr;
+    if (!cv && nv.getVisitorType() != osg::NodeVisitor::INTERSECTION_VISITOR)
     {
         if (nv.getName().find("AcceptedByComponentsTerrainQuadTreeWorld") != std::string::npos)
         {
@@ -418,7 +495,7 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
         return;
     }
 
-    osg::Object * viewer = isCullVisitor ? static_cast<osgUtil::CullVisitor*>(&nv)->getCurrentCamera() : nullptr;
+    osg::Object * viewer = cv ? cv->getCurrentCamera() : nullptr;
     bool needsUpdate = true;
     ViewData *vd = mViewDataMap->getViewData(viewer, nv.getViewPoint(), mActiveGrid, needsUpdate);
 
@@ -435,11 +512,25 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
     {
         ViewData::Entry& entry = vd->getEntry(i);
         loadRenderingNode(entry, vd, mVertexLodMod, cellWorldSize, mActiveGrid, mChunkManagers, false);
+    }
+
+    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING)
+    {
+        collectOccluders(mCollectOccludersVisitor, cv, vd, mDebugOccluders, mOcclusionCullingZFactor, mOcclusionCullingZBias);
+        cv->pushCullingSet();
+    }
+
+    if (cv)
+        updateWaterCullingView(mHeightCullCallback, vd, cv, mStorage->getCellWorldSize(), !isGridEmpty(), mDebugOccluders);
+
+    for (unsigned int i=0; i<vd->getNumEntries(); ++i)
+    {
+        ViewData::Entry& entry = vd->getEntry(i);
         entry.mRenderingNode->accept(nv);
     }
 
-    if (isCullVisitor)
-        updateWaterCullingView(mHeightCullCallback, vd, static_cast<osgUtil::CullVisitor*>(&nv), mStorage->getCellWorldSize(), !isGridEmpty());
+    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING)
+        cv->popCullingSet();
 
     vd->markUnchanged();
 

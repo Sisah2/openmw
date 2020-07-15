@@ -58,6 +58,9 @@ namespace Terrain
         void setCompositeMap(CompositeMap* map) { mCompositeMap = map; }
         void setCompositeMapRenderer(CompositeMapRenderer* renderer) { mCompositeMapRenderer = renderer; }
 
+        void createOccluders(const osg::Vec2f& offset);
+        osg::Group* getOccluders();
+
     private:
         osg::BoundingBox mWaterBoundingBox;
         PassVector mPasses;
@@ -67,6 +70,8 @@ namespace Terrain
         osg::ref_ptr<SceneUtil::LightListCallback> mLightListCallback;
         osg::ref_ptr<CompositeMap> mCompositeMap;
         osg::ref_ptr<CompositeMapRenderer> mCompositeMapRenderer;
+
+        osg::ref_ptr<osg::Group> mOccluders;
     };
 
 }

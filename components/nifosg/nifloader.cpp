@@ -1619,6 +1619,12 @@ namespace NifOsg
                         break;
                     }
 
+
+                    static float gamma = 1.0;
+                    const char *s = getenv("OPENMW_GAMMA");
+                    if (s) gamma = atof(s);
+                    stateset->addUniform(new osg::Uniform("gamma", gamma));
+
                     boundTextures.push_back(tex.uvSet);
                 }
             }
