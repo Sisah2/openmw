@@ -586,6 +586,26 @@
             </layout>
            </widget>
           </item>
+          <item alignment="Qt::AlignLeft">
+           <widget class="QCheckBox" name="headBobbingCheckBox">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When enabled, the camera will sway when moving in first person to simulate the character's head movement. It is also recommended you turn on weapon bobbing when using this.&lt;/p&gt;&lt;p&gt;The default value is false, to preserve the original experience.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Head bobbing</string>
+            </property>
+           </widget>
+          </item>
+          <item alignment="Qt::AlignLeft">
+           <widget class="QCheckBox" name="handBobbingCheckBox">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When enabled, the player's hands will sway and bob in first person.&lt;/p&gt;&lt;p&gt;The default value is false, to preserve the original experience.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Weapon bobbing</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

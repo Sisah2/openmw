@@ -47,6 +47,7 @@ namespace MWRender
 {
 
     Camera::Camera (osg::Camera* camera)
+<<<<<<< HEAD
     : mHeightScale(1.f),
       mCamera(camera),
       mAnimation(nullptr),
@@ -64,6 +65,22 @@ namespace MWRender
       mThirdPersonMode(ThirdPersonViewMode::Standard),
       mOverShoulderOffset(osg::Vec2f(30.0f, -10.0f)),
       mSmoothTransitionToCombatMode(0.f)
+=======
+        : mHeightScale(1.f)
+        , mCamera(camera)
+        , mAnimation(nullptr)
+        , mFirstPersonView(true)
+        , mPreviewMode(false)
+        , mNearest(30.f)
+        , mFurthest(800.f)
+        , mIsNearest(false)
+        , mHeight(124.f)
+        , mMaxCameraDistance(192.f)
+        , mVanityToggleQueued(false)
+        , mVanityToggleQueuedValue(false)
+        , mViewModeToggleQueued(false)
+        , mCameraDistance(0.f)
+>>>>>>> Stomy/openmw-head-bobbing
     {
         mVanity.enabled = false;
         mVanity.allowed = true;
@@ -79,6 +96,8 @@ namespace MWRender
 
         mUpdateCallback = new UpdateRenderCameraCallback(this);
         mCamera->addUpdateCallback(mUpdateCallback);
+
+        mBobbingInfo = {};
     }
 
     Camera::~Camera()
@@ -147,13 +166,57 @@ namespace MWRender
         if (mTrackingPtr.isEmpty())
             return;
 
+//<<<<<<< HEAD
         osg::Vec3d focal, position;
         getPosition(focal, position);
 
         osg::Quat orient =  osg::Quat(getPitch(), osg::Vec3d(1,0,0)) * osg::Quat(getYaw(), osg::Vec3d(0,0,1));
+//=======
+        bool firstPerson = isFirstPerson();
+        osg::Vec3d position = getFocalPoint();
+
+        float pitch = getPitch();
+        float yaw = getYaw();
+        osg::Quat orient =  osg::Quat(pitch, osg::Vec3d(1,0,0)) * osg::Quat(yaw, osg::Vec3d(0,0,1));
+
+        osg::Vec3d offset = orient * osg::Vec3d(0, firstPerson ? 0 : -mCameraDistance, 0);
+        position += offset;
+
+//>>>>>>> Stomy/openmw-head-bobbing
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
+        osg::Vec3d right = orient * osg::Vec3d(1,0,0);
 
+        osg::Vec3f fpOffset(0, 0, -mBobbingInfo.mSneakOffset);
+        float fpPitch = 0, fpRoll = 0;
+        float wpnPitch = 0, wpnYaw = 0;
+        if (firstPerson)
+        {
+            osg::Vec3d hbOffset, wpnOffset;
+            mBobbingInfo.getOffsets(hbOffset, wpnOffset);
+
+            if (mBobbingInfo.mHeadBobEnabled)
+            {
+                fpOffset.x() += hbOffset.x();
+                fpOffset.z() += hbOffset.z();
+                fpRoll += hbOffset.y();
+
+                fpOffset.z() -= mBobbingInfo.mLandingOffset;
+            }
+
+            if (mBobbingInfo.mHandBobEnabled)
+            {
+                wpnPitch += wpnOffset.x();
+                wpnPitch -= mBobbingInfo.mLandingOffset * 0.001f;
+                wpnYaw += wpnOffset.z();
+            }
+        }
+
+        forward = osg::Quat(fpPitch, right) * forward;
+        up = osg::Quat(fpRoll, forward) * up;
+
+        mAnimation->setFirstPersonOffset(fpOffset);
+        mAnimation->setFirstPersonRotation(fpPitch + wpnPitch, fpRoll, wpnYaw);
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }
 
@@ -237,6 +300,11 @@ namespace MWRender
             mSmoothTransitionToCombatMode = 0;
     }
 
+    void Camera::setBobbingInfo(BobbingInfo& bobbingInfo)
+    {
+        mBobbingInfo = bobbingInfo;
+    }
+
     void Camera::toggleViewMode(bool force)
     {
         // Changing the view will stop all playing animations, so if we are playing
@@ -255,7 +323,7 @@ namespace MWRender
         mFirstPersonView = !mFirstPersonView;
         processViewChange();
     }
-    
+
     void Camera::allowVanityMode(bool allow)
     {
         if (!allow && mVanity.enabled)
@@ -320,12 +388,16 @@ namespace MWRender
         mCameraDistance = offset;
     }
 
+//<<<<<<< HEAD
     void Camera::setSneakOffset(float offset)
     {
         mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
     }
 
     float Camera::getYaw() const
+//=======
+ //   float Camera::getYaw()
+//>>>>>>> Stomy/openmw-head-bobbing
     {
         if(mVanity.enabled || mPreviewMode)
             return mPreviewCam.yaw;
