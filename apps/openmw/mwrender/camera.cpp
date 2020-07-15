@@ -80,6 +80,8 @@ namespace MWRender
 
         mUpdateCallback = new UpdateRenderCameraCallback(this);
         mCamera->addUpdateCallback(mUpdateCallback);
+
+        mBobbingInfo = {};
     }
 
     Camera::~Camera()
@@ -152,9 +154,46 @@ namespace MWRender
         getPosition(focal, position);
 
         osg::Quat orient =  osg::Quat(getPitch(), osg::Vec3d(1,0,0)) * osg::Quat(getYaw(), osg::Vec3d(0,0,1));
+        bool firstPerson = isFirstPerson();
+        osg::Vec3d position = getFocalPoint();
+
+        osg::Vec3d offset = orient * osg::Vec3d(0, firstPerson ? 0 : -mCameraDistance, 0);
+        position += offset;
+
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
+        osg::Vec3d right = orient * osg::Vec3d(1,0,0);
 
+        osg::Vec3f fpOffset(0, 0, -mBobbingInfo.mSneakOffset);
+        float fpPitch = 0, fpRoll = 0;
+        float wpnPitch = 0, wpnYaw = 0;
+        if (firstPerson)
+        {
+            osg::Vec3d hbOffset, wpnOffset;
+            mBobbingInfo.getOffsets(hbOffset, wpnOffset);
+
+            if (mBobbingInfo.mHeadBobEnabled)
+            {
+                fpOffset.x() += hbOffset.x();
+                fpOffset.z() += hbOffset.z();
+                fpRoll += hbOffset.y();
+
+                fpOffset.z() -= mBobbingInfo.mLandingOffset;
+            }
+
+            if (mBobbingInfo.mHandBobEnabled)
+            {
+                wpnPitch += wpnOffset.x();
+                wpnPitch -= mBobbingInfo.mLandingOffset * 0.001f;
+                wpnYaw += wpnOffset.z();
+            }
+        }
+
+        forward = osg::Quat(fpPitch, right) * forward;
+        up = osg::Quat(fpRoll, forward) * up;
+
+        mAnimation->setFirstPersonOffset(fpOffset);
+        mAnimation->setFirstPersonRotation(fpPitch + wpnPitch, fpRoll, wpnYaw);
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }
 
@@ -238,6 +277,11 @@ namespace MWRender
             mSmoothTransitionToCombatMode = 0;
     }
 
+    void Camera::setBobbingInfo(BobbingInfo& bobbingInfo)
+    {
+        mBobbingInfo = bobbingInfo;
+    }
+
     void Camera::toggleViewMode(bool force)
     {
         // Changing the view will stop all playing animations, so if we are playing
@@ -256,7 +300,7 @@ namespace MWRender
         mFirstPersonView = !mFirstPersonView;
         processViewChange();
     }
-    
+
     void Camera::allowVanityMode(bool allow)
     {
         if (!allow && mVanity.enabled)
@@ -319,11 +363,6 @@ namespace MWRender
         }
 
         mCameraDistance = offset;
-    }
-
-    void Camera::setSneakOffset(float offset)
-    {
-        mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
     }
 
     float Camera::getYaw() const

@@ -33,6 +33,11 @@ namespace MWWorld
     class CellRef;
 }
 
+namespace MWRender
+{
+    class BobbingInfo;
+}
+
 namespace Loading
 {
     class Listener;
@@ -269,6 +274,7 @@ namespace MWBase
             virtual bool isAttackPreparing(const MWWorld::Ptr& ptr) = 0;
             virtual bool isRunning(const MWWorld::Ptr& ptr) = 0;
             virtual bool isSneaking(const MWWorld::Ptr& ptr) = 0;
+//<<<<<<< HEAD
 
             virtual void reportStats(unsigned int frameNumber, osg::Stats& stats) const = 0;
 
@@ -278,6 +284,9 @@ namespace MWBase
             virtual bool isTurningToPlayer(const MWWorld::Ptr& ptr) const = 0;
 
             virtual void restoreStatsAfterCorprus(const MWWorld::Ptr& actor, const std::string& sourceId) = 0;
+//=======
+            virtual void getBobbingInfo(const MWWorld::Ptr &ptr, MWRender::BobbingInfo& outBobbingInfo) = 0;
+//>>>>>>> Stomy/openmw-head-bobbing
     };
 }
 
