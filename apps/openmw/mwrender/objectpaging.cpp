@@ -30,6 +30,7 @@
 #include "apps/openmw/mwbase/environment.hpp"
 #include "apps/openmw/mwbase/world.hpp"
 
+#include "grass.hpp"
 #include "vismask.hpp"
 
 namespace MWRender
@@ -448,6 +449,8 @@ namespace MWRender
         float minSize = mMinSize;
         if (mMinSizeMergeFactor)
             minSize *= mMinSizeMergeFactor;
+
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
         for (const auto& pair : refs)
         {
             const ESM::CellRef& ref = pair.second;
@@ -476,6 +479,7 @@ namespace MWRender
             int type = store.findStatic(ref.mRefID);
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
+            if (grassEnabled && Grass::isGrassItem(model)) continue;
             model = "meshes/" + model;
 
             if (activeGrid && type != ESM::REC_STAT)

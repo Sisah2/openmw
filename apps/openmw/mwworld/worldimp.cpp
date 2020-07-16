@@ -1774,6 +1774,14 @@ namespace MWWorld
         return mStore.insert(record);
     }
 
+    void World::updateGrass()
+    {
+        for (CellStore* cellstore : mWorldScene->getActiveCells())
+        {
+            cellstore->updateGrassVisibility();
+        }
+    }
+
     void World::update (float duration, bool paused)
     {
         if (mGoToJail && !paused)
@@ -1809,6 +1817,10 @@ namespace MWWorld
             mSpellPreloadTimer = 0.1f;
             preloadSpells();
         }
+
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
+        if (grassEnabled)
+            updateGrass();
     }
 
     void World::updatePhysics (float duration, bool paused)
