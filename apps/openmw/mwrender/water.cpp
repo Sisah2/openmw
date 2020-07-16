@@ -578,6 +578,11 @@ void Water::createSimpleWaterStateSet(osg::Node* node, float alpha)
 
     stateset->setTextureAttributeAndModes(0, textures[0], osg::StateAttribute::ON);
 
+    static float gamma = 1.0;
+    const char *s = getenv("OPENMW_GAMMA");
+    if (s) gamma = atof(s);
+    stateset->addUniform(new osg::Uniform("gamma", gamma));
+
     // use a shader to render the simple water, ensuring that fog is applied per pixel as required.
     // this could be removed if a more detailed water mesh, using some sort of paging solution, is implemented.
     Resource::SceneManager* sceneManager = mResourceSystem->getSceneManager();
@@ -637,6 +642,11 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
 
     shaderStateset->addUniform(mRainIntensityUniform.get());
 
+    static float gamma = 1.0;
+    const char *s = getenv("OPENMW_GAMMA");
+    if (s) gamma = atof(s);
+    shaderStateset->addUniform(new osg::Uniform("gamma", gamma));
+                        
     osg::ref_ptr<osg::Program> program (new osg::Program);
     program->addShader(vertexShader);
     program->addShader(fragmentShader);
