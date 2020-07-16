@@ -18,7 +18,26 @@ Known Issues:
 
 New Features:
 - Dialogue to split item stacks now displays the name of the trapped soul for stacks of soul gems (#5362)
-
+- NIF files which contain an "AvoidNode" are ignored by the pathfinding algorithm (#1724)
+- Navmeshes are used for AI pathfinding which should resolve most related issues (#2229)
+- Movement input from gamepad joysticks is transformed into analogue values (#3025)
+- Sane default values for openmw.cfg file to overcome the original morrowind.ini file (#3442)
+- Option to invert x-axis for controllers (#3610)
+- Local variables of objects selected in the console can now be directly read and set without explicitly stating the object (#3893)
+- In-game option to enable or disable controllers (#3980)
+- Sneak mode can be toggled using a controller (#4001)
+- Controllers use original engine's default key bindings (#4360)
+- Support for sheathing animations, including weapon holstering, scabbards (except for throwing weapons), and quivers for projectiles (#4673)
+- Support for "NiRollController" in NIF files to ensure correct rotation of models in "Weapon Sheathing" mod (#4675)
+- Support for native animated containers (#4730)
+- Support for VAO ("Vertex Array Objects") from OSG 3.5.6 or later (#4756)
+- Support for "NiSwitchNode" in NIF files to allow future implementation of native support for extended features like harvestable plants or glowing - windows (#4812)
+- Native support for glowing windows (and other daytime-dependent meshes) by adding internal day-night-mode switch (#4836)
+- Shadows (#4851)
+- More configuration options for in-game water reflections (#4859)
+- Command line option to specify a random seed to be used by the game's random-number generator ("RNG") for debugging purposes (#4887)
+- Configuration options for distant terrain to adjust quality and performance impact (#4890)
+- Head bobbing and matching weapon bobbing are now available in first-person view, disabled by default (#5043)
 New Editor Features:
 - ?
 

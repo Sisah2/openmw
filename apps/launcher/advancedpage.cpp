@@ -116,6 +116,8 @@ bool Launcher::AdvancedPage::loadSettings()
     if (screenshotFormatComboBox->findText(screenshotFormatString) == -1)
         screenshotFormatComboBox->addItem(screenshotFormatString);
     screenshotFormatComboBox->setCurrentIndex(screenshotFormatComboBox->findText(screenshotFormatString));
+    loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
+    loadSettingBool(handBobbingCheckBox, "hand bobbing", "Camera");
 
     return true;
 }
@@ -183,6 +185,8 @@ void Launcher::AdvancedPage::saveSettings()
     std::string screenshotFormatString = screenshotFormatComboBox->currentText().toLower().toStdString();
     if (screenshotFormatString != mEngineSettings.getString("screenshot format", "General"))
         mEngineSettings.setString("screenshot format", "General", screenshotFormatString);
+    saveSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
+    saveSettingBool(handBobbingCheckBox, "hand bobbing", "Camera");
 }
 
 void Launcher::AdvancedPage::loadSettingBool(QCheckBox *checkbox, const std::string &setting, const std::string &group) {
