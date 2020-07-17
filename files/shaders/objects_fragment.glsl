@@ -54,7 +54,7 @@ uniform bool simpleWater;
 varying float euclideanDepth;
 varying float linearDepth;
 
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && !@omnidirlighting) || (@forcePPL && @omnidirlighting && @particlePPL))
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
