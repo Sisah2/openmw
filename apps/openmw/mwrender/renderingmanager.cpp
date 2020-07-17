@@ -248,6 +248,9 @@ namespace MWRender
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
+        globalDefines["particle"] = "0";
+        globalDefines["omnidirlighting"] = "0";
+        globalDefines["particlePPL"] = Settings::Manager::getBool("particle per pixel lighting", "Shaders") ? "1" : "0";
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
