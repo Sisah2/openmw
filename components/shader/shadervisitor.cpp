@@ -345,7 +345,7 @@ namespace Shader
         }
 
         defineMap["parallax"] = reqs.mNormalHeight ? "1" : "0";
-        if(dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode))
+        if(dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode)) && Settings::Manager::getBool("particle scaling", "Shaders")
             defineMap["omnidirlighting"] = "1";
 
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
