@@ -350,8 +350,8 @@ namespace Shader
             defineMap["particle"] = "1";
             if(Settings::Manager::getBool("particle scaling", "Shaders"))
                 defineMap["omnidirlighting"] = "1";
-
         }
+
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
 
         osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(mDefaultVsTemplate, defineMap, osg::Shader::VERTEX));
