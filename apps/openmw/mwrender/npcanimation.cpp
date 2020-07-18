@@ -333,7 +333,9 @@ NpcAnimation::NpcAnimation(const MWWorld::Ptr& ptr, osg::ref_ptr<osg::Group> par
     mShowWeapons(false),
     mShowCarriedLeft(true),
     mNpcType(getNpcType(ptr)),
-    mFirstPersonRoll(0.f),//wut
+    mFirstPersonPitch(0.f),
+    mFirstPersonRoll(0.f),
+    mFirstPersonYaw(0.f),
     mFirstPersonFieldOfView(firstPersonFieldOfView),
     mSoundsDisabled(disableSounds),
     mAccurateAiming(false),

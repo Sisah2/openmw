@@ -35,7 +35,7 @@ namespace MWWorld
 
 namespace MWRender
 {
-    class BobbingInfo;
+    struct BobbingInfo;
 }
 
 namespace Loading
