@@ -1,6 +1,7 @@
 #ifndef OPENMW_MWPHYSICS_PHYSICSSYSTEM_H
 #define OPENMW_MWPHYSICS_PHYSICSSYSTEM_H
 
+#include <array>
 #include <memory>
 #include <map>
 #include <set>
@@ -46,11 +47,55 @@ class btCollisionShape;
 
 namespace MWPhysics
 {
-    typedef std::vector<std::pair<MWWorld::Ptr,osg::Vec3f> > PtrVelocityList;
+    using PtrVelocityList = std::vector<std::pair<MWWorld::Ptr, osg::Vec3f>>;
+    using PtrPositionList = std::map<MWWorld::Ptr, osg::Vec3f>;
+    using CollisionMap = std::map<MWWorld::Ptr, MWWorld::Ptr>;
 
     class HeightField;
     class Object;
     class Actor;
+    class PhysicsTaskScheduler;
+
+    struct LOSRequest
+    {
+        LOSRequest(const std::weak_ptr<Actor>& a1, const std::weak_ptr<Actor>& a2);
+        bool operator==(const LOSRequest& rhs) const;
+        std::array<std::weak_ptr<Actor>, 2> mActors;
+        std::array<const Actor*, 2> mRawActors;
+        bool mResult;
+        bool mStale;
+        int mAge;
+    };
+
+    struct ActorFrameData
+    {
+        ActorFrameData(const std::shared_ptr<Actor>& actor, const MWWorld::Ptr character, osg::Vec3f movement, float slowFall, float waterlevel);
+        std::weak_ptr<Actor> mActor;
+        Actor* mActorRaw;
+        MWWorld::Ptr mPtr;
+        bool mFlying;
+        bool mSwimming;
+        bool mPositionChanged;
+        bool mWasOnGround;
+        bool mWantJump;
+        bool mDidJump;
+        bool mIsDead;
+        bool mNeedLand;
+        float mWaterlevel;
+        float mSlowFall;
+        float mOldHeight;
+        float mFallHeight;
+        osg::Vec3f mMovement;
+        osg::Vec3f mPosition;
+        ESM::Position mRefpos;
+    };
+
+    struct WorldFrameData
+    {
+        WorldFrameData();
+        bool mIsInStorm;
+        osg::Vec3f mStormDirection;
+    };
 
     class PhysicsSystem
     {
@@ -126,7 +171,7 @@ namespace MWPhysics
             RayResult castSphere(const osg::Vec3f& from, const osg::Vec3f& to, float radius);
 
             /// Return true if actor1 can see actor2.
-            bool getLineOfSight(const MWWorld::ConstPtr& actor1, const MWWorld::ConstPtr& actor2) const;
+            bool getLineOfSight(const MWWorld::ConstPtr& actor1, const MWWorld::ConstPtr& actor2);
 
             bool isOnGround (const MWWorld::Ptr& actor);
 
@@ -153,7 +198,7 @@ namespace MWPhysics
             void queueObjectMovement(const MWWorld::Ptr &ptr, const osg::Vec3f &velocity);
 
             /// Apply all queued movements, then clear the list.
-            const PtrVelocityList& applyQueuedMovement(float dt);
+            const PtrPositionList& applyQueuedMovement(float dt);
 
             /// Clear the queued movements list without applying.
             void clearQueuedMovement();
@@ -197,22 +242,25 @@ namespace MWPhysics
 
             void updateWater();
 
+            std::vector<ActorFrameData> prepareFrameData();
+
             osg::ref_ptr<SceneUtil::UnrefQueue> mUnrefQueue;
 
-            btBroadphaseInterface* mBroadphase;
-            btDefaultCollisionConfiguration* mCollisionConfiguration;
-            btCollisionDispatcher* mDispatcher;
-            btCollisionWorld* mCollisionWorld;
+            std::unique_ptr<btBroadphaseInterface> mBroadphase;
+            std::unique_ptr<btDefaultCollisionConfiguration> mCollisionConfiguration;
+            std::unique_ptr<btCollisionDispatcher> mDispatcher;
+            std::shared_ptr<btCollisionWorld> mCollisionWorld;
+            std::unique_ptr<PhysicsTaskScheduler> mTaskScheduler;
 
             std::unique_ptr<Resource::BulletShapeManager> mShapeManager;
             Resource::ResourceSystem* mResourceSystem;
 
-            typedef std::map<MWWorld::ConstPtr, Object*> ObjectMap;
+            typedef std::map<MWWorld::ConstPtr, std::shared_ptr<Object>> ObjectMap;
             ObjectMap mObjects;
 
             std::set<Object*> mAnimatedObjects; // stores pointers to elements in mObjects
 
-            typedef std::map<MWWorld::ConstPtr, Actor*> ActorMap;
+            typedef std::map<MWWorld::ConstPtr, std::shared_ptr<Actor>> ActorMap;
             ActorMap mActors;
 
             typedef std::map<std::pair<int, int>, HeightField*> HeightFieldMap;
@@ -222,14 +270,12 @@ namespace MWPhysics
 
             // Tracks standing collisions happening during a single frame. <actor handle, collided handle>
             // This will detect standing on an object, but won't detect running e.g. against a wall.
-            typedef std::map<MWWorld::Ptr, MWWorld::Ptr> CollisionMap;
             CollisionMap mStandingCollisions;
 
             // replaces all occurrences of 'old' in the map by 'updated', no matter if it's a key or value
             void updateCollisionMapPtr(CollisionMap& map, const MWWorld::Ptr &old, const MWWorld::Ptr &updated);
 
             PtrVelocityList mMovementQueue;
-            PtrVelocityList mMovementResults;
 
             float mTimeAccum;
 
