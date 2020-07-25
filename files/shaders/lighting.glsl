@@ -1,7 +1,5 @@
 #define MAX_LIGHTS 8
 
-uniform int colorMode;
-
 const int ColorMode_None = 0;
 const int ColorMode_Emission = 1;
 const int ColorMode_AmbientAndDiffuse = 2;
@@ -20,18 +18,14 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation + gl_LightSource[lightIndex].linearAttenuation * lightDistance + gl_LightSource[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
 
     ambientOut = ambient * gl_LightSource[lightIndex].ambient.xyz * illumination;
-#if (@particle && @particleScaling)
+#if (@particleHandling == 2 || @particleHandling == 4)
     diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * 0.5196 * illumination;
 #else
     diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * max(dot(viewNormal.xyz, lightDir), 0.0) * illumination;
 #endif
 }
 
-#if PER_PIXEL_LIGHTING
-vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, float shadowing)
-#else
-vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, out vec3 shadowDiffuse)
-#endif
+vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
 {
     vec4 diffuse;
     vec3 ambient;
@@ -59,12 +53,7 @@ vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, out vec3 shadow
 
     vec3 diffuseLight, ambientLight;
     perLight(ambientLight, diffuseLight, 0, viewPos, viewNormal, diffuse, ambient);
-#if PER_PIXEL_LIGHTING
-    lightResult.xyz += diffuseLight * shadowing - diffuseLight; // This light gets added a second time in the loop to fix Mesa users' slowdown, so we need to negate its contribution here.
-#else
-    shadowDiffuse = diffuseLight;
-    lightResult.xyz -= shadowDiffuse; // This light gets added a second time in the loop to fix Mesa users' slowdown, so we need to negate its contribution here.
-#endif
+
     for (int i=0; i<MAX_LIGHTS; ++i)
     {
         perLight(ambientLight, diffuseLight, i, viewPos, viewNormal, diffuse, ambient);
