@@ -325,6 +325,12 @@ namespace Shader
     {
         if (!reqs.mShaderRequired && !mForceShaders)
             return;
+
+        bool isParticle = dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode) ? true : false;
+
+        if (isParticle && Settings::Manager::getInt("particle handling", "Shaders") == 0)
+            return;
+
         osg::Node& node = *reqs.mNode;
         osg::StateSet* writableStateSet = nullptr;
         if (mAllowedToModifyStateSets)
@@ -345,7 +351,8 @@ namespace Shader
         }
 
         defineMap["parallax"] = reqs.mNormalHeight ? "1" : "0";
-        if(!dynamic_cast<osgParticle::ParticleSystem *>(reqs.mNode))
+
+        if(!isParticle)
             defineMap["particleHandling"] = "0";
 
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
