@@ -12,21 +12,22 @@ uniform sampler2D normalMap;
 uniform sampler2D blendMap;
 #endif
 
-varying float euclideanDepth;
-varying float linearDepth;
+varying float depth;
 
 #define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
-centroid varying vec3 shadowDiffuseLighting;
 #endif
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
-#include "shadows_fragment.glsl"
-#include "lighting.glsl"
+uniform int colorMode;
+#if PER_PIXEL_LIGHTING
+    #include "lighting.glsl"
+#endif
+
 #include "parallax.glsl"
 
 void main()
@@ -68,18 +69,11 @@ void main()
     gl_FragData[0].a *= texture2D(blendMap, blendMapUV).a;
 #endif
 
-    float shadowing = unshadowedLightRatio(linearDepth);
 
 #if !PER_PIXEL_LIGHTING
-
-#if @clamp
-    gl_FragData[0] *= clamp(lighting + vec4(shadowDiffuseLighting * shadowing, 0), vec4(0.0), vec4(1.0));
+    gl_FragData[0] *= lighting;
 #else
-    gl_FragData[0] *= lighting + vec4(shadowDiffuseLighting * shadowing, 0);
-#endif
-
-#else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowing);
+    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor);
 #endif
 
 #if @specularMap
@@ -88,7 +82,7 @@ void main()
 #else
     float shininess = gl_FrontMaterial.shininess;
     vec3 matSpec;
-    if (colorMode == ColorMode_Specular)
+    if (colorMode == 5)
         matSpec = passColor.xyz;
     else
         matSpec = gl_FrontMaterial.specular.xyz;
@@ -99,15 +93,13 @@ void main()
 #if (!@normalMap && !@parallax && !@forcePPL)
         vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
-        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec) * shadowing;
+        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec);
     }
 
-#if @radialFog
-    float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#else
-    float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
-#endif
+    float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-    applyShadowDebugOverlay();
+#if (@gamma != 1000)
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
+#endif
 }

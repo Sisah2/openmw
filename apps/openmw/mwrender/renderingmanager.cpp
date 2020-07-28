@@ -248,6 +248,12 @@ namespace MWRender
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
+        globalDefines["particleHandling"] = std::to_string(std::max(1, Settings::Manager::getInt("particle handling", "Shaders")));
+
+        static int gammacor = 1000;
+        const char *s = getenv("OPENMW_GAMMA");
+        if (s) gammacor = static_cast<int>(atof(s)*1000.0);
+        globalDefines["gamma"] = std::to_string(gammacor);
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
@@ -290,6 +296,7 @@ namespace MWRender
             mTerrain.reset(new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
+            static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->setOcclusionCullingSettings(Settings::Manager::getBool("debug occlusion culling", "Terrain"), Settings::Manager::getInt("occlusion culling maximum active", "Terrain"), Settings::Manager::getFloat("occlusion culling minimum volume", "Terrain"), Settings::Manager::getFloat("occlusion culling zfactor", "Terrain"), Settings::Manager::getFloat("occlusion culling zbias", "Terrain"));
             if (Settings::Manager::getBool("object paging", "Terrain"))
             {
                 mObjectPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager()));
@@ -344,6 +351,9 @@ namespace MWRender
         sceneRoot->addUpdateCallback(mStateUpdater);
 
         osg::Camera::CullingMode cullingMode = osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING;
+
+        if (!Settings::Manager::getBool("occlusion culling", "Terrain"))
+            cullingMode &= ~(osg::CullStack::SHADOW_OCCLUSION_CULLING);
 
         if (!Settings::Manager::getBool("small feature culling", "Camera"))
             cullingMode &= ~(osg::CullStack::SMALL_FEATURE_CULLING);
@@ -1075,7 +1085,7 @@ namespace MWRender
         mIntersectionVisitor->setIntersector(intersector);
 
         int mask = ~0;
-        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater);
+        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Grass);
         if (ignorePlayer)
             mask &= ~(Mask_Player);
         if (ignoreActors)

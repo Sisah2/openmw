@@ -16,12 +16,7 @@ varying vec2 detailMapUV;
 varying vec2 decalMapUV;
 #endif
 
-#if @emissiveMap
-varying vec2 emissiveMapUV;
-#endif
-
 #if @normalMap
-varying vec2 normalMapUV;
 varying vec4 passTangent;
 #endif
 
@@ -29,30 +24,21 @@ varying vec4 passTangent;
 varying vec2 envMapUV;
 #endif
 
-#if @bumpMap
-varying vec2 bumpMapUV;
-#endif
+varying float depth;
 
-#if @specularMap
-varying vec2 specularMapUV;
-#endif
-
-varying float euclideanDepth;
-varying float linearDepth;
-
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && (@particleHandling <= 2)))
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
-centroid varying vec3 shadowDiffuseLighting;
 #endif
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
-#include "shadows_vertex.glsl"
-
-#include "lighting.glsl"
+#if !PER_PIXEL_LIGHTING
+    uniform int colorMode;
+    #include "lighting.glsl"
+#endif
 
 void main(void)
 {
@@ -60,10 +46,14 @@ void main(void)
 
     vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_ClipVertex = viewPos;
-    euclideanDepth = length(viewPos.xyz);
-    linearDepth = gl_Position.z;
 
-#if (@envMap || !PER_PIXEL_LIGHTING || @shadows_enabled)
+#if @radialFog
+    depth = length(viewPos.xyz);
+#else
+    depth = gl_Position.z;
+#endif
+
+#if (@envMap || !PER_PIXEL_LIGHTING)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 #endif
 
@@ -90,31 +80,14 @@ void main(void)
     decalMapUV = (gl_TextureMatrix[@decalMapUV] * gl_MultiTexCoord@decalMapUV).xy;
 #endif
 
-#if @emissiveMap
-    emissiveMapUV = (gl_TextureMatrix[@emissiveMapUV] * gl_MultiTexCoord@emissiveMapUV).xy;
-#endif
-
 #if @normalMap
-    normalMapUV = (gl_TextureMatrix[@normalMapUV] * gl_MultiTexCoord@normalMapUV).xy;
     passTangent = gl_MultiTexCoord7.xyzw;
 #endif
 
-#if @bumpMap
-    bumpMapUV = (gl_TextureMatrix[@bumpMapUV] * gl_MultiTexCoord@bumpMapUV).xy;
-#endif
-
-#if @specularMap
-    specularMapUV = (gl_TextureMatrix[@specularMapUV] * gl_MultiTexCoord@specularMapUV).xy;
-#endif
-
 #if !PER_PIXEL_LIGHTING
-    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color, shadowDiffuseLighting);
+    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #endif
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
     passNormal = gl_Normal.xyz;
-
-#if (@shadows_enabled)
-    setupShadowCoords(viewPos, viewNormal);
-#endif
 }
