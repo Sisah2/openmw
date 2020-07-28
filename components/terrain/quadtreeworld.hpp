@@ -9,6 +9,7 @@
 namespace osg
 {
     class NodeVisitor;
+    class CollectOccludersVisitor;
 }
 
 namespace Terrain
@@ -23,6 +24,8 @@ namespace Terrain
         QuadTreeWorld(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float comMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize);
 
         ~QuadTreeWorld();
+
+        void setOcclusionCullingSettings(bool debug, int maximumActive, float minimumVolume, float zfactor, float zbias);
 
         void accept(osg::NodeVisitor& nv);
 
@@ -62,6 +65,12 @@ namespace Terrain
         std::vector<ChunkManager*> mChunkManagers;
 
         std::mutex mQuadTreeMutex;
+
+        osg::ref_ptr<osg::CollectOccludersVisitor> mCollectOccludersVisitor;
+
+        bool mDebugOccluders;
+        float mOcclusionCullingZFactor;
+        float mOcclusionCullingZBias;
         bool mQuadTreeBuilt;
         float mLodFactor;
         int mVertexLodMod;
