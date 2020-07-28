@@ -9,17 +9,13 @@
 #include "../mwworld/containerstore.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 
 #include "weapontype.hpp"
 
 namespace MWWorld
 {
     class InventoryStore;
-}
-
-namespace MWRender
-{
-    class Animation;
 }
 
 namespace MWMechanics
@@ -141,7 +137,7 @@ class CharacterController : public MWRender::Animation::TextKeyListener
     MWWorld::Ptr mPtr;
     MWWorld::Ptr mWeapon;
     MWRender::Animation *mAnimation;
-    
+
     struct AnimationQueueEntry
     {
         std::string mGroup;
@@ -160,6 +156,8 @@ class CharacterController : public MWRender::Animation::TextKeyListener
     bool mAdjustMovementAnimSpeed;
     bool mHasMovedInXY;
     bool mMovementAnimationControlled;
+
+    MWRender::BobbingInfo mBobbingInfo;
 
     CharacterState mDeathState;
     std::string mCurrentDeath;
@@ -273,7 +271,7 @@ public:
     { return mDeathState != CharState_None; }
 
     void forceStateUpdate();
-    
+
     bool isAttackPreparing() const;
     bool isCastingSpell() const;
     bool isReadyToBlock() const;
@@ -295,6 +293,8 @@ public:
     bool readyToStartAttack() const;
 
     float getAttackStrength() const;
+
+    MWRender::BobbingInfo& getBobbingInfo();
 
     /// @see Animation::setActive
     void setActive(int active);

@@ -33,6 +33,11 @@ namespace MWWorld
     class CellRef;
 }
 
+namespace MWRender
+{
+    class BobbingInfo;
+}
+
 namespace Loading
 {
     class Listener;
@@ -278,6 +283,8 @@ namespace MWBase
             virtual bool isTurningToPlayer(const MWWorld::Ptr& ptr) const = 0;
 
             virtual void restoreStatsAfterCorprus(const MWWorld::Ptr& actor, const std::string& sourceId) = 0;
+
+            virtual void getBobbingInfo(const MWWorld::Ptr &ptr, MWRender::BobbingInfo& outBobbingInfo) = 0;
     };
 }
 

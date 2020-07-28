@@ -9,6 +9,8 @@
 
 #include "../mwworld/ptr.hpp"
 
+#include "bobbing.hpp"
+
 namespace osg
 {
     class Camera;
@@ -75,6 +77,8 @@ namespace MWRender
         void updateFocalPointOffset(float duration);
         float getCameraDistanceCorrection() const;
 
+        BobbingInfo mBobbingInfo;
+
         osg::ref_ptr<osg::NodeCallback> mUpdateCallback;
 
         // Used to rotate player to the direction of view after exiting preview or vanity mode.
@@ -128,6 +132,9 @@ namespace MWRender
 
         /// \brief Lowers the camera for sneak.
         void setSneakOffset(float offset);
+
+        /// Parametric Head and Hand Bobbing in first person, also handles downward sneaking offset
+        void setBobbingInfo(BobbingInfo& bobbingInfo);
 
         bool isFirstPerson() const { return mFirstPersonView && mMode == Mode::Normal; }
 
