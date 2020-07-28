@@ -235,6 +235,20 @@ Affected objects will use shaders.
             <property name="enabled">
              <bool>false</bool>
             </property>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render holstered weapons (with quivers and scabbards), requires modded assets.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Weapon sheathing</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="shieldSheathingCheckBox">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render holstered shield, requires modded assets.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -409,6 +423,15 @@ but also increase the amount of rendered geometry and significantly reduce the f
             <item>
              <property name="text">
               <string>Tool Tip Only</string>
+            <item>
+             <property name="text">
+              <string>Off</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+
+             <string>Tool Tip Only</string>
              </property>
             </item>
             <item>

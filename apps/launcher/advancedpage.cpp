@@ -182,7 +182,6 @@ bool Launcher::AdvancedPage::loadSettings()
     }
 
     // Testing
-//<<<<<<< HEAD
     bool skipMenu = mGameSettings.value("skip-menu").toInt() == 1;
     if (skipMenu) {
         skipMenuCheckBox->setCheckState(Qt::Checked);
@@ -243,10 +242,8 @@ bool Launcher::AdvancedPage::loadSettings()
     screenshotFormatComboBox->setCurrentIndex(screenshotFormatComboBox->findText(screenshotFormatString));
     loadSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
     loadSettingBool(handBobbingCheckBox, "hand bobbing", "Camera");
-//=======
     {
-//        loadSettingBool(grabCursorCheckBox, "grab cursor", "Input");
-//>>>>>>> ae1af0e10394178ce4b6fa7b3ad399603919a76d
+        loadSettingBool(grabCursorCheckBox, "grab cursor", "Input");
 
         bool skipMenu = mGameSettings.value("skip-menu").toInt() == 1;
         if (skipMenu)
@@ -343,7 +340,6 @@ void Launcher::AdvancedPage::saveSettings()
     }
 
     // Testing
-<<<<<<< HEAD
     int skipMenu = skipMenuCheckBox->checkState() == Qt::Checked;
     if (skipMenu != mGameSettings.value("skip-menu").toInt())
         mGameSettings.setValue("skip-menu", QString::number(skipMenu));
@@ -403,7 +399,6 @@ void Launcher::AdvancedPage::saveSettings()
         mEngineSettings.setString("screenshot format", "General", screenshotFormatString);
     saveSettingBool(headBobbingCheckBox, "head bobbing", "Camera");
     saveSettingBool(handBobbingCheckBox, "hand bobbing", "Camera");
-=======
     {
         saveSettingBool(grabCursorCheckBox, "grab cursor", "Input");
 
@@ -420,7 +415,6 @@ void Launcher::AdvancedPage::saveSettings()
         if (scriptRun != mGameSettings.value("script-run"))
             mGameSettings.setValue("script-run", scriptRun);
     }
->>>>>>> ae1af0e10394178ce4b6fa7b3ad399603919a76d
 }
 
 void Launcher::AdvancedPage::loadSettingBool(QCheckBox *checkbox, const std::string &setting, const std::string &group)
