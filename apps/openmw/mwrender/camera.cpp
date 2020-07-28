@@ -164,15 +164,7 @@ namespace MWRender
             return;
 
         bool firstPerson = isFirstPerson();
-        osg::Vec3d position = getFocalPoint();
-
-        float pitch = getPitch();
-        float yaw = getYaw();
-        osg::Quat orient = osg::Quat(pitch, osg::Vec3d(1,0,0)) * osg::Quat(yaw, osg::Vec3d(0,0,1));
-
-        osg::Vec3d offset = orient * osg::Vec3d(0, firstPerson ? 0 : -mCameraDistance, 0);
-        position += offset;
-
+ 
         osg::Quat orient =  osg::Quat(getPitch(), osg::Vec3d(1,0,0)) * osg::Quat(getYaw(), osg::Vec3d(0,0,1));
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
@@ -423,14 +415,7 @@ namespace MWRender
     {
         mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
     }
-/*
-    float Camera::getYaw()
-    {
-        if(mVanity.enabled || mPreviewMode)
-            return mPreviewCam.yaw;
-        return mMainCam.yaw;
-    }
-*/
+
     void Camera::setYaw(float angle)
     {
         if (angle > osg::PI) {
