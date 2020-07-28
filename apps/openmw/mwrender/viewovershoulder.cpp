@@ -21,24 +21,25 @@ namespace MWRender
         mAutoSwitchShoulder(Settings::Manager::getBool("auto switch shoulder", "Camera")),
         mOverShoulderHorizontalOffset(30.f), mOverShoulderVerticalOffset(-10.f)
     {
-        std::stringstream offset(Settings::Manager::getString("view over shoulder offset", "Camera"));
-        offset >> mOverShoulderHorizontalOffset >> mOverShoulderVerticalOffset;
-        mDefaultShoulderIsRight = mOverShoulderHorizontalOffset >= 0;
-        mOverShoulderHorizontalOffset = std::abs(mOverShoulderHorizontalOffset);
+        osg::Vec2f offset = Settings::Manager::getVector2("view over shoulder offset", "Camera");
+        mOverShoulderHorizontalOffset = std::abs(offset.x());
+        mOverShoulderVerticalOffset = offset.y();
+        mDefaultShoulderIsRight = offset.x() >= 0;
 
         mCamera->enableDynamicCameraDistance(true);
         mCamera->enableCrosshairInThirdPersonMode(true);
-        mCamera->setFocalPointTargetOffset({mOverShoulderHorizontalOffset, mOverShoulderVerticalOffset});
+        mCamera->setFocalPointTargetOffset(offset);
     }
 
     void ViewOverShoulderController::update()
     {
-        if (mCamera->isVanityOrPreviewModeEnabled() || mCamera->isFirstPerson())
+        if (mCamera->isFirstPerson())
             return;
 
         Mode oldMode = mMode;
         auto ptr = mCamera->getTrackingPtr();
-        if (ptr.getClass().isActor() && ptr.getClass().getCreatureStats(ptr).getDrawState() != MWMechanics::DrawState_Nothing)
+        bool combat = ptr.getClass().isActor() && ptr.getClass().getCreatureStats(ptr).getDrawState() != MWMechanics::DrawState_Nothing;
+        if (combat && !mCamera->isVanityOrPreviewModeEnabled())
             mMode = Mode::Combat;
         else if (MWBase::Environment::get().getWorld()->isSwimming(ptr))
             mMode = Mode::Swimming;
@@ -46,12 +47,18 @@ namespace MWRender
             mMode = mDefaultShoulderIsRight ? Mode::RightShoulder : Mode::LeftShoulder;
         if (mAutoSwitchShoulder && (mMode == Mode::LeftShoulder || mMode == Mode::RightShoulder))
             trySwitchShoulder();
-        if (oldMode == mMode) return;
 
-        if (oldMode == Mode::Combat || mMode == Mode::Combat)
+        if (oldMode == mMode)
+            return;
+
+        if (mCamera->getMode() == Camera::Mode::Vanity)
+            // Player doesn't touch controls for a long time. Transition should be very slow.
+            mCamera->setFocalPointTransitionSpeed(0.2f);
+        else if ((oldMode == Mode::Combat || mMode == Mode::Combat) && mCamera->getMode() == Camera::Mode::Normal)
+            // Transition to/from combat mode and we are not it preview mode. Should be fast.
             mCamera->setFocalPointTransitionSpeed(5.f);
         else
-            mCamera->setFocalPointTransitionSpeed(1.f);
+            mCamera->setFocalPointTransitionSpeed(1.f);  // Default transition speed.
 
         switch (mMode)
         {
@@ -70,6 +77,9 @@ namespace MWRender
 
     void ViewOverShoulderController::trySwitchShoulder()
     {
+        if (mCamera->getMode() != Camera::Mode::Normal)
+            return;
+
         const float limitToSwitch = 120; // switch to other shoulder if wall is closer than this limit
         const float limitToSwitchBack = 300; // switch back to default shoulder if there is no walls at this distance
 
