@@ -194,6 +194,8 @@ osg::ref_ptr<osg::Camera> LocalMap::createOrthographicCamera(float x, float y, f
     fog->setEnd(10000000);
     stateset->setAttributeAndModes(fog, osg::StateAttribute::OFF|osg::StateAttribute::OVERRIDE);
 
+    stateset->addUniform(new osg::Uniform("isMap", true));
+
     osg::ref_ptr<osg::LightModel> lightmodel = new osg::LightModel;
     lightmodel->setAmbientIntensity(osg::Vec4(0.3f, 0.3f, 0.3f, 1.f));
     stateset->setAttributeAndModes(lightmodel, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
