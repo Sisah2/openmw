@@ -1779,7 +1779,7 @@ namespace MWWorld
     {
         for (CellStore* cellstore : mWorldScene->getActiveCells())
         {
-            cellstore->updateGrassVisibility();
+            cellstore->updateGrass();
         }
     }
 
