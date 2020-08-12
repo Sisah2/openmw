@@ -73,7 +73,7 @@ void main()
 #if !PER_PIXEL_LIGHTING
     gl_FragData[0] *= lighting;
 #else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor);
+    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, false);
 #endif
 
 #if @specularMap

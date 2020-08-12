@@ -1775,6 +1775,14 @@ namespace MWWorld
         return mStore.insert(record);
     }
 
+    void World::updateGrass()
+    {
+        for (CellStore* cellstore : mWorldScene->getActiveCells())
+        {
+            cellstore->updateGrass();
+        }
+    }
+
     void World::update (float duration, bool paused)
     {
         if (mGoToJail && !paused)
@@ -1810,6 +1818,10 @@ namespace MWWorld
             mSpellPreloadTimer = 0.1f;
             preloadSpells();
         }
+
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
+        if (grassEnabled)
+            updateGrass();
     }
 
     void World::updatePhysics (float duration, bool paused)
@@ -2394,6 +2406,11 @@ namespace MWWorld
     {
         return mRendering->getCamera()->isFirstPerson();
     }
+    
+    bool World::isPreviewModeEnabled() const
+    {
+        return mRendering->getCamera()->getMode() == MWRender::Camera::Mode::Preview;
+    }
 
     void World::togglePreviewMode(bool enable)
     {
@@ -2663,7 +2680,15 @@ namespace MWWorld
         }
     }
 
-    float World::getWindSpeed()
+    float World::getBaseWindSpeed() const
+    {
+        if (isCellExterior() || isCellQuasiExterior())
+            return mWeatherManager->getBaseWindSpeed();
+        else
+            return 0.f;
+    }
+
+    float World::getWindSpeed() const
     {
         if (isCellExterior() || isCellQuasiExterior())
             return mWeatherManager->getWindSpeed();

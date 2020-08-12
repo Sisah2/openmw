@@ -7,7 +7,7 @@ const int ColorMode_Ambient = 3;
 const int ColorMode_Diffuse = 4;
 const int ColorMode_Specular = 5;
 
-void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal, vec4 diffuse, vec3 ambient)
+void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 viewPos, vec3 viewNormal, vec4 diffuse, vec3 ambient, bool isGrass)
 {
     vec3 lightDir;
     float lightDistance;
@@ -21,11 +21,14 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
 #if (@particleHandling == 2 || @particleHandling == 4)
     diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * 0.5196 * illumination;
 #else
-    diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * max(dot(viewNormal.xyz, lightDir), 0.0) * illumination;
+    if (isGrass)
+        diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * (max(dot(viewNormal.xyz, lightDir), 0.0) + max(dot(-viewNormal.xyz, lightDir), 0.0)) * illumination;
+    else
+        diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * max(dot(viewNormal.xyz, lightDir), 0.0) * illumination;
 #endif
 }
 
-vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
+vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, bool isGrass)
 {
     vec4 diffuse;
     vec3 ambient;
@@ -52,11 +55,16 @@ vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor)
     vec4 lightResult = vec4(0.0, 0.0, 0.0, diffuse.a);
 
     vec3 diffuseLight, ambientLight;
-    perLight(ambientLight, diffuseLight, 0, viewPos, viewNormal, diffuse, ambient);
+
+    perLight(ambientLight, diffuseLight, 0, viewPos, viewNormal, diffuse, ambient, isGrass);
+
+#if PER_PIXEL_LIGHTING
+    lightResult.xyz += diffuseLight * shadowing - diffuseLight; // This light gets added a second time in the loop to fix Mesa users' 
+#endif
 
     for (int i=0; i<MAX_LIGHTS; ++i)
     {
-        perLight(ambientLight, diffuseLight, i, viewPos, viewNormal, diffuse, ambient);
+        perLight(ambientLight, diffuseLight, i, viewPos, viewNormal, diffuse, ambient, isGrass);
         lightResult.xyz += ambientLight + diffuseLight;
     }
 

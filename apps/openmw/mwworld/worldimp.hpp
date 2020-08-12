@@ -161,6 +161,8 @@ namespace MWWorld
 
             void updateNavigator();
 
+            void updateGrass();
+
             bool updateNavigatorObject(const MWPhysics::Object* object);
 
             void ensureNeededRecords();
@@ -524,6 +526,7 @@ namespace MWWorld
             void togglePOV(bool force = false) override;
 
             bool isFirstPerson() const override;
+            bool isPreviewModeEnabled() const override;
 
             void togglePreviewMode(bool enable) override;
 
@@ -562,7 +565,8 @@ namespace MWWorld
             ///< Apply a health difference to any actors colliding with \a object.
             /// To hurt actors, healthPerSecond should be a positive value. For a negative value, actors will be healed.
 
-            float getWindSpeed() override;
+            float getBaseWindSpeed() const override;
+            float getWindSpeed() const override;
 
             void getContainersOwnedBy (const MWWorld::ConstPtr& npc, std::vector<MWWorld::Ptr>& out) override;
             ///< get all containers in active cells owned by this Npc
