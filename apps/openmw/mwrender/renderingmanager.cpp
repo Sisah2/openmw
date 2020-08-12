@@ -255,6 +255,11 @@ namespace MWRender
         if (s) gammacor = static_cast<int>(atof(s)*1000.0);
         globalDefines["gamma"] = std::to_string(gammacor);
 
+        globalDefines["grassAnimation"] = Settings::Manager::getBool("animation", "Grass") ? "1" : "0";
+        globalDefines["grassFadeStart"] = std::to_string(Settings::Manager::getFloat("distance", "Grass") * Settings::Manager::getFloat("fade start", "Grass"));
+        globalDefines["grassFadeEnd"] = std::to_string(Settings::Manager::getFloat("distance", "Grass"));
+
+
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 
@@ -378,6 +383,7 @@ namespace MWRender
 
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("near", mNearClip));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("far", mViewDistance));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isGrass", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("simpleWater", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isReflection", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isMap", false));
@@ -1084,7 +1090,7 @@ namespace MWRender
         mIntersectionVisitor->setIntersector(intersector);
 
         int mask = ~0;
-        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater);
+        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Grass);
         if (ignorePlayer)
             mask &= ~(Mask_Player);
         if (ignoreActors)

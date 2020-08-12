@@ -47,7 +47,9 @@ uniform mat2 bumpMapMatrix;
 
 uniform bool simpleWater;
 
+
 varying float depth;
+uniform bool isGrass;
 
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && (@particleHandling <= 2)))
 
@@ -150,7 +152,7 @@ void main()
 #if !PER_PIXEL_LIGHTING
     gl_FragData[0] *= lighting;
 #else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor);
+    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, isGrass);
 #endif
 
 #if @envMap && !@preLightEnv
@@ -197,4 +199,10 @@ void main()
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
+
+    if (isGrass)
+    {
+        if (euclideanDepth > @grassFadeStart)
+            gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
+    }
 }
