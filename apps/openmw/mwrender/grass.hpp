@@ -33,13 +33,14 @@ namespace MWRender
         void insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs);
         bool isEnabled(const std::string& model);
         static bool isGrassItem(const std::string& model);
+        float mSmoothedStormDirection[2] = {0.0};
         osg::ref_ptr<osg::Uniform> mWindSpeedUniform;
         osg::ref_ptr<osg::Uniform> mIsGrassUniform;
 
         Grass()
         {
             blank();
-            mWindSpeedUniform = new osg::Uniform("windSpeed", 0.0f);
+            mWindSpeedUniform = new osg::Uniform("windSpeed", osg::Vec3f(0.0, 0.0, 0.0));
             mIsGrassUniform = new osg::Uniform("isGrass", true);
         }
 

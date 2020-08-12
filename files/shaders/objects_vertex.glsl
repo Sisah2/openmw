@@ -45,7 +45,7 @@ uniform bool isGrass;
 #if @grassAnimation
 uniform float osg_SimulationTime;
 uniform mat4 osg_ViewMatrixInverse;
-uniform float windSpeed;
+uniform vec3 windSpeed;
 uniform float Rotz;
 
 vec2 rotate(vec2 v, float a)
@@ -58,9 +58,8 @@ vec2 rotate(vec2 v, float a)
 
 vec2 grassDisplacement(vec4 worldpos, float h)
 {
-    vec2 windDirection = vec2(1.0);
     vec3 FootPos = osg_ViewMatrixInverse[3].xyz;
-    vec3 WindVec = vec3(windSpeed * windDirection, 1.0);
+    vec2 WindVec = max(vec2(windSpeed.z), vec2(windSpeed.z * windSpeed.xy));
 
     float v = length(WindVec);
     vec2 displace = vec2(2.0 * WindVec + 0.1);
@@ -74,7 +73,7 @@ vec2 grassDisplacement(vec4 worldpos, float h)
     float d = length(worldpos.xy - FootPos.xy);
     vec2 stomp = vec2(0.0);
     if(d < 150.0) stomp = (60.0 / d - 0.4) * (worldpos.xy - FootPos.xy);
-    return clamp(0.004 * h, 0.0, 1.0) * (harmonics * displace + stomp);
+    return clamp(min(0.02, 1.0/(0.5*(v*v*v))) * h, 0.0, 1.0) * (harmonics * displace + stomp);
 }
 #endif
 
@@ -88,8 +87,12 @@ if(isGrass)
     vec4 displacedVertex = gl_Vertex;
     vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos.xyz, 1.0);
     float height = 1.0-(gl_ModelViewMatrix[0].z-gl_Vertex.z);
-    vec2 displ = grassDisplacement(worldPos, height);
-    vec2 grassVertex = min(vec2(10.0), displ);
+    vec2 grassVertex = grassDisplacement(worldPos, height);
+    
+    if(windSpeed.xy != vec2(0.0)) {
+        displacedVertex.z -= length(grassVertex)/3.14;
+        grassVertex.xy += height*(windSpeed.xy);
+    }
 
     displacedVertex.xy += rotate(grassVertex.xy, -1.0*Rotz);
     gl_Position = (gl_ModelViewProjectionMatrix * displacedVertex);
@@ -141,6 +144,7 @@ else
 #if !PER_PIXEL_LIGHTING
     lighting = doLighting(viewPos.xyz, viewNormal, gl_Color, isGrass);
 #endif
+
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
     passNormal = gl_Normal.xyz;
