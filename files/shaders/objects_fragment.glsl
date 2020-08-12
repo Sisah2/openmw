@@ -202,7 +202,7 @@ void main()
 
     if (isGrass)
     {
-        if (euclideanDepth > @grassFadeStart)
-            gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
+        if (depth > @grassFadeStart)
+            gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, depth);
     }
 }
