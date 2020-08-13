@@ -45,8 +45,9 @@ uniform vec2 envMapLumaBias;
 uniform mat2 bumpMapMatrix;
 #endif
 
+#if @radialFog
 uniform bool simpleWater;
-
+#endif
 
 varying float depth;
 uniform bool isGrass;
@@ -73,6 +74,10 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
+#if (!@normalMap && (@parallax || @forcePPL))
+    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
+#endif
+
 #if @normalMap
     vec4 normalTex = texture2D(normalMap, diffuseMapUV);
 
@@ -81,14 +86,9 @@ void main()
     vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
     mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
 
+#if !@parallax
     vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
-#endif
-
-#if (!@normalMap && (@parallax || @forcePPL))
-    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
-
-#if @parallax
+#else
     vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
@@ -110,6 +110,12 @@ void main()
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
+
+    if (isGrass && depth > @grassFadeStart)
+        gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, depth);
+
+if (gl_FragData[0].a != 0.0)
+{
 
 #if @detailMap
     gl_FragData[0].xyz *= texture2D(detailMap, detailMapUV).xyz * 2.0;
@@ -199,10 +205,5 @@ void main()
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-
-    if (isGrass)
-    {
-        if (depth > @grassFadeStart)
-            gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, depth);
-    }
+}
 }

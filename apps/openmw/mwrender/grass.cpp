@@ -41,11 +41,11 @@ namespace MWRender
             }
         }
 
-        if (mSmoothedStormDirection[0] < stormDir[0]) mSmoothedStormDirection[0] += 0.001;
-            else mSmoothedStormDirection[0] -= 0.001;
+        if (mSmoothedStormDirection[0] < stormDir[0]) mSmoothedStormDirection[0] += 0.01;
+            else mSmoothedStormDirection[0] -= 0.01;
 
-        if (mSmoothedStormDirection[1] < stormDir[1]) mSmoothedStormDirection[1] += 0.001;
-            else mSmoothedStormDirection[1] -= 0.001;
+        if (mSmoothedStormDirection[1] < stormDir[1]) mSmoothedStormDirection[1] += 0.01;
+            else mSmoothedStormDirection[1] -= 0.01;
 
         mWindSpeedUniform->set((osg::Vec3f) osg::Vec3f(mSmoothedStormDirection[0], mSmoothedStormDirection[1], windSpeed));
     }
