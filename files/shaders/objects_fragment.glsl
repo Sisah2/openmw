@@ -75,7 +75,7 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if (!@normalMap && (@specularMap || @forcePPL))
+#if (!@normalMap && @forcePPL)
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
@@ -185,11 +185,12 @@ if (gl_FragData[0].a != 0.0)
 
     if (matSpec != vec3(0.0))
     {
-#if (!@normalMap && !@parallax && !@forcePPL)
+#if (!@normalMap && !@forcePPL)
         vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
         gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec);
     }
+}
 
 #if @radialFog
     float fogDepth = (simpleWater) ? length(passViewPos) : depth;
@@ -202,5 +203,5 @@ if (gl_FragData[0].a != 0.0)
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
-}
+
 }
