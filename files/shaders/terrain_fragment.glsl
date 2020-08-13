@@ -35,7 +35,7 @@ void main()
     vec2 adjustedUV = (gl_TextureMatrix[0] * vec4(uv, 0.0, 1.0)).xy;
 
 
-#if (!@normalMap && (@parallax || @forcePPL))
+#if (!@normalMap && (@specularMap || @forcePPL))
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
@@ -58,7 +58,7 @@ void main()
 
     // update normal using new coordinates
     normalTex = texture2D(normalMap, adjustedUV);
-    viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
+    vec3 viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
 #endif
 
     vec4 diffuseTex = texture2D(diffuseMap, adjustedUV);

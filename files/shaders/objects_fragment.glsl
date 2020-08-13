@@ -57,6 +57,7 @@ uniform bool isGrass;
 #if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
 #endif
+
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
@@ -74,7 +75,7 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if (!@normalMap && (@parallax || @forcePPL))
+#if (!@normalMap && (@specularMap || @forcePPL))
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
@@ -100,7 +101,7 @@ void main()
 #if 1
     // fetch a new normal using updated coordinates
     normalTex = texture2D(normalMap, adjustedDiffuseUV);
-    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
+    vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
 #endif
 
 #endif
@@ -189,13 +190,9 @@ if (gl_FragData[0].a != 0.0)
 #endif
         gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec);
     }
+
 #if @radialFog
-    float fogDepth;
-    // For the less detailed mesh of simple water we need to recalculate depth on per-pixel basis
-    if (simpleWater)
-        fogDepth = length(passViewPos);
-    else
-        fogDepth = depth;
+    float fogDepth = (simpleWater) ? length(passViewPos) : depth;
     float fogValue = clamp((fogDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #else
     float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
