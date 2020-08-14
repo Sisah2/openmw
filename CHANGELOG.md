@@ -315,6 +315,7 @@
     Feature #5033: Magic armor mitigation for creatures
     Feature #5034: Make enchanting window stay open after a failed attempt
     Feature #5036: Allow scripted faction leaving
+    Feature #5043: Head bobbing
     Feature #5046: Gamepad thumbstick cursor speed
     Feature #5051: Provide a separate textures for scrollbars
     Feature #5091: Human-readable light source duration
