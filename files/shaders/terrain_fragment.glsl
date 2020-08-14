@@ -20,7 +20,7 @@ varying float depth;
 centroid varying vec4 lighting;
 #endif
 
-#if PER_PIXEL_LIGHTING || specularMap
+#if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passViewPos;
 varying vec3 passNormal;
 #endif

@@ -15,7 +15,7 @@ centroid varying vec4 lighting;
 centroid varying vec4 passColor;
 #endif
 
-#if PER_PIXEL_LIGHTING || specularMap
+#if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passViewPos;
 varying vec3 passNormal;
 #endif
@@ -43,7 +43,7 @@ void main(void)
     passColor = gl_Color;
 #endif
 
-#if PER_PIXEL_LIGHTING || specularMap
+#if PER_PIXEL_LIGHTING || @specularMap
     passNormal = gl_Normal.xyz;
     passViewPos = viewPos.xyz;
 #endif
