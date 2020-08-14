@@ -481,6 +481,10 @@ public:
 
         mGeom->getOrCreateStateSet()->setTextureAttributeAndModes(0, sunTex, osg::StateAttribute::ON);
 
+        if(Settings::Manager::getBool("occlusion culling", "Terrain"))
+            mGeom->setCullingActive(false);
+
+/*
         osg::ref_ptr<osg::Group> queryNode (new osg::Group);
         // Need to render after the world geometry so we can correctly test for occlusions
         osg::StateSet* stateset = queryNode->getOrCreateStateSet();
@@ -505,13 +509,14 @@ public:
 
         createSunFlash(imageManager);
         createSunGlare();
+*/
     }
 
     ~Sun()
     {
         mTransform->removeUpdateCallback(mUpdater);
-        destroySunFlash();
-        destroySunGlare();
+//        destroySunFlash();
+//        destroySunGlare();
     }
 
     void setColor(const osg::Vec4f& color)
@@ -613,6 +618,7 @@ private:
         return oqn;
     }
 
+/*
     void createSunFlash(Resource::ImageManager& imageManager)
     {
         osg::ref_ptr<osg::Texture2D> tex (new osg::Texture2D(imageManager.getImage("textures/tx_sun_flash_grey_05.dds")));
@@ -690,7 +696,7 @@ private:
             mSunGlareCallback = nullptr;
         }
     }
-
+*/
     class Updater : public SceneUtil::StateSetUpdater
     {
     public:
@@ -946,6 +952,9 @@ public:
     {
         setPhase(MoonState::Phase_Full);
         setVisible(true);
+
+        if(Settings::Manager::getBool("occlusion culling", "Terrain"))
+            mGeom->setCullingActive(false);
 
         mGeom->addUpdateCallback(mUpdater);
     }
