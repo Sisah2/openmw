@@ -16,6 +16,10 @@ varying vec2 detailMapUV;
 varying vec2 decalMapUV;
 #endif
 
+#if @emissiveMap
+varying vec2 emissiveMapUV;
+#endif
+
 #if @normalMap
 varying vec4 passTangent;
 #endif
@@ -29,16 +33,14 @@ varying float depth;
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && (@particleHandling <= 2)))
 
 #if !PER_PIXEL_LIGHTING
+uniform int colorMode;
 centroid varying vec4 lighting;
+#include "lighting.glsl"
 #endif
+
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
-
-#if !PER_PIXEL_LIGHTING
-    uniform int colorMode;
-    #include "lighting.glsl"
-#endif
 
 uniform bool isGrass;
 
@@ -47,13 +49,13 @@ uniform float osg_SimulationTime;
 uniform mat4 osg_ViewMatrixInverse;
 uniform vec3 windSpeed;
 uniform float Rotz;
+uniform float Posz;
 
-vec2 rotate(vec2 v, float a)
-{
-    float s = sin(a);
-    float c = cos(a);
-    mat2 m = mat2(c, -s, s, c);
-    return m * v;
+vec2 rotate(vec2 v, float a) {
+	float s = sin(a);
+	float c = cos(a);
+	mat2 m = mat2(c, -s, s, c);
+	return m * v;
 }
 
 vec2 grassDisplacement(vec4 worldpos, float h)
@@ -88,7 +90,7 @@ if(isGrass)
     vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos.xyz, 1.0);
     float height = 1.0-(gl_ModelViewMatrix[0].z-gl_Vertex.z);
     vec2 grassVertex = grassDisplacement(worldPos, height);
-    
+
     if(windSpeed.xy != vec2(0.0)) {
         displacedVertex.z -= length(grassVertex)/3.14;
         grassVertex.xy += height*(windSpeed.xy);
@@ -101,7 +103,6 @@ else
 #endif
 
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-
     gl_ClipVertex = viewPos;
 
 #if @radialFog
@@ -110,7 +111,7 @@ else
     depth = gl_Position.z;
 #endif
 
-#if (@envMap || !PER_PIXEL_LIGHTING)
+#if (@envMap || !PER_PIXEL_LIGHTING || @shadows_enabled)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 #endif
 
@@ -135,6 +136,10 @@ else
 
 #if @decalMap
     decalMapUV = (gl_TextureMatrix[@decalMapUV] * gl_MultiTexCoord@decalMapUV).xy;
+#endif
+
+#if @emissiveMap
+    emissiveMapUV = (gl_TextureMatrix[@emissiveMapUV] * gl_MultiTexCoord@emissiveMapUV).xy;
 #endif
 
 #if @normalMap

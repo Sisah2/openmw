@@ -18,6 +18,7 @@ void perLight(out vec3 ambientOut, out vec3 diffuseOut, int lightIndex, vec3 vie
     float illumination = clamp(1.0 / (gl_LightSource[lightIndex].constantAttenuation + gl_LightSource[lightIndex].linearAttenuation * lightDistance + gl_LightSource[lightIndex].quadraticAttenuation * lightDistance * lightDistance), 0.0, 1.0);
 
     ambientOut = ambient * gl_LightSource[lightIndex].ambient.xyz * illumination;
+
 #if (@particleHandling == 2 || @particleHandling == 4)
     diffuseOut = diffuse.xyz * gl_LightSource[lightIndex].diffuse.xyz * 0.5196 * illumination;
 #else
@@ -55,12 +56,7 @@ vec4 doLighting(vec3 viewPos, vec3 viewNormal, vec4 vertexColor, bool isGrass)
     vec4 lightResult = vec4(0.0, 0.0, 0.0, diffuse.a);
 
     vec3 diffuseLight, ambientLight;
-
     perLight(ambientLight, diffuseLight, 0, viewPos, viewNormal, diffuse, ambient, isGrass);
-
-#if PER_PIXEL_LIGHTING
-    lightResult.xyz += diffuseLight * shadowing - diffuseLight; // This light gets added a second time in the loop to fix Mesa users' 
-#endif
 
     for (int i=0; i<MAX_LIGHTS; ++i)
     {

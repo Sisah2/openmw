@@ -19,13 +19,16 @@ varying float depth;
 #if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
 #endif
-centroid varying vec4 passColor;
+
+#if PER_PIXEL_LIGHTING || specularMap
 varying vec3 passViewPos;
 varying vec3 passNormal;
+#endif
 
-uniform int colorMode;
 #if PER_PIXEL_LIGHTING
-    #include "lighting.glsl"
+centroid varying vec4 passColor;
+uniform int colorMode;
+#include "lighting.glsl"
 #endif
 
 #include "parallax.glsl"
@@ -33,7 +36,6 @@ uniform int colorMode;
 void main()
 {
     vec2 adjustedUV = (gl_TextureMatrix[0] * vec4(uv, 0.0, 1.0)).xy;
-
 
 #if (!@normalMap && (@specularMap || @forcePPL))
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
@@ -45,20 +47,21 @@ void main()
     vec3 normalizedNormal = normalize(passNormal);
     vec3 tangent = vec3(1.0, 0.0, 0.0);
     vec3 binormal = normalize(cross(tangent, normalizedNormal));
-    tangent = normalize(cross(normalizedNormal, binormal)); // note, now we need to re-cross to derive tangent again because it wasn't orthonormal
+    tangent = normalize(cross(normalizedNormal, binormal));
     mat3 tbnTranspose = mat3(tangent, binormal, normalizedNormal);
 
 #if !@parallax
     vec3 viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
 #else
+
     vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     adjustedUV += getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, 1.f);
 
-    // update normal using new coordinates
     normalTex = texture2D(normalMap, adjustedUV);
     vec3 viewNormal = normalize(gl_NormalMatrix * (tbnTranspose * (normalTex.xyz * 2.0 - 1.0)));
+#endif
 #endif
 
     vec4 diffuseTex = texture2D(diffuseMap, adjustedUV);
@@ -69,7 +72,6 @@ void main()
     gl_FragData[0].a *= texture2D(blendMap, blendMapUV).a;
 #endif
 
-
 #if !PER_PIXEL_LIGHTING
     gl_FragData[0] *= lighting;
 #else
@@ -79,22 +81,8 @@ void main()
 #if @specularMap
     float shininess = 128.0; // TODO: make configurable
     vec3 matSpec = vec3(diffuseTex.a);
-#else
-    float shininess = gl_FrontMaterial.shininess;
-    vec3 matSpec;
-    if (colorMode == 5)
-        matSpec = passColor.xyz;
-    else
-        matSpec = gl_FrontMaterial.specular.xyz;
+    gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec);
 #endif
-
-    if (matSpec != vec3(0.0))
-    {
-#if (!@normalMap && !@parallax && !@forcePPL)
-        vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
-        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec);
-    }
 
     float fogValue = clamp((depth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
