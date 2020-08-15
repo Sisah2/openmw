@@ -540,6 +540,8 @@ WeatherManager::WeatherManager(MWRender::RenderingManager& rendering, MWWorld::E
     , mIsStorm(false)
     , mPrecipitation(false)
     , mStormDirection(0,1,0)
+    , mSmoothedStormDirection(0,0,0)
+    , mSmoothedStormDirectionNeedReset(true)
     , mCurrentRegion()
     , mTimePassed(0)
     , mFastForward(false)
@@ -658,6 +660,7 @@ void WeatherManager::playerTeleported(const std::string& playerRegion, bool isEx
         {
             mCurrentRegion = playerRegion;
             forceWeather(it->second.getWeather());
+            mSmoothedStormDirectionNeedReset = true;
         }
     }
 }
@@ -713,6 +716,7 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
         mWindSpeed = 0.f;
         mCurrentWindSpeed = 0.f;
         mNextWindSpeed = 0.f;
+        mSmoothedStormDirectionNeedReset = true;
         return;
     }
 
@@ -746,6 +750,24 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
         mStormDirection = stormDirection;
         mRendering.getSkyManager()->setStormDirection(mStormDirection);
     }
+
+    float stormDir[2] = {0.0};
+    mSmoothedStormDirectionNeedReset = false;
+    if (mIsStorm)
+    {
+        stormDir[0] = MWBase::Environment::get().getWorld()->getStormDirection()[0];
+        stormDir[1] = MWBase::Environment::get().getWorld()->getStormDirection()[1];
+    }
+
+    if (mSmoothedStormDirection[0] < stormDir[0])
+        mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.001);
+    else
+        mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.001);
+
+    if (mSmoothedStormDirection[1] < stormDir[1])
+        mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.001);
+    else
+        mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.001);
 
     // disable sun during night
     if (time.getHour() >= mTimeSettings.mNightStart || time.getHour() <= mSunriseTime)
@@ -850,6 +872,11 @@ bool WeatherManager::isInStorm() const
 osg::Vec3f WeatherManager::getStormDirection() const
 {
     return mStormDirection;
+}
+
+osg::Vec3f WeatherManager::getSmoothedStormDirection() const
+{
+    return osg::Vec3f (mSmoothedStormDirection[0], mSmoothedStormDirection[1], mBaseWindSpeed);
 }
 
 void WeatherManager::advanceTime(double hours, bool incremental)

@@ -25,29 +25,7 @@ namespace MWRender
         if (!useAnimation)
             return;
 
-        float windSpeed = MWBase::Environment::get().getWorld()->getBaseWindSpeed();
-        windSpeed *= 4.f; // Note: actual wind speed is usually larger than base one from config
-        float stormDir[2] = {0.0};
-        // smooth storm direction or grass jump to new position at begining and end of storm
-        if (MWBase::Environment::get().getWorld()->isInStorm())
-        {
-            stormDir[0] = MWBase::Environment::get().getWorld()->getStormDirection()[0];
-            stormDir[1] = MWBase::Environment::get().getWorld()->getStormDirection()[1];
-  
-            if (mSmoothedStormDirection[0] == 0.0 && mSmoothedStormDirection[1] == 0.0)
-            {
-                mSmoothedStormDirection[0] = stormDir[0];
-                mSmoothedStormDirection[1] = stormDir[1];
-            }
-        }
-
-        if (mSmoothedStormDirection[0] < stormDir[0]) mSmoothedStormDirection[0] += 0.01;
-            else mSmoothedStormDirection[0] -= 0.01;
-
-        if (mSmoothedStormDirection[1] < stormDir[1]) mSmoothedStormDirection[1] += 0.01;
-            else mSmoothedStormDirection[1] -= 0.01;
-
-        mWindSpeedUniform->set((osg::Vec3f) osg::Vec3f(mSmoothedStormDirection[0], mSmoothedStormDirection[1], windSpeed));
+        mWindSpeedUniform->set((osg::Vec3f) MWBase::Environment::get().getWorld()->getSmoothedStormDirection());
     }
 
     void Grass::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
@@ -141,7 +119,7 @@ namespace MWRender
         {
             // for some reason this uniform is added to other objects too? not only for grass
             stateset->addUniform(new osg::Uniform("Rotz", (float) mPos.rot[2]));
-            stateset->addUniform(new osg::Uniform("Posz", (float) mPos.asVec3()[2]));
+            //stateset->addUniform(new osg::Uniform("Posz", (float) mPos.asVec3()[2]));
             stateset->addUniform(windUniform);
         }
 

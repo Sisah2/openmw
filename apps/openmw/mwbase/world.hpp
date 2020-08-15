@@ -581,6 +581,9 @@ namespace MWBase
             /// @see MWWorld::WeatherManager::getStormDirection
             virtual osg::Vec3f getStormDirection() const = 0;
 
+            /// @see MWWorld::WeatherManager::getSmoothedStormDirection
+            virtual osg::Vec3f getSmoothedStormDirection() const = 0;
+
             /// Resets all actors in the current active cells to their original location within that cell.
             virtual void resetActors() = 0;
 

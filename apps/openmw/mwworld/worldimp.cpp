@@ -2706,6 +2706,14 @@ namespace MWWorld
             return osg::Vec3f(0,1,0);
     }
 
+    osg::Vec3f World::getSmoothedStormDirection() const
+    {
+        if (isCellExterior() || isCellQuasiExterior())
+            return mWeatherManager->getSmoothedStormDirection();
+        else
+            return osg::Vec3f(0,0,0);
+    }
+
     struct GetContainersOwnedByVisitor
     {
         GetContainersOwnedByVisitor(const MWWorld::ConstPtr& owner, std::vector<MWWorld::Ptr>& out)
