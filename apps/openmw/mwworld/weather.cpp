@@ -751,23 +751,26 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
         mRendering.getSkyManager()->setStormDirection(mStormDirection);
     }
 
-    float stormDir[2] = {0.0};
-    mSmoothedStormDirectionNeedReset = false;
+    osg::Vec3f stormDir(0, 0, 0);
     if (mIsStorm)
+        stormDir = mStormDirection;
+
+    if (mSmoothedStormDirectionNeedReset)
+        mSmoothedStormDirection = mStormDirection;
+    else
     {
-        stormDir[0] = MWBase::Environment::get().getWorld()->getStormDirection()[0];
-        stormDir[1] = MWBase::Environment::get().getWorld()->getStormDirection()[1];
+        if (mSmoothedStormDirection[0] < stormDir[0])
+            mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.001);
+        else
+            mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.001);
+
+        if (mSmoothedStormDirection[1] < stormDir[1])
+            mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.001);
+        else
+            mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.001);
     }
 
-    if (mSmoothedStormDirection[0] < stormDir[0])
-        mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.001);
-    else
-        mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.001);
-
-    if (mSmoothedStormDirection[1] < stormDir[1])
-        mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.001);
-    else
-        mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.001);
+    mSmoothedStormDirectionNeedReset = false;
 
     // disable sun during night
     if (time.getHour() >= mTimeSettings.mNightStart || time.getHour() <= mSunriseTime)
