@@ -751,26 +751,32 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
         mRendering.getSkyManager()->setStormDirection(mStormDirection);
     }
 
-    osg::Vec3f stormDir(0, 0, 0);
-    if (mIsStorm)
-        stormDir = mStormDirection;
-
     if (mSmoothedStormDirectionNeedReset)
-        mSmoothedStormDirection = mStormDirection;
-    else
     {
-        if (mSmoothedStormDirection[0] < stormDir[0])
-            mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.001);
+        if (mIsStorm)
+            mSmoothedStormDirection = mStormDirection;
         else
-            mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.001);
+            mSmoothedStormDirection = osg::Vec3f(0, 0, 0);
+
+        mSmoothedStormDirectionNeedReset = false;
+    }
+//    else
+//    {
+        // need to be based on time and reset after loading a game
+        osg::Vec3f stormDir(0, 0, 0);
+        if (mIsStorm)
+            stormDir = mStormDirection;
+
+        if (mSmoothedStormDirection[0] < stormDir[0])
+            mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.005);
+        else
+            mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.005);
 
         if (mSmoothedStormDirection[1] < stormDir[1])
-            mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.001);
+            mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.005);
         else
-            mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.001);
-    }
-
-    mSmoothedStormDirectionNeedReset = false;
+            mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.005);
+//    }
 
     // disable sun during night
     if (time.getHour() >= mTimeSettings.mNightStart || time.getHour() <= mSunriseTime)
@@ -934,6 +940,7 @@ bool WeatherManager::readRecord(ESM::ESMReader& reader, uint32_t type)
 {
     if(ESM::REC_WTHR == type)
     {
+        mSmoothedStormDirectionNeedReset = true; //i bet it dont help
         static const int oldestCompatibleSaveFormat = 2;
         if(reader.getFormat() < oldestCompatibleSaveFormat)
         {
