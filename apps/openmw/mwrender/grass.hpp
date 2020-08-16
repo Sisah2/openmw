@@ -33,13 +33,11 @@ namespace MWRender
         bool isEnabled(const std::string& model);
         static bool isGrassItem(const std::string& model);
         osg::ref_ptr<osg::Uniform> mWindSpeedUniform;
-        osg::ref_ptr<osg::Uniform> mIsGrassUniform;
 
         Grass()
         {
             blank();
             mWindSpeedUniform = new osg::Uniform("windSpeed", 0.0f);
-            mIsGrassUniform = new osg::Uniform("isGrass", true);
         }
 
         void blank()
