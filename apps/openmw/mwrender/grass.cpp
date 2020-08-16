@@ -5,6 +5,9 @@
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 
+#include <components/shader/shadervisitor.hpp>
+#include <components/shader/shadermanager.hpp>
+
 #include <components/settings/settings.hpp>
 
 #include "../mwmechanics/actorutil.hpp"
@@ -32,10 +35,19 @@ namespace MWRender
 
     void Grass::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
     {
+        osg::ref_ptr<osg::Group> grassGroup = new osg::Group();
+        grassGroup->setName("CellGrass");
+        cellnode->addChild(grassGroup);
+
         for (MWRender::GrassItem& item : mItems)
         {
-            attachToNode(item, cellnode, rs);
+            attachToNode(item, grassGroup, rs);
         }
+
+        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (new Shader::ShaderVisitor(rs->getSceneManager()->getShaderManager(), *(rs->getImageManager()), "grass_vertex.glsl", "grass_fragment.glsl"));
+        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || Settings::Manager::getBool("force shaders", "Shaders") || Settings::Manager::getBool("enable shadows", "Shadows");
+        shaderVisitor->setForceShaders(forceShaders);
+        grassGroup->accept(*shaderVisitor);
     }
 
     void Grass::attachToNode(MWRender::GrassItem& item, osg::Group* cellnode, Resource::ResourceSystem* rs)
@@ -54,13 +66,10 @@ namespace MWRender
 
         rs->getSceneManager()->getInstance("meshes\\" + item.mModel, insert);
 
-        osg::StateSet* stateset = insert->getOrCreateStateSet();
-        // @grass preprocessor define would be great
-        stateset->addUniform(mIsGrassUniform);
-
         const static bool useAnimation = Settings::Manager::getBool("animation", "Grass");
         if(useAnimation)
         {
+            osg::StateSet* stateset = insert->getOrCreateStateSet();
             // for some reason this uniform is added to other objects too? not only for grass
             stateset->addUniform(new osg::Uniform("Rotz", (float) item.mPos.rot[2]));
             stateset->addUniform(mWindSpeedUniform.get());
