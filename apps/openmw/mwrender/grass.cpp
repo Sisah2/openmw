@@ -5,6 +5,9 @@
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 
+#include <components/shader/shadervisitor.hpp>
+#include <components/shader/shadermanager.hpp>
+
 #include <components/settings/settings.hpp>
 
 #include "../mwmechanics/actorutil.hpp"
@@ -28,12 +31,49 @@ namespace MWRender
         mWindSpeedUniform->set((osg::Vec3f) MWBase::Environment::get().getWorld()->getSmoothedStormDirection());
     }
 
-    void Grass::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
+   void Grass::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
     {
+        osg::ref_ptr<osg::Group> grassGroup = new osg::Group();
+        grassGroup->setName("CellGrass");
+        cellnode->addChild(grassGroup);
+
         for (MWRender::GrassItem& item : mItems)
         {
-            item.attachToNode(cellnode, rs, mWindSpeedUniform.get(), mIsGrassUniform.get());
+            attachToNode(item, grassGroup, rs);
         }
+
+        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (new Shader::ShaderVisitor(rs->getSceneManager()->getShaderManager(), *(rs->getImageManager()), "grass_vertex.glsl", "grass_fragment.glsl"));
+        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || Settings::Manager::getBool("force shaders", "Shaders") || Settings::Manager::getBool("enable shadows", "Shadows");
+        shaderVisitor->setForceShaders(forceShaders);
+        grassGroup->accept(*shaderVisitor);
+    }
+
+    void Grass::attachToNode(MWRender::GrassItem& item, osg::Group* cellnode, Resource::ResourceSystem* rs)
+    {
+        osg::ref_ptr<SceneUtil::PositionAttitudeTransform> insert (new SceneUtil::PositionAttitudeTransform);
+        cellnode->addChild(insert);
+
+        insert->setPosition(item.mPos.asVec3());
+        insert->setScale(osg::Vec3f(item.mScale, item.mScale, item.mScale));
+        insert->setAttitude(
+            osg::Quat(item.mPos.rot[2], osg::Vec3(0, 0, -1)) *
+            osg::Quat(item.mPos.rot[1], osg::Vec3(0, -1, 0)) *
+            osg::Quat(item.mPos.rot[0], osg::Vec3(-1, 0, 0)));
+
+        insert->setNodeMask(Mask_Grass);
+
+        rs->getSceneManager()->getInstance("meshes\\" + item.mModel, insert);
+
+        const static bool useAnimation = Settings::Manager::getBool("animation", "Grass");
+        if(useAnimation)
+        {
+            osg::StateSet* stateset = insert->getOrCreateStateSet();
+            // for some reason this uniform is added to other objects too? not only for grass
+            stateset->addUniform(new osg::Uniform("Rotz", (float) item.mPos.rot[2]));
+            stateset->addUniform(mWindSpeedUniform.get());
+        }
+
+        item.mNode = insert;
     }
 
     bool Grass::isGrassItem(const std::string& model)
@@ -92,37 +132,5 @@ namespace MWRender
         }
         else
             mNode->setNodeMask(Mask_Grass);
-    }
-
-    void GrassItem::attachToNode(osg::Group* cellnode, Resource::ResourceSystem* rs, osg::Uniform* windUniform, osg::Uniform* isGrassUniform)
-    {
-        osg::ref_ptr<SceneUtil::PositionAttitudeTransform> insert (new SceneUtil::PositionAttitudeTransform);
-        cellnode->addChild(insert);
-
-        insert->setPosition(mPos.asVec3());
-        insert->setScale(osg::Vec3f(mScale, mScale, mScale));
-        insert->setAttitude(
-            osg::Quat(mPos.rot[2], osg::Vec3(0, 0, -1)) *
-            osg::Quat(mPos.rot[1], osg::Vec3(0, -1, 0)) *
-            osg::Quat(mPos.rot[0], osg::Vec3(-1, 0, 0)));
-
-        insert->setNodeMask(Mask_Grass);
-
-        rs->getSceneManager()->getInstance("meshes\\" + mModel, insert);
-
-        osg::StateSet* stateset = insert->getOrCreateStateSet();
-        // @grass preprocessor define would be great
-        stateset->addUniform(isGrassUniform);
-
-        const static bool useAnimation = Settings::Manager::getBool("animation", "Grass");
-        if(useAnimation)
-        {
-            // for some reason this uniform is added to other objects too? not only for grass
-            stateset->addUniform(new osg::Uniform("Rotz", (float) mPos.rot[2]));
-            //stateset->addUniform(new osg::Uniform("Posz", (float) mPos.asVec3()[2]));
-            stateset->addUniform(windUniform);
-        }
-
-        mNode = insert;
     }
 }

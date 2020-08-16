@@ -249,15 +249,14 @@ namespace MWRender
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
         globalDefines["particleHandling"] = std::to_string(std::max(1, Settings::Manager::getInt("particle handling", "Shaders")));
+        globalDefines["grassAnimation"] = Settings::Manager::getBool("animation", "Grass") ? "1" : "0";
+        globalDefines["grassFadeStart"] = std::to_string(Settings::Manager::getFloat("distance", "Grass") * Settings::Manager::getFloat("fade start", "Grass"));
+        globalDefines["grassFadeEnd"] = std::to_string(Settings::Manager::getFloat("distance", "Grass"));
 
         static int gammacor = 1000;
         const char *s = getenv("OPENMW_GAMMA");
         if (s) gammacor = static_cast<int>(atof(s)*1000.0);
         globalDefines["gamma"] = std::to_string(gammacor);
-
-        globalDefines["grassAnimation"] = Settings::Manager::getBool("animation", "Grass") ? "1" : "0";
-        globalDefines["grassFadeStart"] = std::to_string(Settings::Manager::getFloat("distance", "Grass") * Settings::Manager::getFloat("fade start", "Grass"));
-        globalDefines["grassFadeEnd"] = std::to_string(Settings::Manager::getFloat("distance", "Grass"));
 
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.

@@ -50,8 +50,6 @@ uniform mat2 bumpMapMatrix;
 uniform bool simpleWater;
 #endif
 
-uniform bool isGrass;
-
 varying float depth;
 
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && (@particleHandling <= 2)))
@@ -109,12 +107,6 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (isGrass && depth > @grassFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, depth);
-
-if (gl_FragData[0].a != 0.0)
-{
-
 #if @detailMap
     gl_FragData[0].xyz *= texture2D(detailMap, detailMapUV).xyz * 2.0;
 #endif
@@ -156,7 +148,7 @@ if (gl_FragData[0].a != 0.0)
 #if !PER_PIXEL_LIGHTING
     gl_FragData[0] *= lighting;
 #else
-    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, isGrass);
+    gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, false);
 #endif
 
 #if @envMap && !@preLightEnv
@@ -183,8 +175,6 @@ if (gl_FragData[0].a != 0.0)
 #endif
         gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec);
     }
-
-} // alpha skip end
 
 #if @radialFog
     float fogDepth = (simpleWater) ? length(passViewPos) : depth;
