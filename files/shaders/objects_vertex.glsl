@@ -54,7 +54,7 @@ void main(void)
     depth = gl_Position.z;
 #endif
 
-#if (@envMap || !PER_PIXEL_LIGHTING || @shadows_enabled)
+#if (@envMap || !PER_PIXEL_LIGHTING)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 #endif
 

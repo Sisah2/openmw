@@ -5,19 +5,25 @@ uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
 #endif
 
-varying float euclideanDepth;
-varying float linearDepth;
+#define PER_PIXEL_LIGHTING @forcePPL
 
-#if !@forcePPL
-centroid varying vec4 lighting;
-centroid varying vec3 shadowDiffuseLighting;
+varying float euclideanDepth;
+
+#if !@radialFog
+varying float linearDepth;
 #endif
+
+#if !PER_PIXEL_LIGHTING
+centroid varying vec4 lighting;
+#endif
+
+#if PER_PIXEL_LIGHTING
+uniform int colorMode;
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
-
-#include "shadows_fragment.glsl"
 #include "lighting.glsl"
+#endif
 
 void main()
 {
@@ -25,7 +31,7 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if @forcePPL
+#if PER_PIXEL_LIGHTING
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
@@ -35,43 +41,20 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    float shadowing = unshadowedLightRatio(linearDepth);
     if (euclideanDepth > @grassFadeStart)
         gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
 
-#if !@forcePPL
-
-#if @clamp
-    gl_FragData[0] *= clamp(lighting + vec4(shadowDiffuseLighting * shadowing, 0), vec4(0.0), vec4(1.0));
-#else
-    gl_FragData[0] *= lighting + vec4(shadowDiffuseLighting * shadowing, 0);
-#endif
-
+#if !PER_PIXEL_LIGHTING
+    gl_FragData[0] *= lighting;
 #else
     if(gl_FragData[0].a != 0.0)
-        gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowing, true);
+        gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, true);
 #endif
 
-    float shininess = gl_FrontMaterial.shininess;
-    vec3 matSpec;
-    if (colorMode == ColorMode_Specular)
-        matSpec = passColor.xyz;
-    else
-        matSpec = gl_FrontMaterial.specular.xyz;
-
-    if (matSpec != vec3(0.0))
-    {
-#if !@forcePPL
-        vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
-        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec) * shadowing;
-    }
 #if @radialFog
     float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #else
     float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
-
-    applyShadowDebugOverlay();
 }
