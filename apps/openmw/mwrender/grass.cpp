@@ -2,13 +2,15 @@
 
 #include <components/misc/stringops.hpp>
 
-#include <components/sceneutil/lightmanager.hpp>
+#include <components/resource/resourcesystem.hpp>
+#include <components/resource/scenemanager.hpp>
+
 #include <components/sceneutil/positionattitudetransform.hpp>
+
+#include <components/settings/settings.hpp>
 
 #include <components/shader/shadervisitor.hpp>
 #include <components/shader/shadermanager.hpp>
-
-#include <components/settings/settings.hpp>
 
 #include "../mwmechanics/actorutil.hpp"
 
@@ -16,6 +18,19 @@
 
 namespace MWRender
 {
+    Grass::Grass()
+    {
+        blank();
+        mWindSpeedUniform = new osg::Uniform("windSpeed", 0.0f);
+        mUseAnimation = Settings::Manager::getBool("animation", "Grass");
+    }
+
+    void Grass::blank()
+    {
+        mItems.clear();
+        mCurrentGrass = 0;
+    }
+
     void Grass::update()
     {
         osg::Vec3f playerPos(MWMechanics::getPlayer().getRefData().getPosition().asVec3());
@@ -24,8 +39,7 @@ namespace MWRender
             item.updateVisibility(playerPos);
         }
 
-        const static bool useAnimation = Settings::Manager::getBool("animation", "Grass");
-        if (!useAnimation)
+        if (!mUseAnimation)
             return;
 
         float windSpeed = MWBase::Environment::get().getWorld()->getBaseWindSpeed();
@@ -45,9 +59,14 @@ namespace MWRender
         }
 
         osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (new Shader::ShaderVisitor(rs->getSceneManager()->getShaderManager(), *(rs->getImageManager()), "grass_vertex.glsl", "grass_fragment.glsl"));
-        bool forceShaders = Settings::Manager::getBool("radial fog", "Shaders") || Settings::Manager::getBool("force shaders", "Shaders") || Settings::Manager::getBool("enable shadows", "Shadows");
-        shaderVisitor->setForceShaders(forceShaders);
+        shaderVisitor->setForceShaders(rs->getSceneManager()->getForceShaders());
         grassGroup->accept(*shaderVisitor);
+
+        if (mUseAnimation)
+        {
+            osg::StateSet* stateset = grassGroup->getOrCreateStateSet();
+            stateset->addUniform(mWindSpeedUniform.get());
+        }
     }
 
     void Grass::attachToNode(MWRender::GrassItem& item, osg::Group* cellnode, Resource::ResourceSystem* rs)
@@ -66,13 +85,10 @@ namespace MWRender
 
         rs->getSceneManager()->getInstance("meshes\\" + item.mModel, insert);
 
-        const static bool useAnimation = Settings::Manager::getBool("animation", "Grass");
-        if(useAnimation)
+        if (mUseAnimation)
         {
             osg::StateSet* stateset = insert->getOrCreateStateSet();
-            // for some reason this uniform is added to other objects too? not only for grass
-            stateset->addUniform(new osg::Uniform("Rotz", (float) item.mPos.rot[2]));
-            stateset->addUniform(mWindSpeedUniform.get());
+            stateset->addUniform(new osg::Uniform("Rotz", item.mPos.rot[2]));
         }
 
         item.mNode = insert;
