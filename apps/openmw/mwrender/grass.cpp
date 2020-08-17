@@ -70,6 +70,7 @@ namespace MWRender
             osg::StateSet* stateset = insert->getOrCreateStateSet();
             // for some reason this uniform is added to other objects too? not only for grass
             stateset->addUniform(new osg::Uniform("Rotz", (float) item.mPos.rot[2]));
+            stateset->addUniform(new osg::Uniform("Posz", (float) item.mPos.asVec3()[2]));
             stateset->addUniform(mWindSpeedUniform.get());
         }
 
