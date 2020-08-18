@@ -387,9 +387,7 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("far", mViewDistance));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isGrass", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("simpleWater", false));
-        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isReflection", false));
-        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isMap", false));
-        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
 
         mUniformNear = mRootNode->getOrCreateStateSet()->getUniform("near");
         mUniformFar = mRootNode->getOrCreateStateSet()->getUniform("far");

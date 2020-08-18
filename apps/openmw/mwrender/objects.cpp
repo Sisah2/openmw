@@ -84,8 +84,8 @@ void Objects::insertBegin(const MWWorld::Ptr& ptr)
     ptr.getClass().adjustScale(ptr, scaleVec, true);
     insert->setScale(scaleVec);
 
-    if (!ptr.getCell()->isExterior())
-        insert->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", true));
+//    if (!ptr.getCell()->isExterior())
+//        insert->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", true));
 
     ptr.getRefData().setBaseNode(insert);
 }

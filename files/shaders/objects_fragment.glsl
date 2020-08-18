@@ -53,7 +53,7 @@ uniform bool simpleWater;
 
 varying float euclideanDepth;
 varying float linearDepth;
-uniform int isGrass;
+uniform bool isGrass;
 
 #define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && (@particleHandling <= 2)))
 
@@ -113,7 +113,7 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (isGrass == 1 && euclideanDepth > @grassFadeStart)
+    if (isGrass && euclideanDepth > @grassFadeStart)
         gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
 
 #if @detailMap

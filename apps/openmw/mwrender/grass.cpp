@@ -89,7 +89,7 @@ namespace MWRender
         {
             osg::StateSet* stateset = insert->getOrCreateStateSet();
             stateset->addUniform(new osg::Uniform("Rotz", item.mPos.rot[2]));
-            stateset->addUniform(new osg::Uniform("isGrass", 1));
+            stateset->addUniform(new osg::Uniform("isGrass", true));
         }
 
         item.mNode = insert;

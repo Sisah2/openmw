@@ -204,7 +204,7 @@ namespace MWRender
         mDrawOnceCallback = new DrawOnceCallback;
         mCamera->addUpdateCallback(mDrawOnceCallback);
 
-        stateset->addUniform(new osg::Uniform("isMap", true));
+        stateset->addUniform(new osg::Uniform("skip", true));
 
         mParent->addChild(mCamera);
 
