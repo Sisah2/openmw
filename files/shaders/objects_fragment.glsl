@@ -53,8 +53,9 @@ uniform bool simpleWater;
 
 varying float euclideanDepth;
 varying float linearDepth;
+uniform int isGrass;
 
-#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
+#define PER_PIXEL_LIGHTING (@normalMap || (@forcePPL && (@particleHandling <= 2)))
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
@@ -112,6 +113,9 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
+    if (isGrass == 1 && euclideanDepth > @grassFadeStart)
+        gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
+
 #if @detailMap
     gl_FragData[0].xyz *= texture2D(detailMap, detailMapUV).xyz * 2.0;
 #endif
@@ -157,7 +161,8 @@ void main()
 #if @clamp
     gl_FragData[0] *= clamp(lighting + vec4(shadowDiffuseLighting * shadowing, 0), vec4(0.0), vec4(1.0));
 #else
-    gl_FragData[0] *= lighting + vec4(shadowDiffuseLighting * shadowing, 0);
+    if (gl_FragData[0].a != 0.0)
+        gl_FragData[0] *= lighting + vec4(shadowDiffuseLighting * shadowing, 0);
 #endif
 
 #else
@@ -206,4 +211,8 @@ void main()
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
     applyShadowDebugOverlay();
+
+#if (@gamma != 1000)
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
+#endif
 }

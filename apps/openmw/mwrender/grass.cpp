@@ -58,9 +58,9 @@ namespace MWRender
             attachToNode(item, grassGroup, rs);
         }
 
-        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (new Shader::ShaderVisitor(rs->getSceneManager()->getShaderManager(), *(rs->getImageManager()), "grass_vertex.glsl", "grass_fragment.glsl"));
-        shaderVisitor->setForceShaders(rs->getSceneManager()->getForceShaders());
-        grassGroup->accept(*shaderVisitor);
+//        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (new Shader::ShaderVisitor(rs->getSceneManager()->getShaderManager(), *(rs->getImageManager()), "grass_vertex.glsl", "grass_fragment.glsl"));
+//        shaderVisitor->setForceShaders(rs->getSceneManager()->getForceShaders());
+//        grassGroup->accept(*shaderVisitor);
 
         if (mUseAnimation)
         {
@@ -89,6 +89,7 @@ namespace MWRender
         {
             osg::StateSet* stateset = insert->getOrCreateStateSet();
             stateset->addUniform(new osg::Uniform("Rotz", item.mPos.rot[2]));
+            stateset->addUniform(new osg::Uniform("isGrass", 1));
         }
 
         item.mNode = insert;
