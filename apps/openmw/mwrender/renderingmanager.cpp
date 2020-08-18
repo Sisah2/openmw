@@ -258,7 +258,6 @@ namespace MWRender
         if (s) gammacor = static_cast<int>(atof(s)*1000.0);
         globalDefines["gamma"] = std::to_string(gammacor);
 
-
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 

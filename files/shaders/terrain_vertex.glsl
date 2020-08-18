@@ -1,24 +1,22 @@
 #version 120
 
 varying vec2 uv;
-varying float depth;
+varying float euclideanDepth;
+varying float linearDepth;
 
 #define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
 #if !PER_PIXEL_LIGHTING
-uniform int colorMode;
 centroid varying vec4 lighting;
-#include "lighting.glsl"
+centroid varying vec3 shadowDiffuseLighting;
 #endif
-
-#if PER_PIXEL_LIGHTING
 centroid varying vec4 passColor;
-#endif
-
-#if PER_PIXEL_LIGHTING || @specularMap
 varying vec3 passViewPos;
 varying vec3 passNormal;
-#endif
+
+#include "shadows_vertex.glsl"
+
+#include "lighting.glsl"
 
 void main(void)
 {
@@ -26,27 +24,23 @@ void main(void)
 
     vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_ClipVertex = viewPos;
-
-#if @radialFog
-    depth = length(viewPos.xyz);
-#else
-    depth = gl_Position.z;
-#endif
+    euclideanDepth = length(viewPos.xyz);
+    linearDepth = gl_Position.z;
 
 #if (!PER_PIXEL_LIGHTING || @shadows_enabled)
     vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 #endif
 
 #if !PER_PIXEL_LIGHTING
-    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color, false);
-#else
-    passColor = gl_Color;
+    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color, shadowDiffuseLighting, false);
 #endif
-
-#if PER_PIXEL_LIGHTING || @specularMap
+    passColor = gl_Color;
     passNormal = gl_Normal.xyz;
     passViewPos = viewPos.xyz;
-#endif
 
     uv = gl_MultiTexCoord0.xy;
+
+#if (@shadows_enabled)
+    setupShadowCoords(viewPos, viewNormal);
+#endif
 }
