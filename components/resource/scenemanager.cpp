@@ -29,6 +29,8 @@
 #include <components/shader/shadervisitor.hpp>
 #include <components/shader/shadermanager.hpp>
 
+#include <components/settings/settings.hpp>
+
 #include "imagemanager.hpp"
 #include "niffilemanager.hpp"
 #include "objectcache.hpp"
@@ -773,7 +775,7 @@ namespace Resource
     Shader::ShaderVisitor *SceneManager::createShaderVisitor()
     {
         Shader::ShaderVisitor* shaderVisitor;
-        if(mIsGrass && Settings::Manager::getBool("enabled", "Grass")) 
+        if(mIsGrass) 
         {
             shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, "grass_vertex.glsl", "grass_fragment.glsl");
             shaderVisitor->setForceShaders(true);

@@ -73,13 +73,13 @@ namespace Shader
             size_t start = source.find('"', foundPos);
             if (start == std::string::npos || start == source.size()-1)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Invalid #include";
+                Log(Debug::Info) << "Shader " << templateName << " error: Invalid #include";
                 return false;
             }
             size_t end = source.find('"', start+1);
             if (end == std::string::npos)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Invalid #include";
+                Log(Debug::Info) << "Shader " << templateName << " error: Invalid #include";
                 return false;
             }
             std::string includeFilename = source.substr(start+1, end-(start+1));
@@ -88,7 +88,7 @@ namespace Shader
             includeFstream.open(includePath);
             if (includeFstream.fail())
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Failed to open include " << includePath.string();
+                Log(Debug::Info) << "Shader " << templateName << " error: Failed to open include " << includePath.string();
                 return false;
             }
 
@@ -123,7 +123,7 @@ namespace Shader
 
             if (includedFiles.insert(includePath).second == false)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Detected cyclic #includes";
+                Log(Debug::Info) << "Shader " << templateName << " error: Detected cyclic #includes";
                 return false;
             }
         }
@@ -139,13 +139,13 @@ namespace Shader
             size_t endPos = source.find_first_of(" \n\r()[].;,", foundPos);
             if (endPos == std::string::npos)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Unexpected EOF";
+                Log(Debug::Info) << "Shader " << templateName << " error: Unexpected EOF";
                 return false;
             }
             std::string command = source.substr(foundPos + 1, endPos - (foundPos + 1));
             if (command != "foreach")
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Unknown shader directive: $" << command;
+                Log(Debug::Info) << "Shader " << templateName << " error: Unknown shader directive: $" << command;
                 return false;
             }
 
@@ -153,7 +153,7 @@ namespace Shader
             size_t iterNameEnd = source.find_first_of(" \n\r()[].;,", iterNameStart);
             if (iterNameEnd == std::string::npos)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Unexpected EOF";
+                Log(Debug::Info) << "Shader " << templateName << " error: Unexpected EOF";
                 return false;
             }
             std::string iteratorName = "$" + source.substr(iterNameStart, iterNameEnd - iterNameStart);
@@ -162,7 +162,7 @@ namespace Shader
             size_t listEnd = source.find_first_of("\n\r", listStart);
             if (listEnd == std::string::npos)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Unexpected EOF";
+                Log(Debug::Info) << "Shader " << templateName << " error: Unexpected EOF";
                 return false;
             }
             std::string list = source.substr(listStart, listEnd - listStart);
@@ -174,7 +174,7 @@ namespace Shader
             size_t contentEnd = source.find("$endforeach", contentStart);
             if (contentEnd == std::string::npos)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Unexpected EOF";
+                Log(Debug::Info) << "Shader " << templateName << " error: Unexpected EOF";
                 return false;
             }
             std::string content = source.substr(contentStart, contentEnd - contentStart);
@@ -224,7 +224,7 @@ namespace Shader
             size_t endPos = source.find_first_of(" \n\r()[].;,", foundPos);
             if (endPos == std::string::npos)
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Unexpected EOF";
+                Log(Debug::Info) << "Shader " << templateName << " error: Unexpected EOF";
                 return false;
             }
             std::string define = source.substr(foundPos+1, endPos - (foundPos+1));
@@ -237,7 +237,7 @@ namespace Shader
                 size_t iterNameEnd = source.find_first_of(" \n\r()[].;,", iterNameStart);
                 if (iterNameEnd == std::string::npos)
                 {
-                    Log(Debug::Error) << "Shader " << templateName << " error: Unexpected EOF";
+                    Log(Debug::Info) << "Shader " << templateName << " error: Unexpected EOF";
                     return false;
                 }
                 forIterators.push_back(source.substr(iterNameStart, iterNameEnd - iterNameStart));
@@ -247,7 +247,7 @@ namespace Shader
                 source.replace(foundPos, 1, "$");
                 if (forIterators.empty())
                 {
-                    Log(Debug::Error) << "Shader " << templateName << " error: endforeach without foreach";
+                    Log(Debug::Info) << "Shader " << templateName << " error: endforeach without foreach";
                     return false;
                 }
                 else
@@ -267,7 +267,7 @@ namespace Shader
             }
             else
             {
-                Log(Debug::Error) << "Shader " << templateName << " error: Undefined " << define;
+                Log(Debug::Info) << "Shader " << templateName << " error: Undefined " << define;
                 return false;
             }
         }
@@ -287,7 +287,7 @@ namespace Shader
             stream.open(p);
             if (stream.fail())
             {
-                Log(Debug::Error) << "Failed to open " << p.string();
+                Log(Debug::Info) << "Failed to open " << p.string();
                 return nullptr;
             }
             std::stringstream buffer;
