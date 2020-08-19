@@ -510,6 +510,14 @@ namespace Resource
             SetFilterSettingsControllerVisitor setFilterSettingsControllerVisitor(mMinFilter, mMagFilter, mMaxAnisotropy);
             loaded->accept(setFilterSettingsControllerVisitor);
 
+            mIsGrass = false;
+            std::string mesh = Misc::StringUtils::lowerCase (name);
+            if (mesh.find("meshes/grass/") == 0)
+            {
+                mIsGrass = true;
+                Log(Debug::Info) << "loading grass model " << name;
+            }
+
             osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (createShaderVisitor());
             loaded->accept(*shaderVisitor);
 
@@ -763,7 +771,11 @@ namespace Resource
 
     Shader::ShaderVisitor *SceneManager::createShaderVisitor()
     {
-        Shader::ShaderVisitor* shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, "objects_vertex.glsl", "objects_fragment.glsl");
+        Shader::ShaderVisitor* shaderVisitor;
+        if(mIsGrass) 
+            shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, "grass_vertex.glsl", "grass_fragment.glsl");
+        else
+            shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, "objects_vertex.glsl", "objects_fragment.glsl");
         shaderVisitor->setForceShaders(mForceShaders);
         shaderVisitor->setAutoUseNormalMaps(mAutoUseNormalMaps);
         shaderVisitor->setNormalMapPattern(mNormalMapPattern);
