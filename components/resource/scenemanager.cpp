@@ -511,10 +511,13 @@ namespace Resource
             loaded->accept(setFilterSettingsControllerVisitor);
 
             mIsGrass = false;
-            std::string mesh = Misc::StringUtils::lowerCase (name);
-            if (mesh.find("meshes/grass/") == 0)
-                mIsGrass = true;
-
+            if (Settings::Manager::getBool("enabled", "Grass"))
+            {
+                std::string mesh = Misc::StringUtils::lowerCase (name);
+                std::replace( mesh.begin(), mesh.end(), '\\', '/');
+                if (mesh.find("meshes/grass/") == 0)
+                    mIsGrass = true;
+            }
 
             osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (createShaderVisitor());
             loaded->accept(*shaderVisitor);
@@ -770,11 +773,16 @@ namespace Resource
     Shader::ShaderVisitor *SceneManager::createShaderVisitor()
     {
         Shader::ShaderVisitor* shaderVisitor;
-        if(mIsGrass) 
+        if(mIsGrass && Settings::Manager::getBool("enabled", "Grass")) 
+        {
             shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, "grass_vertex.glsl", "grass_fragment.glsl");
+            shaderVisitor->setForceShaders(true);
+        }        
         else
+        {
             shaderVisitor = new Shader::ShaderVisitor(*mShaderManager.get(), *mImageManager, "objects_vertex.glsl", "objects_fragment.glsl");
-        shaderVisitor->setForceShaders(mForceShaders);
+            shaderVisitor->setForceShaders(mForceShaders);
+        }
         shaderVisitor->setAutoUseNormalMaps(mAutoUseNormalMaps);
         shaderVisitor->setNormalMapPattern(mNormalMapPattern);
         shaderVisitor->setNormalHeightMapPattern(mNormalHeightMapPattern);
