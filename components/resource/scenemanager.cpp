@@ -513,10 +513,8 @@ namespace Resource
             mIsGrass = false;
             std::string mesh = Misc::StringUtils::lowerCase (name);
             if (mesh.find("meshes/grass/") == 0)
-            {
                 mIsGrass = true;
-                Log(Debug::Info) << "loading grass model " << name;
-            }
+
 
             osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (createShaderVisitor());
             loaded->accept(*shaderVisitor);

@@ -150,7 +150,7 @@ namespace Resource
 
         std::unique_ptr<Shader::ShaderManager> mShaderManager;
         bool mForceShaders;
-        bool mIsGrass;
+        bool mIsGrass = false;
         bool mClampLighting;
         bool mAutoUseNormalMaps;
         std::string mNormalMapPattern;
