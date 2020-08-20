@@ -77,7 +77,7 @@ void main()
 
     applyShadowDebugOverlay();
 
-#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
+#if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif
 }

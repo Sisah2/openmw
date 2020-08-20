@@ -9,19 +9,29 @@
 
 #include <components/settings/settings.hpp>
 
-#include <components/shader/shadervisitor.hpp>
-#include <components/shader/shadermanager.hpp>
-
 #include "../mwmechanics/actorutil.hpp"
 
 #include "vismask.hpp"
 
 namespace MWRender
 {
+    void WindSpeedUpdater::setDefaults(osg::StateSet *stateset)
+    {
+        osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", osg::Vec3f(0.f, 0.f, 0.f));
+        stateset->addUniform(windUniform.get());
+    }
+
+    void WindSpeedUpdater::apply(osg::StateSet *stateset, osg::NodeVisitor *nv)
+    {
+        osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windSpeed");
+        if (windUniform != nullptr)
+            windUniform->set(mWindSpeed);
+    }
+
     Grass::Grass()
     {
         blank();
-        mWindSpeedUniform = new osg::Uniform("windSpeed", osg::Vec3f(0.0, 0.0, 0.0));
+        mWindSpeedUpdater = new WindSpeedUpdater;
         mUseAnimation = Settings::Manager::getBool("animation", "Grass");
     }
 
@@ -43,8 +53,7 @@ namespace MWRender
             return;
 
         osg::Vec3f windSpeed = MWBase::Environment::get().getWorld()->getSmoothedStormDirection();
-
-        mWindSpeedUniform->set(windSpeed);
+        mWindSpeedUpdater->setWindSpeed(windSpeed);
     }
 
     void Grass::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
@@ -58,14 +67,11 @@ namespace MWRender
             attachToNode(item, grassGroup, rs);
         }
 
-//        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (new Shader::ShaderVisitor(rs->getSceneManager()->getShaderManager(), *(rs->getImageManager()), "grass_vertex.glsl", "grass_fragment.glsl"));
-//        shaderVisitor->setForceShaders(rs->getSceneManager()->getForceShaders());
-//        grassGroup->accept(*shaderVisitor);
+        rs->getSceneManager()->recreateShaders(grassGroup, "grass");
 
         if (mUseAnimation)
         {
-            osg::StateSet* stateset = grassGroup->getOrCreateStateSet();
-            stateset->addUniform(mWindSpeedUniform.get());
+            grassGroup->addUpdateCallback(mWindSpeedUpdater);
         }
     }
 
