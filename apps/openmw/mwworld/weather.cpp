@@ -762,20 +762,20 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
     }
     else
     {
-        // need to be based on time and reset after loading a game
+        // need to be based on time
         osg::Vec3f stormDir(0, 0, 0);
         if (mIsStorm)
             stormDir = mStormDirection;
 
         if (mSmoothedStormDirection[0] < stormDir[0])
-            mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.001);
+            mSmoothedStormDirection[0] = std::min(stormDir[0] * 1.0, mSmoothedStormDirection[0] + 0.002);
         else
-            mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.001);
+            mSmoothedStormDirection[0] = std::max(stormDir[0] * 1.0, mSmoothedStormDirection[0] - 0.002);
 
         if (mSmoothedStormDirection[1] < stormDir[1])
-            mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.001);
+            mSmoothedStormDirection[1] = std::min(stormDir[1] * 1.0, mSmoothedStormDirection[1] + 0.002);
         else
-            mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.001);
+            mSmoothedStormDirection[1] = std::max(stormDir[1] * 1.0, mSmoothedStormDirection[1] - 0.002);
     }
 
     // disable sun during night
@@ -885,7 +885,7 @@ osg::Vec3f WeatherManager::getStormDirection() const
 
 osg::Vec3f WeatherManager::getSmoothedStormDirection() const
 {
-    return osg::Vec3f (mSmoothedStormDirection[0], mSmoothedStormDirection[1], mBaseWindSpeed * 5.0);
+    return osg::Vec3f (mSmoothedStormDirection[0], mSmoothedStormDirection[1], mBaseWindSpeed);
 }
 
 void WeatherManager::advanceTime(double hours, bool incremental)
