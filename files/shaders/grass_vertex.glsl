@@ -1,5 +1,7 @@
 #version 120
 
+#define GRASS
+
 #if @diffuseMap
 varying vec2 diffuseMapUV;
 #endif
@@ -11,14 +13,15 @@ varying float linearDepth;
 
 #if !@forcePPL
 centroid varying vec4 lighting;
-centroid varying vec3 shadowDiffuseLighting;
 #endif
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
-#include "shadows_vertex.glsl"
-#include "lighting.glsl"
+#if !PER_PIXEL_LIGHTING
+    uniform int colorMode;
+    #include "lighting.glsl"
+#endif
 
 #if @grassAnimation
 uniform float osg_SimulationTime;
@@ -74,22 +77,16 @@ void main(void)
     euclideanDepth = length(viewPos.xyz);
     linearDepth = gl_Position.z;
 
-#if (!@forcePPL || @shadows_enabled)
-    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
-#endif
-
 #if @diffuseMap
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
 #endif
 
 #if !@forcePPL
-    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color, shadowDiffuseLighting, true);
+    vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
+    lighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #endif
+
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
     passNormal = gl_Normal.xyz;
-
-#if (@shadows_enabled)
-    setupShadowCoords(viewPos, viewNormal);
-#endif
 }

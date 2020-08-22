@@ -131,6 +131,7 @@ uniform sampler2D normalMap;
 uniform sampler2D reflectionMap;
 #if REFRACTION
 uniform sampler2D refractionMap;
+uniform sampler2D refractionDepthMap;
 #endif
 
 uniform float osg_SimulationTime;
@@ -140,8 +141,6 @@ uniform float far;
 uniform vec3 nodePosition;
 
 uniform float rainIntensity;
-
-#include "shadows_fragment.glsl"
 
 float frustumDepth;
 
@@ -158,8 +157,6 @@ void main(void)
     vec3 worldPos = position.xyz + nodePosition.xyz;
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
     UV.y *= -1.0;
-
-    float shadow = unshadowedLightRatio(linearDepth);
 
     vec2 screenCoords = screenCoordsPassthrough.xy / screenCoordsPassthrough.z;
     screenCoords.y = (1.0-screenCoords.y);
@@ -217,7 +214,7 @@ void main(void)
     vec3 reflection = texture2D(reflectionMap, screenCoords + screenCoordsOffset).rgb;
 
     // specular
-    float specular = pow(max(dot(reflect(vVec, normal), lVec), 0.0),SPEC_HARDNESS) * shadow;
+    float specular = pow(max(dot(reflect(vVec, normal), lVec), 0.0),SPEC_HARDNESS);
 
     vec3 waterColor = WATER_COLOR * sunFade;
 
@@ -230,9 +227,9 @@ void main(void)
         refraction = clamp(refraction * 1.5, 0.0, 1.0);
     else
 #if @radialFog
-        refraction = mix(refraction, waterColor, clamp(radialDepth/VISIBILITY, 0.7, 1.0));
+        refraction = mix(refraction, waterColor, clamp(radialDepth/VISIBILITY, 0.75, 1.0));
 #else
-        refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.7, 1.0));
+        refraction = mix(refraction, waterColor, clamp(distance(position.xyz, cameraPos)/VISIBILITY, 0.75, 1.0));
 #endif
 
     // sunlight scattering
@@ -243,7 +240,7 @@ void main(void)
     float sunHeight = lVec.z;
     vec3 scatterColour = mix(SCATTER_COLOUR*vec3(1.0,0.4,0.0), SCATTER_COLOUR, clamp(1.0-exp(-sunHeight*SUN_EXT), 0.0, 1.0));
     vec3 lR = reflect(lVec, lNormal);
-    float lightScatter = shadow * clamp(dot(lVec,lNormal)*0.7+0.3, 0.0, 1.0) * clamp(dot(lR, vVec)*2.0-1.2, 0.0, 1.0) * SCATTER_AMOUNT * sunFade * clamp(1.0-exp(-sunHeight), 0.0, 1.0);
+    float lightScatter = clamp(dot(lVec,lNormal)*0.7+0.3, 0.0, 1.0) * clamp(dot(lR, vVec)*2.0-1.2, 0.0, 1.0) * SCATTER_AMOUNT * sunFade * clamp(1.0-exp(-sunHeight), 0.0, 1.0);
     gl_FragData[0].xyz = mix( mix(refraction,  scatterColour,  lightScatter),  reflection,  fresnel) + specular * gl_LightSource[0].specular.xyz + vec3(rainRipple.w) * 0.2;
     gl_FragData[0].w = 1.0;
 #else
@@ -258,8 +255,6 @@ void main(void)
     float fogValue = clamp((linearDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz,  gl_Fog.color.xyz,  fogValue);
-
-    applyShadowDebugOverlay();
 
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));

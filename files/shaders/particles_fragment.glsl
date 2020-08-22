@@ -71,10 +71,6 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if (!@normalMap && (@parallax || @forcePPL))
-    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
-#endif
-
 #if @normalMap
     vec4 normalTex = texture2D(normalMap, diffuseMapUV);
 
@@ -83,17 +79,26 @@ void main()
     vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
     mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
 
-#if !@parallax
     vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
-#else
+#endif
+
+#if (!@normalMap && (@parallax || @forcePPL))
+    vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
+#endif
+
+#if @parallax
     vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
     vec3 objectPos = (gl_ModelViewMatrixInverse * vec4(passViewPos, 1)).xyz;
     vec3 eyeDir = normalize(cameraPos - objectPos);
     vec2 offset = getParallaxOffset(eyeDir, tbnTranspose, normalTex.a, (passTangent.w > 0.0) ? -1.f : 1.f);
     adjustedDiffuseUV += offset; // only offset diffuse for now, other textures are more likely to be using a completely different UV set
 
+    // TODO: check not working as the same UV buffer is being bound to different targets
+    // if diffuseMapUV == normalMapUV
+#if 1
+    // fetch a new normal using updated coordinates
     normalTex = texture2D(normalMap, adjustedDiffuseUV);
-    vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
+    viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
 #endif
 
 #endif

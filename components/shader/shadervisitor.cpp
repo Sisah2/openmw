@@ -355,10 +355,18 @@ namespace Shader
         if(!isParticle)
             defineMap["particleHandling"] = "0";
 
+        std::string Vs = mDefaultVsTemplate;
+        std::string Fs = mDefaultFsTemplate;
+        if(isParticle)
+        {
+            Vs = "particles_vertex.glsl";
+            Fs = "particles_fragment.glsl";
+        }
+
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
 
-        osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(mDefaultVsTemplate, defineMap, osg::Shader::VERTEX));
-        osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(mDefaultFsTemplate, defineMap, osg::Shader::FRAGMENT));
+        osg::ref_ptr<osg::Shader> vertexShader (mShaderManager.getShader(Vs, defineMap, osg::Shader::VERTEX));
+        osg::ref_ptr<osg::Shader> fragmentShader (mShaderManager.getShader(Fs, defineMap, osg::Shader::FRAGMENT));
 
         if (vertexShader && fragmentShader)
         {
