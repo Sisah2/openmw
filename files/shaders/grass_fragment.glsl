@@ -7,25 +7,27 @@ uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
 #endif
 
-#define PER_PIXEL_LIGHTING @forcePPL
+#if @normalMap
+uniform sampler2D normalMap;
+varying vec2 normalMapUV;
+varying vec4 passTangent;
+#endif
+
+#define PER_PIXEL_LIGHTING (@normalMap || @forcePPL)
 
 varying float euclideanDepth;
 varying float linearDepth;
 
-#if !@forcePPL
+#if !PER_PIXEL_LIGHTING
 centroid varying vec4 lighting;
+centroid varying vec3 shadowDiffuseLighting;
 #endif
-
 centroid varying vec4 passColor;
 varying vec3 passViewPos;
 varying vec3 passNormal;
 
-uniform int colorMode;
-#if PER_PIXEL_LIGHTING
-    #include "lighting.glsl"
-#endif
-
-#include "parallax.glsl"
+#include "shadows_fragment.glsl"
+#include "lighting.glsl"
 
 void main()
 {
@@ -33,7 +35,18 @@ void main()
     vec2 adjustedDiffuseUV = diffuseMapUV;
 #endif
 
-#if @forcePPL
+#if @normalMap
+    vec4 normalTex = texture2D(normalMap, normalMapUV);
+
+    vec3 normalizedNormal = normalize(passNormal);
+    vec3 normalizedTangent = normalize(passTangent.xyz);
+    vec3 binormal = cross(normalizedTangent, normalizedNormal) * passTangent.w;
+    mat3 tbnTranspose = mat3(normalizedTangent, binormal, normalizedNormal);
+
+    vec3 viewNormal = gl_NormalMatrix * normalize(tbnTranspose * (normalTex.xyz * 2.0 - 1.0));
+#endif
+
+#if (!@normalMap && @forcePPL)
     vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
 
@@ -43,29 +56,36 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
+    float shadowing = unshadowedLightRatio(linearDepth);
     if (euclideanDepth > @grassFadeStart)
         gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
 
-#if !@forcePPL
-    gl_FragData[0] *= lighting;
+#if !PER_PIXEL_LIGHTING
+
+#if @clamp
+    gl_FragData[0] *= clamp(lighting + vec4(shadowDiffuseLighting * shadowing, 0), vec4(0.0), vec4(1.0));
+#else
+    gl_FragData[0] *= lighting + vec4(shadowDiffuseLighting * shadowing, 0);
+#endif
+
 #else
     if(gl_FragData[0].a != 0.0)
-        gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor);
+        gl_FragData[0] *= doLighting(passViewPos, normalize(viewNormal), passColor, shadowing, true);
 #endif
 
     float shininess = gl_FrontMaterial.shininess;
     vec3 matSpec;
-    if (colorMode == 5)
+    if (colorMode == ColorMode_Specular)
         matSpec = passColor.xyz;
     else
         matSpec = gl_FrontMaterial.specular.xyz;
 
     if (matSpec != vec3(0.0))
     {
-#if !@forcePPL
+#if (!@normalMap && !@forcePPL)
         vec3 viewNormal = gl_NormalMatrix * normalize(passNormal);
 #endif
-        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec);
+        gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos.xyz), shininess, matSpec) * shadowing;
     }
 #if @radialFog
     float fogValue = clamp((euclideanDepth - gl_Fog.start) * gl_Fog.scale, 0.0, 1.0);
@@ -74,7 +94,5 @@ void main()
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if (@gamma != 1000)
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
-#endif
+    applyShadowDebugOverlay();
 }

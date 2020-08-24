@@ -518,7 +518,6 @@ namespace Resource
             loaded->accept(setFilterSettingsControllerVisitor);
 
             osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor (createShaderVisitor("objects"));
-
             loaded->accept(*shaderVisitor);
 
             // share state
@@ -777,7 +776,6 @@ namespace Resource
             shaderVisitor->setForceShaders(true);
         else
             shaderVisitor->setForceShaders(mForceShaders);
-
         shaderVisitor->setAutoUseNormalMaps(mAutoUseNormalMaps);
         shaderVisitor->setNormalMapPattern(mNormalMapPattern);
         shaderVisitor->setNormalHeightMapPattern(mNormalHeightMapPattern);

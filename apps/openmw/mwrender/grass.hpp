@@ -16,11 +16,12 @@ namespace Resource
 
 namespace MWRender
 {
-    class WindSpeedUpdater : public SceneUtil::StateSetUpdater
+    class GrassUpdater : public SceneUtil::StateSetUpdater
     {
     public:
-        WindSpeedUpdater()
+        GrassUpdater()
             : mWindSpeed(0.f, 0.f, 0.f)
+            , mPlayerPos(osg::Vec3f())
         {
         }
 
@@ -29,13 +30,19 @@ namespace MWRender
             mWindSpeed = windSpeed;
         }
 
+        void setPlayerPos(osg::Vec3f playerPos)
+        {
+            mPlayerPos = playerPos;
+        }
+
     protected:
         virtual void setDefaults(osg::StateSet *stateset);
 
         virtual void apply(osg::StateSet *stateset, osg::NodeVisitor *nv);
 
     private:
-        osg::Vec3f mWindSpeed;
+        float mWindSpeed;
+        osg::Vec3f mPlayerPos;
     };
 
     struct GrassItem
@@ -53,7 +60,7 @@ namespace MWRender
         std::vector<GrassItem> mItems;
         float mCurrentGrass = 0;
         bool mUseAnimation = false;
-        osg::ref_ptr<WindSpeedUpdater> mWindSpeedUpdater;
+        osg::ref_ptr<GrassUpdater> mGrassUpdater;
 
         Grass();
         void blank();
