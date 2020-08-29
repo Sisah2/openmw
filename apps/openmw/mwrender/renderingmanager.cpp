@@ -394,6 +394,7 @@ namespace MWRender
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isGrass", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("simpleWater", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isInterior", false));
+        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", false));
 
         mUniformNear = mRootNode->getOrCreateStateSet()->getUniform("near");
@@ -1185,6 +1186,7 @@ namespace MWRender
         {
             mPlayerNode = new SceneUtil::PositionAttitudeTransform;
             mPlayerNode->setNodeMask(Mask_Player);
+            mPlayerNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isPlayer", true));
             mPlayerNode->setName("Player Root");
             mSceneRoot->addChild(mPlayerNode);
         }
