@@ -20,7 +20,7 @@ namespace MWRender
     {
     public:
         GrassUpdater()
-            : mWindSpeed(0.f, 0.f, 0.f)
+            : mWindSpeed(osg::Vec3f())
             , mPlayerPos(osg::Vec3f())
         {
         }
@@ -41,7 +41,7 @@ namespace MWRender
         virtual void apply(osg::StateSet *stateset, osg::NodeVisitor *nv);
 
     private:
-        float mWindSpeed;
+        osg::Vec3f mWindSpeed;
         osg::Vec3f mPlayerPos;
     };
 

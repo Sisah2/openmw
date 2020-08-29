@@ -7,11 +7,8 @@ set(SDIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(DDIRRELATIVE resources/shaders)
 
 set(SHADER_FILES
-<<<<<<< HEAD
     particles_vertex.glsl
     particles_fragment.glsl
-=======
->>>>>>> ccad518c53a738d80c3a77617d29d401cbbcca13
     grass_vertex.glsl
     grass_fragment.glsl
     water_vertex.glsl
