@@ -94,6 +94,8 @@ namespace MWInput
 
         if (mMouseLookEnabled && !input->controlsDisabled())
         {
+            MWBase::World* world = MWBase::Environment::get().getWorld();
+
             float x = arg.xrel * mCameraSensitivity * (mInvertX ? -1 : 1) / 256.f;
             float y = arg.yrel * mCameraSensitivity * (mInvertY ? -1 : 1) * mCameraYMultiplier / 256.f;
 
@@ -110,7 +112,7 @@ namespace MWInput
                 player.pitch(y);
             }
             else if (!input->getControlSwitch("playerlooking"))
-                world->disableDeferredPreviewRotation();
+                MWBase::Environment::get().getWorld()->disableDeferredPreviewRotation();
         }
     }
 

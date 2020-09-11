@@ -21,6 +21,7 @@
 
 #include <iostream>
 
+#include <components/misc/mathutil.hpp>
 #include <components/misc/rng.hpp>
 
 #include <components/settings/settings.hpp>
@@ -1321,6 +1322,8 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
                                 1.0f, "unequip start", "unequip stop", 0.0f, 0);
                 mUpperBodyState = UpperCharState_UnEquipingWeap;
 
+                mAnimation->detachArrow();
+
                 // If we do not have the "unequip detach" key, hide weapon manually.
                 if (mAnimation->getTextKeyTime(weapgroup+": unequip detach") < 0)
                     mAnimation->showWeapons(false);
@@ -1803,7 +1806,9 @@ bool CharacterController::updateWeaponState(CharacterState& idle)
                         mUpperBodyState = UpperCharState_MinAttackToMaxAttack;
                         break;
                     }
-                    playSwishSound(0.0f);
+
+                    if(weapclass != ESM::WeaponType::Ranged && weapclass != ESM::WeaponType::Thrown)
+                        playSwishSound(0.0f);
                 }
 
                 if(mAttackType == "shoot")
@@ -1965,27 +1970,26 @@ void CharacterController::update(float duration, bool animationOnly)
 
         osg::Vec3f rot = cls.getRotationVector(mPtr);
         osg::Vec3f vec(movementSettings.asVec3());
-        vec.normalize();
 
-        float analogueMult = 1.0f;
         if (isPlayer)
         {
             // TODO: Move this code to mwinput.
             // Joystick analogue movement.
-            float xAxis = std::abs(movementSettings.mPosition[0]);
-            float yAxis = std::abs(movementSettings.mPosition[1]);
-            analogueMult = std::max(xAxis, yAxis);
+            movementSettings.mSpeedFactor = std::max(std::abs(vec.x()), std::abs(vec.y()));
 
             // Due to the half way split between walking/running, we multiply speed by 2 while walking, unless a keyboard was used.
-            if(!isrunning && !sneak && !flying && analogueMult <= 0.5f)
-                analogueMult *= 2.f;
-
-            movementSettings.mSpeedFactor = analogueMult;
-        }
+            if(!isrunning && !sneak && !flying && movementSettings.mSpeedFactor <= 0.5f)
+                movementSettings.mSpeedFactor *= 2.f;
+        } else
+            movementSettings.mSpeedFactor = std::min(vec.length(), 1.f);
+        vec.normalize();
 
         float effectiveRotation = rot.z();
+        bool canMove = cls.getMaxSpeed(mPtr) > 0;
         static const bool turnToMovementDirection = Settings::Manager::getBool("turn to movement direction", "Game");
-        if (turnToMovementDirection && !isFirstPersonPlayer)
+        if (!turnToMovementDirection || isFirstPersonPlayer)
+            movementSettings.mIsStrafing = std::abs(vec.x()) > std::abs(vec.y()) * 2;
+        else if (canMove)
         {
             float targetMovementAngle = vec.y() >= 0 ? std::atan2(-vec.x(), vec.y()) : std::atan2(vec.x(), -vec.y());
             movementSettings.mIsStrafing = (stats.getDrawState() != MWMechanics::DrawState_Nothing || inwater)
@@ -2005,8 +2009,6 @@ void CharacterController::update(float duration, bool animationOnly)
             stats.setSideMovementAngle(stats.getSideMovementAngle() + delta);
             effectiveRotation += delta;
         }
-        else
-            movementSettings.mIsStrafing = std::abs(vec.x()) > std::abs(vec.y()) * 2;
 
         mAnimation->setLegsYawRadians(stats.getSideMovementAngle());
         if (stats.getDrawState() == MWMechanics::DrawState_Nothing || inwater)
@@ -2014,7 +2016,7 @@ void CharacterController::update(float duration, bool animationOnly)
         else
             mAnimation->setUpperBodyYawRadians(stats.getSideMovementAngle() / 4);
 
-        speed = cls.getSpeed(mPtr);
+        speed = cls.getCurrentSpeed(mPtr);
         vec.x() *= speed;
         vec.y() *= speed;
 
@@ -2084,7 +2086,7 @@ void CharacterController::update(float duration, bool animationOnly)
             }
         }
         fatigueLoss *= duration;
-        fatigueLoss *= analogueMult;
+        fatigueLoss *= movementSettings.mSpeedFactor;
         DynamicStat<float> fatigue = cls.getCreatureStats(mPtr).getFatigue();
 
         if (!godmode)
@@ -3030,13 +3032,10 @@ void CharacterController::updateHeadTracking(float duration)
         zAngleRadians = std::atan2(direction.x(), direction.y()) - std::atan2(actorDirection.x(), actorDirection.y());
         xAngleRadians = -std::asin(direction.z());
 
-        wrap(zAngleRadians);
-        wrap(xAngleRadians);
-
-        xAngleRadians = std::min(xAngleRadians, osg::DegreesToRadians(40.f));
-        xAngleRadians = std::max(xAngleRadians, osg::DegreesToRadians(-40.f));
-        zAngleRadians = std::min(zAngleRadians, osg::DegreesToRadians(30.f));
-        zAngleRadians = std::max(zAngleRadians, osg::DegreesToRadians(-30.f));
+        const double xLimit = osg::DegreesToRadians(40.0);
+        const double zLimit = osg::DegreesToRadians(30.0);
+        zAngleRadians = osg::clampBetween(Misc::normalizeAngle(zAngleRadians), -xLimit, xLimit);
+        xAngleRadians = osg::clampBetween(Misc::normalizeAngle(xAngleRadians), -zLimit, zLimit);
     }
 
     float factor = duration*5;

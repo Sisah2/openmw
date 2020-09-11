@@ -936,8 +936,10 @@ namespace MWClass
         return ref->mBase->mScript;
     }
 
-    float Npc::getSpeed(const MWWorld::Ptr& ptr) const
+    float Npc::getMaxSpeed(const MWWorld::Ptr& ptr) const
     {
+        // TODO: This function is called several times per frame for each NPC.
+        // It would be better to calculate it only once per frame for each NPC and save the result in CreatureStats.
         const MWMechanics::CreatureStats& stats = getCreatureStats(ptr);
         if (stats.isParalyzed() || stats.getKnockedDown() || stats.isDead())
             return 0.f;
@@ -978,11 +980,6 @@ namespace MWClass
 
         if(npcdata->mNpcStats.isWerewolf() && running && npcdata->mNpcStats.getDrawState() == MWMechanics::DrawState_Nothing)
             moveSpeed *= gmst.fWereWolfRunMult->mValue.getFloat();
-
-        const MWMechanics::Movement& movementSettings = ptr.getClass().getMovementSettings(ptr);
-        if (movementSettings.mIsStrafing)
-            moveSpeed *= 0.75f;
-        moveSpeed *= movementSettings.mSpeedFactor;
 
         return moveSpeed;
     }

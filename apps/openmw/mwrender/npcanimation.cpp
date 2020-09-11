@@ -366,6 +366,7 @@ void NpcAnimation::setViewMode(NpcAnimation::ViewMode viewMode)
     mViewMode = viewMode;
     MWBase::Environment::get().getWorld()->scaleObject(mPtr, mPtr.getCellRef().getScale()); // apply race height after view change
 
+    mAmmunition.reset();
     rebuild();
     setRenderBin();
 }
@@ -1056,6 +1057,12 @@ void NpcAnimation::attachArrow()
             SceneUtil::addEnchantedGlow(bone->getChild(0), mResourceSystem, ammo->getClass().getEnchantmentColor(*ammo));
     }
 
+    updateQuiver();
+}
+
+void NpcAnimation::detachArrow()
+{
+    WeaponAnimation::detachArrow(mPtr);
     updateQuiver();
 }
 

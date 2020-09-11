@@ -2,6 +2,7 @@
 
 #include <osg/Camera>
 
+#include <components/misc/mathutil.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/settings/settings.hpp>
 
@@ -238,7 +239,7 @@ namespace MWRender
         updateFocalPointOffset(duration);
         updatePosition();
 
-        float speed = mTrackingPtr.getClass().getSpeed(mTrackingPtr);
+        float speed = mTrackingPtr.getClass().getCurrentSpeed(mTrackingPtr);
         speed /= (1.f + speed / 500.f);
         float maxDelta = 300.f * duration;
         mSmoothedSpeed += osg::clampBetween(speed - mSmoothedSpeed, -maxDelta, maxDelta);
@@ -287,7 +288,7 @@ namespace MWRender
     {
         if (!mStandingPreviewAllowed)
             return;
-        float speed = mTrackingPtr.getClass().getSpeed(mTrackingPtr);
+        float speed = mTrackingPtr.getClass().getCurrentSpeed(mTrackingPtr);
         bool combat = mTrackingPtr.getClass().isActor() &&
                       mTrackingPtr.getClass().getCreatureStats(mTrackingPtr).getDrawState() != MWMechanics::DrawState_Nothing;
         bool standingStill = speed == 0 && !combat && !mFirstPersonView;
@@ -439,12 +440,7 @@ namespace MWRender
 
     void Camera::setYaw(float angle)
     {
-        if (angle > osg::PI) {
-            angle -= osg::PI*2;
-        } else if (angle < -osg::PI) {
-            angle += osg::PI*2;
-        }
-        mYaw = angle;
+        mYaw = Misc::normalizeAngle(angle);
     }
 
     void Camera::setPitch(float angle)
@@ -581,16 +577,8 @@ namespace MWRender
             return;
         }
 
-        mDeferredRotation.x() = -ptr.getRefData().getPosition().rot[0] - mPitch;
-        mDeferredRotation.z() = -ptr.getRefData().getPosition().rot[2] - mYaw;
-        if (mDeferredRotation.x() > osg::PI)
-            mDeferredRotation.x() -= 2 * osg::PI;
-        if (mDeferredRotation.x() < -osg::PI)
-            mDeferredRotation.x() += 2 * osg::PI;
-        if (mDeferredRotation.z() > osg::PI)
-            mDeferredRotation.z() -= 2 * osg::PI;
-        if (mDeferredRotation.z() < -osg::PI)
-            mDeferredRotation.z() += 2 * osg::PI;
+        mDeferredRotation.x() = Misc::normalizeAngle(-ptr.getRefData().getPosition().rot[0] - mPitch);
+        mDeferredRotation.z() = Misc::normalizeAngle(-ptr.getRefData().getPosition().rot[2] - mYaw);
     }
 
 }
