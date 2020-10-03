@@ -339,8 +339,9 @@ namespace MWRender
                     grassRoot->addUpdateCallback(mGrassUpdater);
                 }
 
+                auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
                 mGrassWorld.reset(new Terrain::QuadTreeWorld(
-                    grassRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Grass, Mask_PreCompile, Mask_Debug,
+                    grassRoot, mRootNode, mResourceSystem, store, Mask_Grass, Mask_PreCompile, Mask_Debug,
                     compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
 
                 mGrassPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));

@@ -59,8 +59,7 @@ World::~World()
     mCompositeMapCamera->removeChild(mCompositeMapRenderer);
     mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
 
-    // FIXME: it is used in both QuadTreeWorlds so far
-    //delete mStorage;
+    delete mStorage;
 }
 
 void World::setWorkQueue(SceneUtil::WorkQueue* workQueue)
