@@ -669,6 +669,12 @@ namespace MWRender
         }
         udc->addUserObject(templateRefs);
 
+        if (mGrass)
+        {
+            mSceneManager->recreateShaders(group, "grass");
+            group->setNodeMask(Mask_Grass);
+        }
+
         return group;
     }
 
