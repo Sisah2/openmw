@@ -596,6 +596,8 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
+        if (mGrassWorld)
+            mGrassWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
