@@ -494,8 +494,6 @@ namespace MWWorld
 
     void CellStore::listRefs()
     {
-        mGrass.blank();
-
         std::vector<ESM::ESMReader>& esm = mReader;
 
         assert (mCell);
@@ -530,17 +528,6 @@ namespace MWWorld
 
                     Misc::StringUtils::lowerCaseInPlace (ref.mRefID);
 
-                    static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
-                    if (grassEnabled && mStore.find(ref.mRefID) == ESM::REC_STAT)
-                    {
-                        const ESM::Static* staticRecord = mStore.get<ESM::Static>().find(ref.mRefID);
-                        if (!staticRecord->mModel.empty())
-                        {
-                            if (mGrass.isGrassItem(staticRecord->mModel) && !mGrass.isEnabled(staticRecord->mModel))
-                                continue;
-                        }
-                    }
-
                     mIds.push_back (ref.mRefID);
                 }
             }
@@ -565,8 +552,6 @@ namespace MWWorld
 
     void CellStore::loadRefs()
     {
-        mGrass.blank();
-
         std::vector<ESM::ESMReader>& esm = mReader;
 
         assert (mCell);
@@ -713,13 +698,15 @@ namespace MWWorld
                 static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
                 if (grassEnabled)
                 {
+
+
                     const ESM::Static* staticRecord = mStore.get<ESM::Static>().find(ref.mRefID);
                     if (!staticRecord->mModel.empty())
                     {
-                        bool isGrass = mGrass.loadGrassItem(staticRecord->mModel, ref.mPos, ref.mScale);
+                        bool isGrass = MWRender::isGrassItem(staticRecord->mModel);
                         if (isGrass)
                         {
-                            refNumToID[ref.mRefNum] = ref.mRefID;
+                            //refNumToID[ref.mRefNum] = ref.mRefID;
                             return;
                         }
                     }
@@ -737,16 +724,6 @@ namespace MWWorld
         }
 
         refNumToID[ref.mRefNum] = ref.mRefID;
-    }
-
-    void CellStore::updateGrass()
-    {
-        mGrass.update();
-    }
-
-    void CellStore::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
-    {
-        mGrass.insertGrass(cellnode, rs);
     }
 
     void CellStore::loadState (const ESM::CellState& state)

@@ -53,11 +53,13 @@
 
 #include <components/detournavigator/navigator.hpp>
 
+#include "../mwmechanics/actorutil.hpp"
 #include "../mwworld/cellstore.hpp"
 #include "../mwworld/class.hpp"
 #include "../mwgui/loadingscreen.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwbase/world.hpp"
 
 #include "sky.hpp"
 #include "effectmanager.hpp"
@@ -78,6 +80,25 @@
 
 namespace MWRender
 {
+    void GrassUpdater::setDefaults(osg::StateSet *stateset)
+    {
+        osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", 0.0f);
+        stateset->addUniform(windUniform.get());
+
+        osg::ref_ptr<osg::Uniform> playerPosUniform = new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f));
+        stateset->addUniform(playerPosUniform.get());
+    }
+
+    void GrassUpdater::apply(osg::StateSet *stateset, osg::NodeVisitor *nv)
+    {
+        osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windSpeed");
+        if (windUniform != nullptr)
+            windUniform->set(mWindSpeed);
+
+        osg::ref_ptr<osg::Uniform> playerPosUniform = stateset->getUniform("playerPos");
+        if (playerPosUniform != nullptr)
+            playerPosUniform->set(mPlayerPos);
+    }
 
     class StateUpdater : public SceneUtil::StateSetUpdater
     {
@@ -307,8 +328,19 @@ namespace MWRender
 
             if (Settings::Manager::getBool("enabled", "Grass"))
             {
+                osg::ref_ptr<osg::Group> grassRoot = new osg::Group;
+                grassRoot->setNodeMask(Mask_Grass);
+                grassRoot->setName("GrassRoot");
+                sceneRoot->addChild(grassRoot);
+
+                if (Settings::Manager::getBool("animation", "Grass"))
+                {
+                    mGrassUpdater = new GrassUpdater;
+                    grassRoot->addUpdateCallback(mGrassUpdater);
+                }
+
                 mGrassWorld.reset(new Terrain::QuadTreeWorld(
-                    sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Grass, Mask_PreCompile, Mask_Debug,
+                    grassRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Grass, Mask_PreCompile, Mask_Debug,
                     compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
 
                 mGrassPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
@@ -393,7 +425,6 @@ namespace MWRender
 
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("near", mNearClip));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("far", mViewDistance));
-        mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("isGrass", false));
         mRootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("simpleWater", false));
 
         mUniformNear = mRootNode->getOrCreateStateSet()->getUniform("near");
@@ -644,6 +675,15 @@ namespace MWRender
             mEffectManager->update(dt);
             mSky->update(dt);
             mWater->update(dt);
+
+            if (mGrassUpdater)
+            {
+                osg::Vec3f playerPos(MWMechanics::getPlayer().getRefData().getPosition().asVec3());
+
+                float windSpeed = MWBase::Environment::get().getWorld()->getBaseWindSpeed();
+                mGrassUpdater->setWindSpeed(windSpeed);
+                mGrassUpdater->setPlayerPos(playerPos);
+            }
         }
 
         updateNavMesh();

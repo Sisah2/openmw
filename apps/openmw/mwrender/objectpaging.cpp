@@ -484,10 +484,10 @@ namespace MWRender
             int type = store.findStatic(ref.mRefID);
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
-            if (grassEnabled && !mGrass && Grass::isGrassItem(model)) continue;
+            if (grassEnabled && !mGrass && MWRender::isGrassItem(model)) continue;
             if (grassEnabled && mGrass)
             {
-                if (!Grass::isGrassItem(model)) continue;
+                if (!MWRender::isGrassItem(model)) continue;
 
                 currentGrass += density;
                 if (currentGrass < 1.f) continue;
@@ -660,7 +660,7 @@ namespace MWRender
         }
 
         group->getBound();
-        group->setNodeMask(Mask_Static);
+        group->setNodeMask(mGrass ? Mask_Grass : Mask_Static);
         osg::UserDataContainer* udc = group->getOrCreateUserDataContainer();
         if (activeGrid)
         {
@@ -670,17 +670,14 @@ namespace MWRender
         udc->addUserObject(templateRefs);
 
         if (mGrass)
-        {
             mSceneManager->recreateShaders(group, "grass");
-            group->setNodeMask(Mask_Grass);
-        }
 
         return group;
     }
 
     unsigned int ObjectPaging::getNodeMask()
     {
-        return Mask_Static;
+        return mGrass ? Mask_Grass : Mask_Static;
     }
 
     struct ClearCacheFunctor

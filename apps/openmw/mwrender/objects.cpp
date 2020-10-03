@@ -83,8 +83,6 @@ void Objects::insertGrass(MWWorld::CellStore* cell)
     }
     else
         cellnode = found->second;
-
-    cell->insertGrass(cellnode, mResourceSystem);
 }
 
 void Objects::insertModel(const MWWorld::Ptr &ptr, const std::string &mesh, bool animated, bool allowLight)

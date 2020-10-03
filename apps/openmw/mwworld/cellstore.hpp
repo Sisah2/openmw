@@ -256,10 +256,6 @@ namespace MWWorld
 
             void setWaterLevel (float level);
 
-            void updateGrass();
-
-            void insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs);
-
             void setFog (ESM::FogState* fog);
             ///< \note Takes ownership of the pointer
 
@@ -414,8 +410,6 @@ namespace MWWorld
             ///< Make case-adjustments to \a ref and insert it into the respective container.
             ///
             /// Invalid \a ref objects are silently dropped.
-
-            MWRender::Grass mGrass;
     };
 
     template<>
