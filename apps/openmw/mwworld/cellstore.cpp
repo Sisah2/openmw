@@ -698,15 +698,12 @@ namespace MWWorld
                 static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
                 if (grassEnabled)
                 {
-
-
                     const ESM::Static* staticRecord = mStore.get<ESM::Static>().find(ref.mRefID);
                     if (!staticRecord->mModel.empty())
                     {
                         bool isGrass = MWRender::isGrassItem(staticRecord->mModel);
                         if (isGrass)
                         {
-                            //refNumToID[ref.mRefNum] = ref.mRefID;
                             return;
                         }
                     }

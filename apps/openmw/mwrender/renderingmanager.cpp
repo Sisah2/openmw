@@ -354,8 +354,12 @@ namespace MWRender
 
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
-        mGrassWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
-        mGrassWorld->setWorkQueue(mWorkQueue.get());
+
+        if (mGrassWorld)
+        {
+            mGrassWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
+            mGrassWorld->setWorkQueue(mWorkQueue.get());
+        }
 
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(mRootNode, sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
@@ -567,7 +571,8 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
-            mGrassWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGrassWorld)
+                mGrassWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore *store)
@@ -579,7 +584,8 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
-            mGrassWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGrassWorld)
+                mGrassWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
 
         mWater->removeCell(store);
@@ -590,7 +596,6 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
-        mGrassWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -1306,7 +1311,9 @@ namespace MWRender
         fov = std::min(mFieldOfView, 140.f);
         float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
-        mGrassWorld->setViewDistance(Settings::Manager::getFloat("distance", "Grass") * (distanceMult ? 1.f/distanceMult : 1.f));
+
+        if (mGrassWorld)
+            mGrassWorld->setViewDistance(Settings::Manager::getFloat("distance", "Grass") * (distanceMult ? 1.f/distanceMult : 1.f));
     }
 
     void RenderingManager::updateTextureFiltering()
@@ -1321,7 +1328,8 @@ namespace MWRender
         );
 
         mTerrain->updateTextureFiltering();
-        mGrassWorld->updateTextureFiltering();
+        if (mGrassWorld)
+            mGrassWorld->updateTextureFiltering();
 
         mViewer->startThreading();
     }
@@ -1352,7 +1360,9 @@ namespace MWRender
             stats->setAttribute(frameNumber, "UnrefQueue", mUnrefQueue->getNumItems());
 
             mTerrain->reportStats(frameNumber, stats);
-            mGrassWorld->reportStats(frameNumber, stats);
+
+            if (mGrassWorld)
+                mGrassWorld->reportStats(frameNumber, stats);
         }
     }
 
@@ -1503,7 +1513,8 @@ namespace MWRender
     void RenderingManager::setActiveGrid(const osg::Vec4i &grid)
     {
         mTerrain->setActiveGrid(grid);
-        mGrassWorld->setActiveGrid(grid);
+        if (mGrassWorld)
+            mGrassWorld->setActiveGrid(grid);
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
