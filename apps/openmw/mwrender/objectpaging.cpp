@@ -662,7 +662,7 @@ namespace MWRender
         group->getBound();
         group->setNodeMask(mGrass ? Mask_Grass : Mask_Static);
         osg::UserDataContainer* udc = group->getOrCreateUserDataContainer();
-        if (activeGrid)
+        if (activeGrid && !mGrass)
         {
             udc->addUserObject(refnumSet);
             group->addCullCallback(new SceneUtil::LightListCallback);
