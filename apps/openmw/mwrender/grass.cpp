@@ -66,6 +66,7 @@ namespace MWRender
 
     void Grass::insertGrass(osg::Group* cellnode, Resource::ResourceSystem* rs)
     {
+        return;
         osg::ref_ptr<osg::Group> grassGroup = new osg::Group();
         grassGroup->setName("CellGrass");
         cellnode->addChild(grassGroup);

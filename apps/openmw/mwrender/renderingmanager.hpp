@@ -277,8 +277,10 @@ namespace MWRender
         std::unique_ptr<Objects> mObjects;
         std::unique_ptr<Water> mWater;
         std::unique_ptr<Terrain::World> mTerrain;
+        std::unique_ptr<Terrain::World> mGrassWorld;
         TerrainStorage* mTerrainStorage;
         std::unique_ptr<ObjectPaging> mObjectPaging;
+        std::unique_ptr<ObjectPaging> mGrassPaging;
         std::unique_ptr<SkyManager> mSky;
         std::unique_ptr<FogManager> mFog;
         std::unique_ptr<EffectManager> mEffectManager;

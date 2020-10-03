@@ -304,12 +304,25 @@ namespace MWRender
                 static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mObjectPaging.get());
                 mResourceSystem->addResourceManager(mObjectPaging.get());
             }
+
+            if (Settings::Manager::getBool("enabled", "Grass"))
+            {
+                mGrassWorld.reset(new Terrain::QuadTreeWorld(
+                    sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Grass, Mask_PreCompile, Mask_Debug,
+                    compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
+
+                mGrassPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
+                static_cast<Terrain::QuadTreeWorld*>(mGrassWorld.get())->addChunkManager(mGrassPaging.get());
+                mResourceSystem->addResourceManager(mGrassPaging.get());
+            }
         }
         else
             mTerrain.reset(new Terrain::TerrainGrid(sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug));
 
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
+        mGrassWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
+        mGrassWorld->setWorkQueue(mWorkQueue.get());
 
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(mRootNode, sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
@@ -520,7 +533,10 @@ namespace MWRender
         mWater->changeCell(store);
 
         if (store->getCell()->isExterior())
+        {
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            mGrassWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+        }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore *store)
     {
@@ -529,7 +545,10 @@ namespace MWRender
         mObjects->removeCell(store);
 
         if (store->getCell()->isExterior())
+        {
             mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            mGrassWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+        }
 
         mWater->removeCell(store);
     }
@@ -539,6 +558,7 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
+        mGrassWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -1148,6 +1168,8 @@ namespace MWRender
         notifyWorldSpaceChanged();
         if (mObjectPaging)
             mObjectPaging->clear();
+        if (mGrassPaging)
+            mGrassPaging->clear();
     }
 
     MWRender::Animation* RenderingManager::getAnimation(const MWWorld::Ptr &ptr)
@@ -1243,6 +1265,7 @@ namespace MWRender
         fov = std::min(mFieldOfView, 140.f);
         float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
+        mGrassWorld->setViewDistance(Settings::Manager::getFloat("distance", "Grass") * (distanceMult ? 1.f/distanceMult : 1.f));
     }
 
     void RenderingManager::updateTextureFiltering()
@@ -1257,6 +1280,7 @@ namespace MWRender
         );
 
         mTerrain->updateTextureFiltering();
+        mGrassWorld->updateTextureFiltering();
 
         mViewer->startThreading();
     }
@@ -1287,6 +1311,7 @@ namespace MWRender
             stats->setAttribute(frameNumber, "UnrefQueue", mUnrefQueue->getNumItems());
 
             mTerrain->reportStats(frameNumber, stats);
+            mGrassWorld->reportStats(frameNumber, stats);
         }
     }
 
@@ -1437,17 +1462,25 @@ namespace MWRender
     void RenderingManager::setActiveGrid(const osg::Vec4i &grid)
     {
         mTerrain->setActiveGrid(grid);
+        mGrassWorld->setActiveGrid(grid);
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
+        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
             return false;
-        if (mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+
+        bool result = false;
+        if (mObjectPaging && mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
         {
             mTerrain->rebuildViews();
-            return true;
+            result = true;
         }
-        return false;
+        if (mGrassPaging && mGrassPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+        {
+            mGrassWorld->rebuildViews();
+            result = true;
+        }
+        return result;
     }
     void RenderingManager::pagingBlacklistObject(int type, const MWWorld::ConstPtr &ptr)
     {
@@ -1457,19 +1490,30 @@ namespace MWRender
         if (!refnum.hasContentFile()) return;
         if (mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
             mTerrain->rebuildViews();
+
+        if (mGrassPaging && mGrassPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
+            mGrassWorld->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()
     {
+        bool result = false;
         if (mObjectPaging && mObjectPaging->unlockCache())
         {
             mTerrain->rebuildViews();
-            return true;
+            result = true;
         }
-        return false;
+        if (mGrassPaging && mGrassPaging->unlockCache())
+        {
+            mGrassWorld->rebuildViews();
+            result = true;
+        }
+        return result;
     }
     void RenderingManager::getPagedRefnums(const osg::Vec4i &activeGrid, std::set<ESM::RefNum> &out)
     {
         if (mObjectPaging)
             mObjectPaging->getPagedRefnums(activeGrid, out);
+        if (mGrassPaging)
+            mGrassPaging->getPagedRefnums(activeGrid, out);
     }
 }

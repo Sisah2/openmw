@@ -360,9 +360,10 @@ namespace MWRender
         }
     };
 
-    ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager)
+    ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, bool grass)
             : GenericResourceManager<ChunkId>(nullptr)
          , mSceneManager(sceneManager)
+         , mGrass(grass)
          , mRefTrackerLocked(false)
     {
         mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain");
@@ -453,6 +454,8 @@ namespace MWRender
             minSize *= mMinSizeMergeFactor;
 
         static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
+        static const float density = Settings::Manager::getFloat("density", "Grass");
+        float currentGrass = 0.f;
         for (const auto& pair : refs)
         {
             const ESM::CellRef& ref = pair.second;
@@ -481,7 +484,16 @@ namespace MWRender
             int type = store.findStatic(ref.mRefID);
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
-            if (grassEnabled && Grass::isGrassItem(model)) continue;
+            if (grassEnabled && !mGrass && Grass::isGrassItem(model)) continue;
+            if (grassEnabled && mGrass)
+            {
+                if (!Grass::isGrassItem(model)) continue;
+
+                currentGrass += density;
+                if (currentGrass < 1.f) continue;
+
+                currentGrass -= 1.f;
+            }
             model = "meshes/" + model;
 
             if (activeGrid && type != ESM::REC_STAT)
