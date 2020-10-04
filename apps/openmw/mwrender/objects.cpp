@@ -69,22 +69,6 @@ void Objects::insertBegin(const MWWorld::Ptr& ptr)
     ptr.getRefData().setBaseNode(insert);
 }
 
-void Objects::insertGrass(MWWorld::CellStore* cell)
-{
-    osg::ref_ptr<osg::Group> cellnode;
-
-    CellMap::iterator found = mCellSceneNodes.find(cell);
-    if (found == mCellSceneNodes.end())
-    {
-        cellnode = new osg::Group;
-        cellnode->setName("Cell Root");
-        mRootNode->addChild(cellnode);
-        mCellSceneNodes[cell] = cellnode;
-    }
-    else
-        cellnode = found->second;
-}
-
 void Objects::insertModel(const MWWorld::Ptr &ptr, const std::string &mesh, bool animated, bool allowLight)
 {
     insertBegin(ptr);
