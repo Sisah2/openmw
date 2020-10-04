@@ -366,7 +366,7 @@ namespace MWRender
          , mGrass(grass)
          , mRefTrackerLocked(false)
     {
-        mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain");
+        mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain") || grass;
         mDebugBatches = Settings::Manager::getBool("object paging debug batches", "Terrain");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
         mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
