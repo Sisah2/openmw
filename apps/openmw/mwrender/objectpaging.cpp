@@ -376,6 +376,9 @@ namespace MWRender
 
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
+        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
+        static const float density = Settings::Manager::getFloat("density", "Grass");
+
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size/2.f), std::floor(center.y() - size/2.f));
 
         osg::Vec3f worldCenter = osg::Vec3f(center.x(), center.y(), 0)*ESM::Land::REAL_SIZE;
@@ -391,6 +394,8 @@ namespace MWRender
             {
                 const ESM::Cell* cell = store.get<ESM::Cell>().searchStatic(cellX, cellY);
                 if (!cell) continue;
+
+                float currentGrass = 0.f;
                 for (size_t i=0; i<cell->mContextList.size(); ++i)
                 {
                     try
@@ -409,6 +414,19 @@ namespace MWRender
                             int type = store.findStatic(ref.mRefID);
                             if (!typeFilter(type,size>=2)) continue;
                             if (deleted) { refs.erase(ref.mRefNum); continue; }
+
+                            if (grassEnabled)
+                            {
+                                std::string model = getModel(type, ref.mRefID, store);
+                                if (MWRender::isGrassItem(model))
+                                {
+                                    currentGrass += density;
+                                    if (currentGrass < 1.f) continue;
+
+                                    currentGrass -= 1.f;
+                                }
+                            }
+
                             refs[ref.mRefNum] = ref;
                         }
                     }
@@ -453,9 +471,6 @@ namespace MWRender
         if (mMinSizeMergeFactor)
             minSize *= mMinSizeMergeFactor;
 
-        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
-        static const float density = Settings::Manager::getFloat("density", "Grass");
-        float currentGrass = 0.f;
         for (const auto& pair : refs)
         {
             const ESM::CellRef& ref = pair.second;
@@ -485,15 +500,8 @@ namespace MWRender
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
             if (grassEnabled && !mGrass && MWRender::isGrassItem(model)) continue;
-            if (grassEnabled && mGrass)
-            {
-                if (!MWRender::isGrassItem(model)) continue;
+            if (grassEnabled && mGrass && !MWRender::isGrassItem(model)) continue;
 
-                currentGrass += density;
-                if (currentGrass < 1.f) continue;
-
-                currentGrass -= 1.f;
-            }
             model = "meshes/" + model;
 
             if (activeGrid && type != ESM::REC_STAT)
