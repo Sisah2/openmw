@@ -333,6 +333,9 @@ namespace MWRender
                 grassRoot->setName("GrassRoot");
                 sceneRoot->addChild(grassRoot);
 
+                osg::ref_ptr<osg::StateSet> state = grassRoot->getOrCreateStateSet();
+                state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+
                 if (Settings::Manager::getBool("animation", "Grass"))
                 {
                     mGrassUpdater = new GrassUpdater;
