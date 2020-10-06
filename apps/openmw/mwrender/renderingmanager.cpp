@@ -308,16 +308,17 @@ namespace MWRender
 
         mTerrainStorage = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
 
+        const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
+        int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
+        compMapPower = std::max(-3, compMapPower);
+        float compMapLevel = pow(2, compMapPower);
+        const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
+        const int vertexLodMod = Settings::Manager::getInt("vertex lod mod", "Terrain");
+        float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
+        maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
+
         if (Settings::Manager::getBool("distant terrain", "Terrain"))
         {
-            const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
-            int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
-            compMapPower = std::max(-3, compMapPower);
-            float compMapLevel = pow(2, compMapPower);
-            const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
-            const int vertexLodMod = Settings::Manager::getInt("vertex lod mod", "Terrain");
-            float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
-            maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
             mTerrain.reset(new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
@@ -327,32 +328,6 @@ namespace MWRender
                 static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mObjectPaging.get());
                 mResourceSystem->addResourceManager(mObjectPaging.get());
             }
-
-            if (Settings::Manager::getBool("enabled", "Groundcover"))
-            {
-                osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
-                groundcoverRoot->setNodeMask(Mask_Groundcover);
-                groundcoverRoot->setName("GroundcoverRoot");
-                sceneRoot->addChild(groundcoverRoot);
-
-                osg::ref_ptr<osg::StateSet> state = groundcoverRoot->getOrCreateStateSet();
-                state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-
-                if (Settings::Manager::getBool("animation", "Groundcover"))
-                {
-                    mGroundcoverUpdater = new GroundcoverUpdater;
-                    groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
-                }
-
-                auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
-                mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
-                    groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Terrain, Mask_PreCompile, Mask_Debug,
-                    compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
-
-                mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
-                static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
-                mResourceSystem->addResourceManager(mGroundcoverPaging.get());
-            }
         }
         else
             mTerrain.reset(new Terrain::TerrainGrid(sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug));
@@ -360,12 +335,34 @@ namespace MWRender
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
 
-        if (mGroundcoverWorld)
+        if (Settings::Manager::getBool("enabled", "Groundcover"))
         {
+            osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
+            groundcoverRoot->setNodeMask(Mask_Groundcover);
+            groundcoverRoot->setName("GroundcoverRoot");
+            sceneRoot->addChild(groundcoverRoot);
+
+            osg::ref_ptr<osg::StateSet> state = groundcoverRoot->getOrCreateStateSet();
+            state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+
+            if (Settings::Manager::getBool("animation", "Groundcover"))
+            {
+                mGroundcoverUpdater = new GroundcoverUpdater;
+                groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
+            }
+
+            auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
+            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
+                groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Terrain, Mask_PreCompile, Mask_Debug,
+                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
+
+            mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
+            static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
+            mResourceSystem->addResourceManager(mGroundcoverPaging.get());
+
             mGroundcoverWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
             mGroundcoverWorld->setWorkQueue(mWorkQueue.get());
         }
-
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(mRootNode, sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
 
