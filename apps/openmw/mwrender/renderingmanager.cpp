@@ -80,7 +80,7 @@
 
 namespace MWRender
 {
-    void GrassUpdater::setDefaults(osg::StateSet *stateset)
+    void GroundcoverUpdater::setDefaults(osg::StateSet *stateset)
     {
         osg::ref_ptr<osg::Uniform> windUniform = new osg::Uniform("windSpeed", 0.0f);
         stateset->addUniform(windUniform.get());
@@ -89,7 +89,7 @@ namespace MWRender
         stateset->addUniform(playerPosUniform.get());
     }
 
-    void GrassUpdater::apply(osg::StateSet *stateset, osg::NodeVisitor *nv)
+    void GroundcoverUpdater::apply(osg::StateSet *stateset, osg::NodeVisitor *nv)
     {
         osg::ref_ptr<osg::Uniform> windUniform = stateset->getUniform("windSpeed");
         if (windUniform != nullptr)
@@ -228,12 +228,12 @@ namespace MWRender
         resourceSystem->getSceneManager()->setParticleSystemMask(MWRender::Mask_ParticleSystem);
         resourceSystem->getSceneManager()->setShaderPath(resourcePath + "/shaders");
         // Shadows and radial fog have problems with fixed-function mode.
-        // Grass fading and animation are implemented via shader too.
+        // Groundcover fading and animation are implemented via shader too.
         bool forceShaders =
             Settings::Manager::getBool("radial fog", "Shaders") ||
             Settings::Manager::getBool("force shaders", "Shaders") ||
             Settings::Manager::getBool("enable shadows", "Shadows") ||
-            Settings::Manager::getBool("enabled", "Grass");
+            Settings::Manager::getBool("enabled", "Groundcover");
         resourceSystem->getSceneManager()->setForceShaders(forceShaders);
         // FIXME: calling dummy method because terrain needs to know whether lighting is clamped
         resourceSystem->getSceneManager()->setClampLighting(Settings::Manager::getBool("clamp lighting", "Shaders"));
@@ -274,9 +274,9 @@ namespace MWRender
         globalDefines["clamp"] = Settings::Manager::getBool("clamp lighting", "Shaders") ? "1" : "0";
         globalDefines["preLightEnv"] = Settings::Manager::getBool("apply lighting to environment maps", "Shaders") ? "1" : "0";
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
-        globalDefines["grassAnimation"] = Settings::Manager::getBool("animation", "Grass") ? "1" : "0";
-        globalDefines["grassFadeStart"] = std::to_string(Settings::Manager::getFloat("distance", "Grass") * Settings::Manager::getFloat("fade start", "Grass"));
-        globalDefines["grassFadeEnd"] = std::to_string(Settings::Manager::getFloat("distance", "Grass"));
+        globalDefines["groundcoverAnimation"] = Settings::Manager::getBool("animation", "Groundcover") ? "1" : "0";
+        globalDefines["groundcoverFadeStart"] = std::to_string(Settings::Manager::getFloat("distance", "Groundcover") * Settings::Manager::getFloat("fade start", "Groundcover"));
+        globalDefines["groundcoverFadeEnd"] = std::to_string(Settings::Manager::getFloat("distance", "Groundcover"));
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
@@ -326,30 +326,30 @@ namespace MWRender
                 mResourceSystem->addResourceManager(mObjectPaging.get());
             }
 
-            if (Settings::Manager::getBool("enabled", "Grass"))
+            if (Settings::Manager::getBool("enabled", "Groundcover"))
             {
-                osg::ref_ptr<osg::Group> grassRoot = new osg::Group;
-                grassRoot->setNodeMask(Mask_Grass);
-                grassRoot->setName("GrassRoot");
-                sceneRoot->addChild(grassRoot);
+                osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
+                groundcoverRoot->setNodeMask(Mask_Groundcover);
+                groundcoverRoot->setName("GroundcoverRoot");
+                sceneRoot->addChild(groundcoverRoot);
 
-                osg::ref_ptr<osg::StateSet> state = grassRoot->getOrCreateStateSet();
+                osg::ref_ptr<osg::StateSet> state = groundcoverRoot->getOrCreateStateSet();
                 state->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
-                if (Settings::Manager::getBool("animation", "Grass"))
+                if (Settings::Manager::getBool("animation", "Groundcover"))
                 {
-                    mGrassUpdater = new GrassUpdater;
-                    grassRoot->addUpdateCallback(mGrassUpdater);
+                    mGroundcoverUpdater = new GroundcoverUpdater;
+                    groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
                 }
 
                 auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
-                mGrassWorld.reset(new Terrain::QuadTreeWorld(
-                    grassRoot, mRootNode, mResourceSystem, store, Mask_Grass, Mask_PreCompile, Mask_Debug,
+                mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
+                    groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Terrain, Mask_PreCompile, Mask_Debug,
                     compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
 
-                mGrassPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
-                static_cast<Terrain::QuadTreeWorld*>(mGrassWorld.get())->addChunkManager(mGrassPaging.get());
-                mResourceSystem->addResourceManager(mGrassPaging.get());
+                mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
+                static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
+                mResourceSystem->addResourceManager(mGroundcoverPaging.get());
             }
         }
         else
@@ -358,10 +358,10 @@ namespace MWRender
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
 
-        if (mGrassWorld)
+        if (mGroundcoverWorld)
         {
-            mGrassWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
-            mGrassWorld->setWorkQueue(mWorkQueue.get());
+            mGroundcoverWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
+            mGroundcoverWorld->setWorkQueue(mWorkQueue.get());
         }
 
         // water goes after terrain for correct waterculling order
@@ -574,8 +574,8 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
-            if (mGrassWorld)
-                mGrassWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore *store)
@@ -587,8 +587,8 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
-            if (mGrassWorld)
-                mGrassWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
 
         mWater->removeCell(store);
@@ -599,8 +599,8 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
-        if (mGrassWorld)
-            mGrassWorld->enable(enable);
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -687,13 +687,13 @@ namespace MWRender
             mSky->update(dt);
             mWater->update(dt);
 
-            if (mGrassUpdater)
+            if (mGroundcoverUpdater)
             {
                 osg::Vec3f playerPos(MWMechanics::getPlayer().getRefData().getPosition().asVec3());
 
                 float windSpeed = MWBase::Environment::get().getWorld()->getBaseWindSpeed();
-                mGrassUpdater->setWindSpeed(windSpeed);
-                mGrassUpdater->setPlayerPos(playerPos);
+                mGroundcoverUpdater->setWindSpeed(windSpeed);
+                mGroundcoverUpdater->setPlayerPos(playerPos);
             }
         }
 
@@ -1155,7 +1155,7 @@ namespace MWRender
         mIntersectionVisitor->setIntersector(intersector);
 
         int mask = ~0;
-        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Grass);
+        mask &= ~(Mask_RenderToTexture|Mask_Sky|Mask_Debug|Mask_Effect|Mask_Water|Mask_SimpleWater|Mask_Groundcover);
         if (ignorePlayer)
             mask &= ~(Mask_Player);
         if (ignoreActors)
@@ -1219,8 +1219,8 @@ namespace MWRender
         notifyWorldSpaceChanged();
         if (mObjectPaging)
             mObjectPaging->clear();
-        if (mGrassPaging)
-            mGrassPaging->clear();
+        if (mGroundcoverPaging)
+            mGroundcoverPaging->clear();
     }
 
     MWRender::Animation* RenderingManager::getAnimation(const MWWorld::Ptr &ptr)
@@ -1317,8 +1317,8 @@ namespace MWRender
         float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
 
-        if (mGrassWorld)
-            mGrassWorld->setViewDistance(Settings::Manager::getFloat("distance", "Grass") * (distanceMult ? 1.f/distanceMult : 1.f));
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->setViewDistance(Settings::Manager::getFloat("distance", "Groundcover") * (distanceMult ? 1.f/distanceMult : 1.f));
     }
 
     void RenderingManager::updateTextureFiltering()
@@ -1333,8 +1333,8 @@ namespace MWRender
         );
 
         mTerrain->updateTextureFiltering();
-        if (mGrassWorld)
-            mGrassWorld->updateTextureFiltering();
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->updateTextureFiltering();
 
         mViewer->startThreading();
     }
@@ -1366,8 +1366,8 @@ namespace MWRender
 
             mTerrain->reportStats(frameNumber, stats);
 
-            if (mGrassWorld)
-                mGrassWorld->reportStats(frameNumber, stats);
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->reportStats(frameNumber, stats);
         }
     }
 
@@ -1518,8 +1518,8 @@ namespace MWRender
     void RenderingManager::setActiveGrid(const osg::Vec4i &grid)
     {
         mTerrain->setActiveGrid(grid);
-        if (mGrassWorld)
-            mGrassWorld->setActiveGrid(grid);
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->setActiveGrid(grid);
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
@@ -1532,9 +1532,9 @@ namespace MWRender
             mTerrain->rebuildViews();
             result = true;
         }
-        if (mGrassPaging && mGrassPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+        if (mGroundcoverPaging && mGroundcoverPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
         {
-            mGrassWorld->rebuildViews();
+            mGroundcoverWorld->rebuildViews();
             result = true;
         }
         return result;
@@ -1548,8 +1548,8 @@ namespace MWRender
         if (mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
             mTerrain->rebuildViews();
 
-        if (mGrassPaging && mGrassPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
-            mGrassWorld->rebuildViews();
+        if (mGroundcoverPaging && mGroundcoverPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
+            mGroundcoverWorld->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()
     {
@@ -1559,9 +1559,9 @@ namespace MWRender
             mTerrain->rebuildViews();
             result = true;
         }
-        if (mGrassPaging && mGrassPaging->unlockCache())
+        if (mGroundcoverPaging && mGroundcoverPaging->unlockCache())
         {
-            mGrassWorld->rebuildViews();
+            mGroundcoverWorld->rebuildViews();
             result = true;
         }
         return result;
@@ -1570,7 +1570,7 @@ namespace MWRender
     {
         if (mObjectPaging)
             mObjectPaging->getPagedRefnums(activeGrid, out);
-        if (mGrassPaging)
-            mGrassPaging->getPagedRefnums(activeGrid, out);
+        if (mGroundcoverPaging)
+            mGroundcoverPaging->getPagedRefnums(activeGrid, out);
     }
 }

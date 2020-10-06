@@ -695,14 +695,14 @@ namespace MWWorld
             case ESM::REC_BODY: mBodyParts.load(ref, deleted, store); break;
             case ESM::REC_STAT:
             {
-                static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
-                if (grassEnabled)
+                static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
+                if (groundcoverEnabled)
                 {
                     const ESM::Static* staticRecord = mStore.get<ESM::Static>().find(ref.mRefID);
                     if (!staticRecord->mModel.empty())
                     {
-                        bool isGrass = MWRender::isGrassItem(staticRecord->mModel);
-                        if (isGrass)
+                        bool isGroundcover = MWRender::isGrassItem(staticRecord->mModel);
+                        if (isGroundcover)
                         {
                             return;
                         }

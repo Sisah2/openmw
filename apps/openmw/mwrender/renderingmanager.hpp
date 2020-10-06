@@ -71,7 +71,7 @@ namespace DetourNavigator
 
 namespace MWRender
 {
-    class GrassUpdater;
+    class GroundcoverUpdater;
     class StateUpdater;
 
     class EffectManager;
@@ -264,7 +264,7 @@ namespace MWRender
         osg::ref_ptr<osg::Group> mSceneRoot;
         Resource::ResourceSystem* mResourceSystem;
 
-        osg::ref_ptr<GrassUpdater> mGrassUpdater;
+        osg::ref_ptr<GroundcoverUpdater> mGroundcoverUpdater;
 
         osg::ref_ptr<SceneUtil::WorkQueue> mWorkQueue;
         osg::ref_ptr<SceneUtil::UnrefQueue> mUnrefQueue;
@@ -280,10 +280,10 @@ namespace MWRender
         std::unique_ptr<Objects> mObjects;
         std::unique_ptr<Water> mWater;
         std::unique_ptr<Terrain::World> mTerrain;
-        std::unique_ptr<Terrain::World> mGrassWorld;
+        std::unique_ptr<Terrain::World> mGroundcoverWorld;
         TerrainStorage* mTerrainStorage;
         std::unique_ptr<ObjectPaging> mObjectPaging;
-        std::unique_ptr<ObjectPaging> mGrassPaging;
+        std::unique_ptr<ObjectPaging> mGroundcoverPaging;
         std::unique_ptr<SkyManager> mSky;
         std::unique_ptr<FogManager> mFog;
         std::unique_ptr<EffectManager> mEffectManager;
@@ -310,10 +310,10 @@ namespace MWRender
         RenderingManager(const RenderingManager&);
     };
 
-    class GrassUpdater : public SceneUtil::StateSetUpdater
+    class GroundcoverUpdater : public SceneUtil::StateSetUpdater
     {
     public:
-        GrassUpdater()
+        GroundcoverUpdater()
             : mWindSpeed(0.f)
             , mPlayerPos(osg::Vec3f())
         {

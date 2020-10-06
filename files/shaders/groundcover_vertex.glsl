@@ -25,7 +25,7 @@ varying vec3 passNormal;
 #include "shadows_vertex.glsl"
 #include "lighting.glsl"
 
-#if @grassAnimation
+#if @groundcoverAnimation
 uniform float osg_SimulationTime;
 uniform mat4 osg_ViewMatrixInverse;
 uniform float windSpeed;
@@ -40,7 +40,7 @@ vec2 rotate(vec2 v, float a)
     return m * v;
 }
 
-vec2 grassDisplacement(vec4 worldpos, float h)
+vec2 groundcoverDisplacement(vec4 worldpos, float h)
 {
     vec2 windDirection = vec2(1.0);
     vec3 FootPos = playerPos;
@@ -69,9 +69,9 @@ void main(void)
 
     vec4 displacedVertex = gl_Vertex;
     vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos.xyz, 1.0);
-    vec2 grassVertex = grassDisplacement(worldPos, gl_Vertex.z);
+    vec2 groundcoverVertex = groundcoverDisplacement(worldPos, gl_Vertex.z);
 
-    displacedVertex.xy += rotate(grassVertex.xy, -1.0*Rotz);
+    displacedVertex.xy += rotate(groundcoverVertex.xy, -1.0*Rotz);
     gl_Position = gl_ModelViewProjectionMatrix * displacedVertex;
 #else
 

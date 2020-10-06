@@ -55,8 +55,8 @@ void main()
 #endif
 
     float shadowing = unshadowedLightRatio(linearDepth);
-    if (euclideanDepth > @grassFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@grassFadeStart, @grassFadeEnd, euclideanDepth);
+    if (euclideanDepth > @groundcoverFadeStart)
+        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, euclideanDepth);
 
 #if !PER_PIXEL_LIGHTING
 

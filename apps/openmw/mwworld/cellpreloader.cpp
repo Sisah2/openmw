@@ -32,23 +32,23 @@ namespace MWWorld
     {
         ListModelsVisitor(std::vector<std::string>& out)
             : mOut(out)
-            , mCurrentGrass(0.f)
+            , mCurrentGroundcover(0.f)
         {
         }
 
         virtual bool operator()(const MWWorld::Ptr& ptr)
         {
-            static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
-            static const float density = Settings::Manager::getFloat("density", "Grass");
+            static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
+            static const float density = Settings::Manager::getFloat("density", "Groundcover");
 
-            if (grassEnabled && ptr.getTypeName()==typeid (ESM::Static).name())
+            if (groundcoverEnabled && ptr.getTypeName()==typeid (ESM::Static).name())
             {
                 if (MWRender::isGrassItem(ptr.getClass().getModel(ptr)))
                 {
-                    mCurrentGrass += density;
-                    if (mCurrentGrass < 1.f) return true;
+                    mCurrentGroundcover += density;
+                    if (mCurrentGroundcover < 1.f) return true;
 
-                    mCurrentGrass -= 1.f;
+                    mCurrentGroundcover -= 1.f;
                 }
             }
 
@@ -60,7 +60,7 @@ namespace MWWorld
         virtual ~ListModelsVisitor() = default;
 
         std::vector<std::string>& mOut;
-        float mCurrentGrass;
+        float mCurrentGroundcover;
     };
 
     /// Worker thread item: preload models in a cell.

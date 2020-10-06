@@ -360,13 +360,13 @@ namespace MWRender
         }
     };
 
-    ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, bool grass)
+    ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, bool groundcover)
             : GenericResourceManager<ChunkId>(nullptr)
          , mSceneManager(sceneManager)
-         , mGrass(grass)
+         , mGroundcover(groundcover)
          , mRefTrackerLocked(false)
     {
-        mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain") || grass;
+        mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain") || groundcover;
         mDebugBatches = Settings::Manager::getBool("object paging debug batches", "Terrain");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
         mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
@@ -376,8 +376,8 @@ namespace MWRender
 
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
-        static const bool grassEnabled = Settings::Manager::getBool("enabled", "Grass");
-        static const float density = Settings::Manager::getFloat("density", "Grass");
+        static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
+        static const float density = Settings::Manager::getFloat("density", "Groundcover");
 
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size/2.f), std::floor(center.y() - size/2.f));
 
@@ -395,7 +395,7 @@ namespace MWRender
                 const ESM::Cell* cell = store.get<ESM::Cell>().searchStatic(cellX, cellY);
                 if (!cell) continue;
 
-                float currentGrass = 0.f;
+                float currentGroundcover = 0.f;
                 for (size_t i=0; i<cell->mContextList.size(); ++i)
                 {
                     try
@@ -415,15 +415,15 @@ namespace MWRender
                             if (!typeFilter(type,size>=2)) continue;
                             if (deleted) { refs.erase(ref.mRefNum); continue; }
 
-                            if (grassEnabled)
+                            if (groundcoverEnabled)
                             {
                                 std::string model = getModel(type, ref.mRefID, store);
                                 if (MWRender::isGrassItem(model))
                                 {
-                                    currentGrass += density;
-                                    if (currentGrass < 1.f) continue;
+                                    currentGroundcover += density;
+                                    if (currentGroundcover < 1.f) continue;
 
-                                    currentGrass -= 1.f;
+                                    currentGroundcover -= 1.f;
                                 }
                             }
 
@@ -499,8 +499,8 @@ namespace MWRender
             int type = store.findStatic(ref.mRefID);
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty()) continue;
-            if (grassEnabled && !mGrass && MWRender::isGrassItem(model)) continue;
-            if (grassEnabled && mGrass && !MWRender::isGrassItem(model)) continue;
+            if (groundcoverEnabled && !mGroundcover && MWRender::isGrassItem(model)) continue;
+            if (groundcoverEnabled && mGroundcover && !MWRender::isGrassItem(model)) continue;
 
             model = "meshes/" + model;
 
@@ -668,24 +668,24 @@ namespace MWRender
         }
 
         group->getBound();
-        group->setNodeMask(mGrass ? Mask_Grass : Mask_Static);
+        group->setNodeMask(mGroundcover ? Mask_Groundcover : Mask_Static);
         osg::UserDataContainer* udc = group->getOrCreateUserDataContainer();
-        if (activeGrid && !mGrass)
+        if (activeGrid && !mGroundcover)
         {
             udc->addUserObject(refnumSet);
             group->addCullCallback(new SceneUtil::LightListCallback);
         }
         udc->addUserObject(templateRefs);
 
-        if (mGrass)
-            mSceneManager->recreateShaders(group, "grass");
+        if (mGroundcover)
+            mSceneManager->recreateShaders(group, "groundcover");
 
         return group;
     }
 
     unsigned int ObjectPaging::getNodeMask()
     {
-        return mGrass ? Mask_Grass : Mask_Static;
+        return mGroundcover ? Mask_Groundcover : Mask_Static;
     }
 
     struct ClearCacheFunctor
