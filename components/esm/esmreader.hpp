@@ -292,7 +292,6 @@ private:
   size_t mFileSize;
 
   bool mIsGroundcoverFile;
-
 };
 }
 #endif

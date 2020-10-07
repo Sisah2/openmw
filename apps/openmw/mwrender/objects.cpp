@@ -8,7 +8,6 @@
 
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/class.hpp"
-#include "../mwworld/cellstore.hpp"
 
 #include "animation.hpp"
 #include "npcanimation.hpp"

@@ -480,7 +480,6 @@ namespace MWRender
         float minSize = mMinSize;
         if (mMinSizeMergeFactor)
             minSize *= mMinSizeMergeFactor;
-
         for (const auto& pair : refs)
         {
             const ESM::CellRef& ref = pair.second;

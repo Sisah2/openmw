@@ -527,8 +527,6 @@ namespace MWWorld
                     }
 
                     Misc::StringUtils::lowerCaseInPlace (ref.mRefID);
-
-                    mIds.push_back (ref.mRefID);
                 }
             }
             catch (std::exception& e)
