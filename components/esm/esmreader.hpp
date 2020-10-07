@@ -67,7 +67,7 @@ public:
 
   /// Load ES file from a new stream, parses the header. Closes the
   /// currently open file first, if any.
-  void open(Files::IStreamPtr _esm, const std::string &name, bool isGroundcover);
+  void open(Files::IStreamPtr _esm, const std::string &name, bool isGroundcover = false);
 
   void open(const std::string &file, bool isGroundcover = false);
 
