@@ -5,7 +5,6 @@
 #include <osg/Light>
 #include <osg/Camera>
 
-#include <components/sceneutil/statesetupdater.hpp>
 #include <components/settings/settings.hpp>
 
 #include <osgUtil/IncrementalCompileOperation>
@@ -308,35 +307,6 @@ namespace MWRender
 
         void operator = (const RenderingManager&);
         RenderingManager(const RenderingManager&);
-    };
-
-    class GroundcoverUpdater : public SceneUtil::StateSetUpdater
-    {
-    public:
-        GroundcoverUpdater()
-            : mWindSpeed(0.f)
-            , mPlayerPos(osg::Vec3f())
-        {
-        }
-
-        void setWindSpeed(float windSpeed)
-        {
-            mWindSpeed = windSpeed;
-        }
-
-        void setPlayerPos(osg::Vec3f playerPos)
-        {
-            mPlayerPos = playerPos;
-        }
-
-    protected:
-        virtual void setDefaults(osg::StateSet *stateset);
-
-        virtual void apply(osg::StateSet *stateset, osg::NodeVisitor *nv);
-
-    private:
-        float mWindSpeed;
-        osg::Vec3f mPlayerPos;
     };
 }
 

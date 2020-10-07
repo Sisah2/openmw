@@ -200,6 +200,38 @@ namespace MWWorld
         }
     }
 
+    template<>
+    void CellRefList<ESM::Static>::load(ESM::CellRef &ref, bool deleted, const MWWorld::ESMStore &esmStore)
+    {
+        const MWWorld::Store<ESM::Static> &store = esmStore.get<ESM::Static>();
+
+        if (const ESM::Static *ptr = store.search (ref.mRefID))
+        {
+            // Groundcover object instances do not need to be loaded directly to the scene
+            if (ptr->mIsGroundcover) return;
+
+            typename std::list<LiveRef>::iterator iter =
+                std::find(mList.begin(), mList.end(), ref.mRefNum);
+
+            LiveRef liveCellRef (ref, ptr);
+
+            if (deleted)
+                liveCellRef.mData.setDeletedByContentFile(true);
+
+            if (iter != mList.end())
+                *iter = liveCellRef;
+            else
+                mList.push_back (liveCellRef);
+        }
+        else
+        {
+            Log(Debug::Warning)
+                << "Warning: could not resolve cell reference '" << ref.mRefID << "'"
+                << " (dropping reference)";
+        }
+    }
+
+
     template<typename X> bool operator==(const LiveCellRef<X>& ref, int pRefnum)
     {
         return (ref.mRef.mRefnum == pRefnum);
@@ -526,7 +558,7 @@ namespace MWWorld
                         continue;
                     }
 
-                    Misc::StringUtils::lowerCaseInPlace (ref.mRefID);
+                    mIds.push_back (Misc::StringUtils::lowerCase (ref.mRefID));
                 }
             }
             catch (std::exception& e)
@@ -689,21 +721,9 @@ namespace MWWorld
             case ESM::REC_NPC_: mNpcs.load(ref, deleted, store); break;
             case ESM::REC_PROB: mProbes.load(ref, deleted, store); break;
             case ESM::REC_REPA: mRepairs.load(ref, deleted, store); break;
+            case ESM::REC_STAT: mStatics.load(ref, deleted, store); break;
             case ESM::REC_WEAP: mWeapons.load(ref, deleted, store); break;
             case ESM::REC_BODY: mBodyParts.load(ref, deleted, store); break;
-            case ESM::REC_STAT:
-            {
-                static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
-                if (groundcoverEnabled)
-                {
-                    const ESM::Static* staticRecord = mStore.get<ESM::Static>().find(ref.mRefID);
-                    if (staticRecord->mIsGroundcover)
-                        return;
-                }
-
-                mStatics.load(ref, deleted, store);
-                break;
-            }
 
             case 0: Log(Debug::Error) << "Cell reference '" + ref.mRefID + "' not found!"; return;
 
