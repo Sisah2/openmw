@@ -699,14 +699,8 @@ namespace MWWorld
                 if (groundcoverEnabled)
                 {
                     const ESM::Static* staticRecord = mStore.get<ESM::Static>().find(ref.mRefID);
-                    if (!staticRecord->mModel.empty())
-                    {
-                        bool isGroundcover = MWRender::isGrassItem(staticRecord->mModel);
-                        if (isGroundcover)
-                        {
-                            return;
-                        }
-                    }
+                    if (staticRecord->mIsGroundcover)
+                        return;
                 }
 
                 mStatics.load(ref, deleted, store);

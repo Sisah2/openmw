@@ -3,7 +3,6 @@
 #include "esmreader.hpp"
 #include "esmwriter.hpp"
 #include "defs.hpp"
-
 namespace ESM
 {
     unsigned int Static::sRecordId = REC_STAT;
@@ -37,6 +36,8 @@ namespace ESM
 
         if (!hasName)
             esm.fail("Missing NAME subrecord");
+
+        mIsGroundcover = esm.isGroundcoverFile();
     }
     void Static::save(ESMWriter &esm, bool isDeleted) const
     {

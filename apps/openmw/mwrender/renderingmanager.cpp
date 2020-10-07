@@ -276,9 +276,9 @@ namespace MWRender
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
         globalDefines["groundcoverAnimation"] = Settings::Manager::getBool("animation", "Groundcover") ? "1" : "0";
 
-        float grassDistance = (Constants::CellSizeInUnits * Settings::Manager::getFloat("distance", "Groundcover") - 1024) * 0.93;
-        globalDefines["groundcoverFadeStart"] = std::to_string(grassDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
-        globalDefines["groundcoverFadeEnd"] = std::to_string(grassDistance);
+        float groundcoverDistance = (Constants::CellSizeInUnits * Settings::Manager::getFloat("distance", "Groundcover") - 1024) * 0.93;
+        globalDefines["groundcoverFadeStart"] = std::to_string(groundcoverDistance * Settings::Manager::getFloat("fade start", "Groundcover"));
+        globalDefines["groundcoverFadeEnd"] = std::to_string(groundcoverDistance);
 
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
@@ -1318,8 +1318,8 @@ namespace MWRender
 
         if (mGroundcoverWorld)
         {
-            float grassDistance = Constants::CellSizeInUnits * Settings::Manager::getFloat("distance", "Groundcover");
-            mGroundcoverWorld->setViewDistance(grassDistance * (distanceMult ? 1.f/distanceMult : 1.f));
+            float groundcoverDistance = Constants::CellSizeInUnits * Settings::Manager::getFloat("distance", "Groundcover");
+            mGroundcoverWorld->setViewDistance(groundcoverDistance * (distanceMult ? 1.f/distanceMult : 1.f));
         }
     }
 

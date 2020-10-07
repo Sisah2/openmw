@@ -30,7 +30,6 @@
 #include "apps/openmw/mwbase/environment.hpp"
 #include "apps/openmw/mwbase/world.hpp"
 
-#include "grass.hpp"
 #include "vismask.hpp"
 
 namespace MWRender
@@ -52,21 +51,32 @@ namespace MWRender
         }
     }
 
-    std::string getModel(int type, const std::string& id, const MWWorld::ESMStore& store)
+    std::string getModel(int type, const std::string& id, const MWWorld::ESMStore& store, bool& isGroundcover)
     {
         switch (type)
         {
-          case ESM::REC_STAT:
-            return store.get<ESM::Static>().searchStatic(id)->mModel;
-          case ESM::REC_ACTI:
-            return store.get<ESM::Activator>().searchStatic(id)->mModel;
-          case ESM::REC_DOOR:
-            return store.get<ESM::Door>().searchStatic(id)->mModel;
-          case ESM::REC_CONT:
-            return store.get<ESM::Container>().searchStatic(id)->mModel;
-          default:
-            return std::string();
+            case ESM::REC_STAT:
+            {
+                const ESM::Static* entity = store.get<ESM::Static>().searchStatic(id);
+                isGroundcover = entity->mIsGroundcover;
+                return entity->mModel;
+            }
+            case ESM::REC_ACTI:
+                return store.get<ESM::Activator>().searchStatic(id)->mModel;
+            case ESM::REC_DOOR:
+                return store.get<ESM::Door>().searchStatic(id)->mModel;
+            case ESM::REC_CONT:
+                return store.get<ESM::Container>().searchStatic(id)->mModel;
+            default:
+                return std::string();
         }
+    }
+
+    bool isGroundcover(int type, const std::string& id, const MWWorld::ESMStore& store)
+    {
+        if (type != ESM::REC_STAT) return false;
+
+        return store.get<ESM::Static>().searchStatic(id)->mIsGroundcover;
     }
 
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
@@ -417,8 +427,8 @@ namespace MWRender
 
                             if (groundcoverEnabled)
                             {
-                                std::string model = getModel(type, ref.mRefID, store);
-                                if (MWRender::isGrassItem(model))
+                                // FIXME: per-instance check requires search
+                                if (isGroundcover(type, ref.mRefID, store))
                                 {
                                     currentGroundcover += density;
                                     if (currentGroundcover < 1.f) continue;
@@ -497,10 +507,11 @@ namespace MWRender
                 continue; // marker objects that have a hardcoded function in the game logic, should be hidden from the player
 
             int type = store.findStatic(ref.mRefID);
-            std::string model = getModel(type, ref.mRefID, store);
+            bool isGroundCover = false;
+            std::string model = getModel(type, ref.mRefID, store, isGroundCover);
             if (model.empty()) continue;
-            if (groundcoverEnabled && !mGroundcover && MWRender::isGrassItem(model)) continue;
-            if (groundcoverEnabled && mGroundcover && !MWRender::isGrassItem(model)) continue;
+            if (!mGroundcover && isGroundCover) continue;
+            if (mGroundcover && !isGroundCover) continue;
 
             model = "meshes/" + model;
 

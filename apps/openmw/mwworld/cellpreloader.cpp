@@ -43,7 +43,8 @@ namespace MWWorld
 
             if (groundcoverEnabled && ptr.getTypeName()==typeid (ESM::Static).name())
             {
-                if (MWRender::isGrassItem(ptr.getClass().getModel(ptr)))
+                const MWWorld::LiveCellRef<ESM::Static> *ref = ptr.get<ESM::Static>();
+                if (ref->mBase->mIsGroundcover)
                 {
                     mCurrentGroundcover += density;
                     if (mCurrentGroundcover < 1.f) return true;

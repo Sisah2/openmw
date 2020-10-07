@@ -32,8 +32,6 @@
 #include <components/esm/loadmisc.hpp>
 #include <components/esm/loadbody.hpp>
 
-#include "../mwrender/grass.hpp"
-
 #include "timestamp.hpp"
 #include "ptr.hpp"
 
