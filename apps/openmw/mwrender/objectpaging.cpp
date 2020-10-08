@@ -140,10 +140,12 @@ namespace MWRender
                 if (!mGroundcover || !geom) return clone;
 
                 // We should keep an original vertex arrray to animate groundcover page properly
-                osg::Object* attrs = geom->getVertexArray()->clone(osg::CopyOp::DEEP_COPY_ALL);
-                if (attrs)
+                osg::Vec3Array* vert = dynamic_cast<osg::Vec3Array*>(geom->getVertexArray());
+                if (vert)
                 {
-                    geom->setVertexAttribArray(1, static_cast<osg::Array*>(attrs), osg::Array::BIND_PER_VERTEX);
+                    osg::Vec3Array* attrs = static_cast<osg::Vec3Array*>(vert->clone(osg::CopyOp::DEEP_COPY_ALL));
+                    if (attrs)
+                        geom->setVertexAttribArray(1, attrs, osg::Array::BIND_PER_VERTEX);
                 }
 
                 return geom;
@@ -402,6 +404,7 @@ namespace MWRender
     {
         static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
         static const float density = Settings::Manager::getFloat("density", "Groundcover");
+        static const bool useAnimation = Settings::Manager::getBool("animation", "Groundcover");
 
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size/2.f), std::floor(center.y() - size/2.f));
 
@@ -581,7 +584,7 @@ namespace MWRender
         osg::ref_ptr<TemplateRef> templateRefs = new TemplateRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop;
-        copyop.mGroundcover = mGroundcover;
+        copyop.mGroundcover = useAnimation && mGroundcover;
         for (const auto& pair : nodes)
         {
             const osg::Node* cnode = pair.first;
