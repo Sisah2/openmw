@@ -363,7 +363,7 @@ namespace MWRender
         {
             osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
             groundcoverRoot->setNodeMask(Mask_Groundcover);
-            groundcoverRoot->setName("GroundcoverRoot");
+            groundcoverRoot->setName("Groundcover Root");
             sceneRoot->addChild(groundcoverRoot);
 
             osg::ref_ptr<osg::StateSet> state = groundcoverRoot->getOrCreateStateSet();
@@ -377,7 +377,7 @@ namespace MWRender
 
             auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
             mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
-                groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Terrain, Mask_PreCompile, Mask_Debug,
+                groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Groundcover, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
 
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
