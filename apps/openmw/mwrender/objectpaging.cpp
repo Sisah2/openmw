@@ -116,6 +116,7 @@ namespace MWRender
         bool mOptimizeBillboards = true;
         float mSqrDistance = 0.f;
         osg::Vec3f mViewVector;
+        bool mGroundcover = false;
         mutable std::vector<const osg::Node*> mNodePath;
 
         void copy(const osg::Node* toCopy, osg::Group* attachTo)
@@ -133,7 +134,20 @@ namespace MWRender
         virtual osg::Node* operator() (const osg::Node* node) const
         {
             if (const osg::Drawable* d = node->asDrawable())
-                return operator()(d);
+            {
+                osg::Node* clone = operator()(d);
+                osg::Geometry* geom = clone ? clone->asGeometry() : nullptr;
+                if (!mGroundcover || !geom) return clone;
+
+                // We should keep an original vertex arrray to animate groundcover page properly
+                osg::Object* attrs = geom->getVertexArray()->clone(osg::CopyOp::DEEP_COPY_ALL);
+                if (attrs)
+                {
+                    geom->setVertexAttribArray(1, static_cast<osg::Array*>(attrs), osg::Array::BIND_PER_VERTEX);
+                }
+
+                return geom;
+            }
 
             if (dynamic_cast<const osgParticle::ParticleProcessor*>(node))
                 return nullptr;
@@ -567,6 +581,7 @@ namespace MWRender
         osg::ref_ptr<TemplateRef> templateRefs = new TemplateRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop;
+        copyop.mGroundcover = mGroundcover;
         for (const auto& pair : nodes)
         {
             const osg::Node* cnode = pair.first;

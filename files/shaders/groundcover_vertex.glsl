@@ -31,6 +31,7 @@ uniform mat4 osg_ViewMatrixInverse;
 uniform float windSpeed;
 uniform float Rotz;
 uniform vec3 playerPos;
+in vec3 originalCoords;
 
 vec2 rotate(vec2 v, float a)
 {
@@ -69,7 +70,7 @@ void main(void)
 
     vec4 displacedVertex = gl_Vertex;
     vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos.xyz, 1.0);
-    vec2 groundcoverVertex = groundcoverDisplacement(worldPos, gl_Vertex.z);
+    vec2 groundcoverVertex = groundcoverDisplacement(worldPos, originalCoords.z);
 
     displacedVertex.xy += rotate(groundcoverVertex.xy, -1.0*Rotz);
     gl_Position = gl_ModelViewProjectionMatrix * displacedVertex;
