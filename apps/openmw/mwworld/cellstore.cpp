@@ -17,8 +17,6 @@
 #include <components/esm/creaturelevliststate.hpp>
 #include <components/esm/doorstate.hpp>
 
-#include <components/settings/settings.hpp>
-
 #include "../mwbase/environment.hpp"
 #include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -230,7 +228,6 @@ namespace MWWorld
                 << " (dropping reference)";
         }
     }
-
 
     template<typename X> bool operator==(const LiveCellRef<X>& ref, int pRefnum)
     {
