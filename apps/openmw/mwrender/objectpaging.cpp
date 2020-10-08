@@ -97,6 +97,25 @@ namespace MWRender
         }
     }
 
+    bool needvbo(const osg::Geometry* geom)
+    {
+#if OSG_MIN_VERSION_REQUIRED(3,5,6)
+        return true;
+#else
+        return geom->getUseVertexBufferObjects();
+#endif
+    }
+
+    osg::Array* cloneArray(osg::Array* array, const osg::Geometry* geom)
+    {
+        array = static_cast<osg::Array*>(array->clone(osg::CopyOp::DEEP_COPY_ALL));
+        if (needvbo(geom))
+        {
+            array->setVertexBufferObject(new osg::VertexBufferObject);
+        }
+        return array;
+    }
+
     class CanOptimizeCallback : public SceneUtil::Optimizer::IsOperationPermissibleForObjectCallback
     {
     public:
@@ -143,7 +162,7 @@ namespace MWRender
                 osg::Vec3Array* vert = dynamic_cast<osg::Vec3Array*>(geom->getVertexArray());
                 if (vert)
                 {
-                    osg::Vec3Array* attrs = static_cast<osg::Vec3Array*>(vert->clone(osg::CopyOp::DEEP_COPY_ALL));
+                    osg::Vec3Array* attrs = static_cast<osg::Vec3Array*>(cloneArray(vert, geom));
                     if (attrs)
                         geom->setVertexAttribArray(1, attrs, osg::Array::BIND_PER_VERTEX);
                 }
