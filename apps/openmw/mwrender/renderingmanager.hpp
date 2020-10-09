@@ -308,6 +308,7 @@ namespace MWRender
         void operator = (const RenderingManager&);
         RenderingManager(const RenderingManager&);
     };
+
 }
 
 #endif

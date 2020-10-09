@@ -1546,21 +1546,15 @@ namespace MWRender
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
+        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
             return false;
 
-        bool result = false;
-        if (mObjectPaging && mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+        if (mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
         {
             mTerrain->rebuildViews();
-            result = true;
+            return true;
         }
-        if (mGroundcoverPaging && mGroundcoverPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
-        {
-            mGroundcoverWorld->rebuildViews();
-            result = true;
-        }
-        return result;
+        return false;
     }
     void RenderingManager::pagingBlacklistObject(int type, const MWWorld::ConstPtr &ptr)
     {
@@ -1570,9 +1564,6 @@ namespace MWRender
         if (!refnum.hasContentFile()) return;
         if (mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
             mTerrain->rebuildViews();
-
-        if (mGroundcoverPaging && mGroundcoverPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
-            mGroundcoverWorld->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()
     {
@@ -1594,5 +1585,4 @@ namespace MWRender
         if (mObjectPaging)
             mObjectPaging->getPagedRefnums(activeGrid, out);
     }
-
 }
