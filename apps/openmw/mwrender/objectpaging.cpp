@@ -493,7 +493,7 @@ namespace MWRender
             }
         }
 
-        if (activeGrid)
+        if (activeGrid && !mGroundcover)
         {
             std::lock_guard<std::mutex> lock(mRefTrackerMutex);
             for (auto ref : getRefTracker().mBlacklist)
@@ -562,18 +562,21 @@ namespace MWRender
 
             osg::ref_ptr<const osg::Node> cnode = mSceneManager->getTemplate(model, false);
 
-            if (activeGrid)
+            if (!mGroundcover)
             {
-                if (cnode->getNumChildrenRequiringUpdateTraversal() > 0 || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel) || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel))
-                    continue;
-                else
-                    refnumSet->mRefnums.insert(pair.first);
-            }
+                if (activeGrid)
+                {
+                    if (cnode->getNumChildrenRequiringUpdateTraversal() > 0 || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel) || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel))
+                        continue;
+                    else
+                        refnumSet->mRefnums.insert(pair.first);
+                }
 
-            {
-                std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-                if (getRefTracker().mDisabled.count(pair.first))
-                    continue;
+                {
+                    std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+                    if (getRefTracker().mDisabled.count(pair.first))
+                        continue;
+                }
             }
 
             float radius2 = cnode->getBound().radius2() * ref.mScale*ref.mScale;
@@ -863,7 +866,10 @@ namespace MWRender
 
     void ObjectPaging::reportStats(unsigned int frameNumber, osg::Stats *stats) const
     {
-        stats->setAttribute(frameNumber, "Object Chunk", mCache->getCacheSize());
+        if (mGroundcover)
+            stats->setAttribute(frameNumber, "Groundcover Chunk", mCache->getCacheSize());
+        else
+            stats->setAttribute(frameNumber, "Object Chunk", mCache->getCacheSize());
     }
 
 }
