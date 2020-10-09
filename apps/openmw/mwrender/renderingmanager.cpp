@@ -329,7 +329,7 @@ namespace MWRender
         const bool useTerrainNormalMaps = Settings::Manager::getBool("auto use terrain normal maps", "Shaders");
         const bool useTerrainSpecularMaps = Settings::Manager::getBool("auto use terrain specular maps", "Shaders");
 
-        mTerrainStorage = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
+        mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
 
         const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
         int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
@@ -343,7 +343,7 @@ namespace MWRender
         if (Settings::Manager::getBool("distant terrain", "Terrain"))
         {
             mTerrain.reset(new Terrain::QuadTreeWorld(
-                sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug,
+                sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
             if (Settings::Manager::getBool("object paging", "Terrain"))
             {
@@ -353,7 +353,7 @@ namespace MWRender
             }
         }
         else
-            mTerrain.reset(new Terrain::TerrainGrid(sceneRoot, mRootNode, mResourceSystem, mTerrainStorage, Mask_Terrain, Mask_PreCompile, Mask_Debug));
+            mTerrain.reset(new Terrain::TerrainGrid(sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug));
 
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
@@ -371,9 +371,8 @@ namespace MWRender
                 groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
             }
 
-            auto store = new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps);
             mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
-                groundcoverRoot, mRootNode, mResourceSystem, store, Mask_Groundcover, Mask_PreCompile, Mask_Debug,
+                groundcoverRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Groundcover, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
 
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
@@ -1388,9 +1387,6 @@ namespace MWRender
             stats->setAttribute(frameNumber, "UnrefQueue", mUnrefQueue->getNumItems());
 
             mTerrain->reportStats(frameNumber, stats);
-
-            if (mGroundcoverWorld)
-                mGroundcoverWorld->reportStats(frameNumber, stats);
         }
     }
 
@@ -1548,7 +1544,6 @@ namespace MWRender
     {
         if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
             return false;
-
         if (mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(), osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
         {
             mTerrain->rebuildViews();

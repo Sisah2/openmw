@@ -280,7 +280,7 @@ namespace MWRender
         std::unique_ptr<Water> mWater;
         std::unique_ptr<Terrain::World> mTerrain;
         std::unique_ptr<Terrain::World> mGroundcoverWorld;
-        TerrainStorage* mTerrainStorage;
+        std::unique_ptr<TerrainStorage> mTerrainStorage;
         std::unique_ptr<ObjectPaging> mObjectPaging;
         std::unique_ptr<ObjectPaging> mGroundcoverPaging;
         std::unique_ptr<SkyManager> mSky;

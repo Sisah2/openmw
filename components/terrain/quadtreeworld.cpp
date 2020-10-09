@@ -244,18 +244,20 @@ private:
 };
 
 QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resource::ResourceSystem *resourceSystem, Storage *storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float compMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize, bool useTerrain)
-    : TerrainGrid(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask)
+    : TerrainGrid(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask, useTerrain)
     , mViewDataMap(new ViewDataMap)
     , mQuadTreeBuilt(false)
     , mLodFactor(lodFactor)
     , mVertexLodMod(vertexLodMod)
     , mViewDistance(std::numeric_limits<float>::max())
 {
-    mChunkManager->setCompositeMapSize(compMapResolution);
-    mChunkManager->setCompositeMapLevel(compMapLevel);
-    mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
     if (useTerrain)
+    {
+        mChunkManager->setCompositeMapSize(compMapResolution);
+        mChunkManager->setCompositeMapLevel(compMapLevel);
+        mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
         mChunkManagers.push_back(mChunkManager.get());
+    }
 }
 
 QuadTreeWorld::~QuadTreeWorld()
@@ -439,7 +441,7 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
         entry.mRenderingNode->accept(nv);
     }
 
-    if (isCullVisitor)
+    if (mHeightCullCallback && isCullVisitor)
         updateWaterCullingView(mHeightCullCallback, vd, static_cast<osgUtil::CullVisitor*>(&nv), mStorage->getCellWorldSize(), !isGridEmpty());
 
     vd->markUnchanged();
