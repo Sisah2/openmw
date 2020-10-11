@@ -30,7 +30,7 @@ uniform float osg_SimulationTime;
 uniform mat4 osg_ViewMatrixInverse;
 uniform float windSpeed;
 uniform vec3 playerPos;
-in float originalHeight;
+attribute float originalHeight;
 
 vec2 rotate(vec2 v, float a)
 {
