@@ -525,7 +525,7 @@ void QuadTreeWorld::loadCell(int x, int y)
 {
     // fallback behavior only for undefined cells (every other is already handled in quadtree)
     float dummy;
-    if (!mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
+    if (mChunkManager && !mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
         TerrainGrid::loadCell(x,y);
     else
         World::loadCell(x,y);
@@ -535,7 +535,7 @@ void QuadTreeWorld::unloadCell(int x, int y)
 {
     // fallback behavior only for undefined cells (every other is already handled in quadtree)
     float dummy;
-    if (!mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
+    if (mChunkManager && !mStorage->getMinMaxHeights(1, osg::Vec2f(x+0.5, y+0.5), dummy, dummy))
         TerrainGrid::unloadCell(x,y);
     else
         World::unloadCell(x,y);
