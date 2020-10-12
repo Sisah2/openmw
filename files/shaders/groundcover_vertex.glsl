@@ -57,7 +57,7 @@ vec2 groundcoverDisplacement(vec4 worldpos, float h)
 
     float d = length(worldpos.xyz - FootPos.xyz);
     vec3 stomp = vec3(0.0);
-    if (d < 150.0 && d > 0)
+    if (d < 150.0 && d > 0.0)
     {
         if (d < 42.0) d = 42.0;
         stomp = (60.0 / d - 0.4) * (worldpos.xyz - FootPos.xyz);
