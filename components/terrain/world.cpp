@@ -113,12 +113,14 @@ float World::getHeightAt(const osg::Vec3f &worldPos)
 
 void World::updateTextureFiltering()
 {
-    mTextureManager->updateTextureFiltering();
+    if (mTextureManager)
+        mTextureManager->updateTextureFiltering();
 }
 
 void World::clearAssociatedCaches()
 {
-    mChunkManager->clearCache();
+    if (mChunkManager)
+        mChunkManager->clearCache();
 }
 
 osg::Callback* World::getHeightCullCallback(float highz, unsigned int mask)
