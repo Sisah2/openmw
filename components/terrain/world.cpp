@@ -23,7 +23,19 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
     mTerrainRoot->setNodeMask(nodeMask);
     mTerrainRoot->setName("Terrain Root");
 
-    setupCompositeCamera(compileRoot, preCompileMask);
+    osg::ref_ptr<osg::Camera> compositeCam = new osg::Camera;
+    compositeCam->setRenderOrder(osg::Camera::PRE_RENDER, -1);
+    compositeCam->setProjectionMatrix(osg::Matrix::identity());
+    compositeCam->setViewMatrix(osg::Matrix::identity());
+    compositeCam->setReferenceFrame(osg::Camera::ABSOLUTE_RF);
+    compositeCam->setClearMask(0);
+    compositeCam->setNodeMask(preCompileMask);
+    mCompositeMapCamera = compositeCam;
+
+    compileRoot->addChild(compositeCam);
+
+    mCompositeMapRenderer = new CompositeMapRenderer;
+    compositeCam->addChild(mCompositeMapRenderer);
 
     mParent->addChild(mTerrainRoot);
 
@@ -38,15 +50,13 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
     mResourceSystem->addResourceManager(mTextureManager.get());
 }
 
-World::World(osg::Group* parent, osg::Group* compileRoot, Storage* storage, int nodeMask, int preCompileMask)
+World::World(osg::Group* parent, Storage* storage, int nodeMask)
     : mStorage(storage)
     , mParent(parent)
     , mBorderVisible(false)
 {
     mTerrainRoot = new osg::Group;
     mTerrainRoot->setNodeMask(nodeMask);
-
-    setupCompositeCamera(compileRoot, preCompileMask);
 
     mParent->addChild(mTerrainRoot);
 }
@@ -60,25 +70,11 @@ World::~World()
 
     mParent->removeChild(mTerrainRoot);
 
-    mCompositeMapCamera->removeChild(mCompositeMapRenderer);
-    mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
-}
-
-void World::setupCompositeCamera(osg::Group* compileRoot, int preCompileMask)
-{
-    osg::ref_ptr<osg::Camera> compositeCam = new osg::Camera;
-    compositeCam->setRenderOrder(osg::Camera::PRE_RENDER, -1);
-    compositeCam->setProjectionMatrix(osg::Matrix::identity());
-    compositeCam->setViewMatrix(osg::Matrix::identity());
-    compositeCam->setReferenceFrame(osg::Camera::ABSOLUTE_RF);
-    compositeCam->setClearMask(0);
-    compositeCam->setNodeMask(preCompileMask);
-    mCompositeMapCamera = compositeCam;
-
-    compileRoot->addChild(compositeCam);
-
-    mCompositeMapRenderer = new CompositeMapRenderer;
-    compositeCam->addChild(mCompositeMapRenderer);
+    if (mCompositeMapCamera && mCompositeMapRenderer)
+    {
+        mCompositeMapCamera->removeChild(mCompositeMapRenderer);
+        mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
+    }
 }
 
 void World::setWorkQueue(SceneUtil::WorkQueue* workQueue)
