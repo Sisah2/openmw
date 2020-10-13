@@ -13,7 +13,7 @@
 namespace Terrain
 {
 
-World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask, bool useTerrain)
+World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask)
     : mStorage(storage)
     , mParent(parent)
     , mResourceSystem(resourceSystem)
@@ -21,7 +21,51 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
 {
     mTerrainRoot = new osg::Group;
     mTerrainRoot->setNodeMask(nodeMask);
+    mTerrainRoot->setName("Terrain Root");
 
+    setupCompositeCamera(compileRoot, preCompileMask);
+
+    mParent->addChild(mTerrainRoot);
+
+    mHeightCullCallback = new HeightCullCallback();
+
+    mTextureManager.reset(new TextureManager(mResourceSystem->getSceneManager()));
+    mChunkManager.reset(new ChunkManager(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer));
+    mChunkManager->setNodeMask(nodeMask);
+    mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask));
+
+    mResourceSystem->addResourceManager(mChunkManager.get());
+    mResourceSystem->addResourceManager(mTextureManager.get());
+}
+
+World::World(osg::Group* parent, osg::Group* compileRoot, Storage* storage, int nodeMask, int preCompileMask)
+    : mStorage(storage)
+    , mParent(parent)
+    , mBorderVisible(false)
+{
+    mTerrainRoot = new osg::Group;
+    mTerrainRoot->setNodeMask(nodeMask);
+
+    setupCompositeCamera(compileRoot, preCompileMask);
+
+    mParent->addChild(mTerrainRoot);
+}
+
+World::~World()
+{
+    if (mResourceSystem && mChunkManager)
+        mResourceSystem->removeResourceManager(mChunkManager.get());
+    if (mResourceSystem && mTextureManager)
+        mResourceSystem->removeResourceManager(mTextureManager.get());
+
+    mParent->removeChild(mTerrainRoot);
+
+    mCompositeMapCamera->removeChild(mCompositeMapRenderer);
+    mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
+}
+
+void World::setupCompositeCamera(osg::Group* compileRoot, int preCompileMask)
+{
     osg::ref_ptr<osg::Camera> compositeCam = new osg::Camera;
     compositeCam->setRenderOrder(osg::Camera::PRE_RENDER, -1);
     compositeCam->setProjectionMatrix(osg::Matrix::identity());
@@ -35,36 +79,6 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
 
     mCompositeMapRenderer = new CompositeMapRenderer;
     compositeCam->addChild(mCompositeMapRenderer);
-
-    if (useTerrain)
-    {
-        mHeightCullCallback = new HeightCullCallback();
-
-        mTerrainRoot->setName("Terrain Root");
-
-        mTextureManager.reset(new TextureManager(mResourceSystem->getSceneManager()));
-        mChunkManager.reset(new ChunkManager(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer));
-        mChunkManager->setNodeMask(nodeMask);
-        mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask));
-
-        mResourceSystem->addResourceManager(mChunkManager.get());
-        mResourceSystem->addResourceManager(mTextureManager.get());
-    }
-
-    mParent->addChild(mTerrainRoot);
-}
-
-World::~World()
-{
-    if (mChunkManager)
-        mResourceSystem->removeResourceManager(mChunkManager.get());
-    if (mTextureManager)
-        mResourceSystem->removeResourceManager(mTextureManager.get());
-
-    mParent->removeChild(mTerrainRoot);
-
-    mCompositeMapCamera->removeChild(mCompositeMapRenderer);
-    mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
 }
 
 void World::setWorkQueue(SceneUtil::WorkQueue* workQueue)

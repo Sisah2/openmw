@@ -20,8 +20,14 @@ public:
     virtual void reset() {}
 };
 
-TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask, bool useTerrain)
-    : Terrain::World(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask, useTerrain)
+TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSystem* resourceSystem, Storage* storage, int nodeMask, int preCompileMask, int borderMask)
+    : Terrain::World(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask)
+    , mNumSplits(4)
+{
+}
+
+TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Storage* storage, int nodeMask, int preCompileMask)
+    : Terrain::World(parent, compileRoot, storage, nodeMask, preCompileMask)
     , mNumSplits(4)
 {
 }
