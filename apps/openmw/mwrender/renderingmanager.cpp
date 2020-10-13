@@ -330,18 +330,18 @@ namespace MWRender
         const bool useTerrainSpecularMaps = Settings::Manager::getBool("auto use terrain specular maps", "Shaders");
 
         mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
-
-        const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
-        int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
-        compMapPower = std::max(-3, compMapPower);
-        float compMapLevel = pow(2, compMapPower);
         const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
         const int vertexLodMod = Settings::Manager::getInt("vertex lod mod", "Terrain");
-        float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
-        maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
 
         if (Settings::Manager::getBool("distant terrain", "Terrain"))
         {
+            const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
+            int compMapPower = Settings::Manager::getInt("composite map level", "Terrain");
+            compMapPower = std::max(-3, compMapPower);
+            float compMapLevel = pow(2, compMapPower);
+            float maxCompGeometrySize = Settings::Manager::getFloat("max composite geometry size", "Terrain");
+            maxCompGeometrySize = std::max(maxCompGeometrySize, 1.f);
+
             mTerrain.reset(new Terrain::QuadTreeWorld(
                 sceneRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug,
                 compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize));
@@ -1354,8 +1354,6 @@ namespace MWRender
         );
 
         mTerrain->updateTextureFiltering();
-        if (mGroundcoverWorld)
-            mGroundcoverWorld->updateTextureFiltering();
 
         mViewer->startThreading();
     }
