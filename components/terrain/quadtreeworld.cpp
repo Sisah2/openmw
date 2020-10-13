@@ -243,21 +243,28 @@ private:
     osg::ref_ptr<RootNode> mRootNode;
 };
 
-QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resource::ResourceSystem *resourceSystem, Storage *storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float compMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize, bool useTerrain)
-    : TerrainGrid(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask, useTerrain)
+QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resource::ResourceSystem *resourceSystem, Storage *storage, int nodeMask, int preCompileMask, int borderMask, int compMapResolution, float compMapLevel, float lodFactor, int vertexLodMod, float maxCompGeometrySize)
+    : TerrainGrid(parent, compileRoot, resourceSystem, storage, nodeMask, preCompileMask, borderMask)
     , mViewDataMap(new ViewDataMap)
     , mQuadTreeBuilt(false)
     , mLodFactor(lodFactor)
     , mVertexLodMod(vertexLodMod)
     , mViewDistance(std::numeric_limits<float>::max())
 {
-    if (useTerrain)
-    {
-        mChunkManager->setCompositeMapSize(compMapResolution);
-        mChunkManager->setCompositeMapLevel(compMapLevel);
-        mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
-        mChunkManagers.push_back(mChunkManager.get());
-    }
+    mChunkManager->setCompositeMapSize(compMapResolution);
+    mChunkManager->setCompositeMapLevel(compMapLevel);
+    mChunkManager->setMaxCompositeGeometrySize(maxCompGeometrySize);
+    mChunkManagers.push_back(mChunkManager.get());
+}
+
+QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Storage *storage, int nodeMask, int preCompileMask, float lodFactor, int vertexLodMod)
+    : TerrainGrid(parent, compileRoot, storage, nodeMask, preCompileMask)
+    , mViewDataMap(new ViewDataMap)
+    , mQuadTreeBuilt(false)
+    , mLodFactor(lodFactor)
+    , mVertexLodMod(vertexLodMod)
+    , mViewDistance(std::numeric_limits<float>::max())
+{
 }
 
 QuadTreeWorld::~QuadTreeWorld()

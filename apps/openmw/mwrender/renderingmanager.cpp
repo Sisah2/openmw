@@ -371,9 +371,8 @@ namespace MWRender
                 groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
             }
 
-            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(
-                groundcoverRoot, mRootNode, mResourceSystem, mTerrainStorage.get(), Mask_Groundcover, Mask_PreCompile, Mask_Debug,
-                compMapResolution, compMapLevel, lodFactor, vertexLodMod, maxCompGeometrySize, false));
+            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mRootNode, mTerrainStorage.get(),
+                                                               Mask_Groundcover, Mask_PreCompile, lodFactor, vertexLodMod));
 
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
