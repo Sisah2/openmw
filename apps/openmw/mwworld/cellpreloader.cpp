@@ -38,18 +38,13 @@ namespace MWWorld
 
         virtual bool operator()(const MWWorld::Ptr& ptr)
         {
-            static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
-            static const float density = Settings::Manager::getFloat("density", "Groundcover");
-
-            if (groundcoverEnabled && ptr.getTypeName()==typeid (ESM::Static).name())
+            if (ptr.getTypeName()==typeid (ESM::Static).name())
             {
                 const MWWorld::LiveCellRef<ESM::Static> *ref = ptr.get<ESM::Static>();
                 if (ref->mBase->mIsGroundcover)
                 {
-                    mCurrentGroundcover += density;
-                    if (mCurrentGroundcover < 1.f) return true;
-
-                    mCurrentGroundcover -= 1.f;
+                    if (!mDensityCalculator.isInstanceEnabled())
+                        return true;
                 }
             }
 
@@ -62,6 +57,7 @@ namespace MWWorld
 
         std::vector<std::string>& mOut;
         float mCurrentGroundcover;
+        Misc::ResourceHelpers::DensityCalculator mDensityCalculator;
     };
 
     /// Worker thread item: preload models in a cell.

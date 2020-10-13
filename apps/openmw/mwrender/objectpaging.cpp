@@ -419,8 +419,6 @@ namespace MWRender
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
         static const bool groundcoverEnabled = Settings::Manager::getBool("enabled", "Groundcover");
-        static const float density = Settings::Manager::getFloat("density", "Groundcover");
-        static const bool useAnimation = Settings::Manager::getBool("animation", "Groundcover");
 
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size/2.f), std::floor(center.y() - size/2.f));
 
@@ -431,6 +429,7 @@ namespace MWRender
         std::vector<ESM::ESMReader> esm;
         const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
 
+        Misc::ResourceHelpers::DensityCalculator calculator;
         for (int cellX = startCell.x(); cellX < startCell.x() + size; ++cellX)
         {
             for (int cellY = startCell.y(); cellY < startCell.y() + size; ++cellY)
@@ -438,7 +437,7 @@ namespace MWRender
                 const ESM::Cell* cell = store.get<ESM::Cell>().searchStatic(cellX, cellY);
                 if (!cell) continue;
 
-                float currentGroundcover = 0.f;
+                calculator.reset();
                 for (size_t i=0; i<cell->mContextList.size(); ++i)
                 {
                     try
@@ -463,12 +462,7 @@ namespace MWRender
                                 // FIXME: per-instance check requires search
                                 if (isGroundcover(type, ref.mRefID, store))
                                 {
-                                    if (!mGroundcover) continue;
-
-                                    currentGroundcover += density;
-                                    if (currentGroundcover < 1.f) continue;
-
-                                    currentGroundcover -= 1.f;
+                                    if (!calculator.isInstanceEnabled()) continue;
                                 }
                             }
 
@@ -603,6 +597,7 @@ namespace MWRender
         osg::ref_ptr<osg::Group> mergeGroup = new osg::Group;
         osg::ref_ptr<TemplateRef> templateRefs = new TemplateRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
+        static const bool useAnimation = Settings::Manager::getBool("animation", "Groundcover");
         CopyOp copyop;
         copyop.mGroundcover = useAnimation && mGroundcover;
         for (const auto& pair : nodes)
