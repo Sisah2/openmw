@@ -26,8 +26,8 @@ TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Resource::
 {
 }
 
-TerrainGrid::TerrainGrid(osg::Group* parent, osg::Group* compileRoot, Storage* storage, int nodeMask, int preCompileMask)
-    : Terrain::World(parent, compileRoot, storage, nodeMask, preCompileMask)
+TerrainGrid::TerrainGrid(osg::Group* parent, Storage* storage, int nodeMask)
+    : Terrain::World(parent, storage, nodeMask)
     , mNumSplits(4)
 {
 }

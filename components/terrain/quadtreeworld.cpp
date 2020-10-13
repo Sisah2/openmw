@@ -257,8 +257,8 @@ QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Resour
     mChunkManagers.push_back(mChunkManager.get());
 }
 
-QuadTreeWorld::QuadTreeWorld(osg::Group *parent, osg::Group *compileRoot, Storage *storage, int nodeMask, int preCompileMask, float lodFactor, int vertexLodMod)
-    : TerrainGrid(parent, compileRoot, storage, nodeMask, preCompileMask)
+QuadTreeWorld::QuadTreeWorld(osg::Group *parent, Storage *storage, int nodeMask, float lodFactor, int vertexLodMod)
+    : TerrainGrid(parent, storage, nodeMask)
     , mViewDataMap(new ViewDataMap)
     , mQuadTreeBuilt(false)
     , mLodFactor(lodFactor)
@@ -525,7 +525,8 @@ bool QuadTreeWorld::storeView(const View* view, double referenceTime)
 
 void QuadTreeWorld::reportStats(unsigned int frameNumber, osg::Stats *stats)
 {
-    stats->setAttribute(frameNumber, "Composite", mCompositeMapRenderer->getCompileSetSize());
+    if (mCompositeMapRenderer)
+        stats->setAttribute(frameNumber, "Composite", mCompositeMapRenderer->getCompileSetSize());
 }
 
 void QuadTreeWorld::loadCell(int x, int y)

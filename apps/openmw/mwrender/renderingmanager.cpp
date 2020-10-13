@@ -371,15 +371,12 @@ namespace MWRender
                 groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
             }
 
-            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mRootNode, mTerrainStorage.get(),
-                                                               Mask_Groundcover, Mask_PreCompile, lodFactor, vertexLodMod));
+            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(),
+                                                               Mask_Groundcover, lodFactor, vertexLodMod));
 
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
             static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
-
-            mGroundcoverWorld->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
-            mGroundcoverWorld->setWorkQueue(mWorkQueue.get());
         }
         // water goes after terrain for correct waterculling order
         mWater.reset(new Water(mRootNode, sceneRoot, mResourceSystem, mViewer->getIncrementalCompileOperation(), resourcePath));
