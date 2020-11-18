@@ -14,6 +14,7 @@
 #include <components/vfs/manager.hpp>
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
+#include <components/settings/settings.hpp>
 
 #include "shadermanager.hpp"
 
