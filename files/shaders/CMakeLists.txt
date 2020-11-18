@@ -26,7 +26,7 @@ set(SHADER_FILES
     shadowcasting_fragment.glsl
     effects.glsl
     fog.glsl
-    linearl_ighting.glsl
+    linear_lighting.glsl
     lightsettings.glsl
     helpsettings.glsl
     particles_vertex.glsl
