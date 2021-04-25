@@ -450,6 +450,9 @@ public:
         mTransform->setScale(osg::Vec3f(450,450,450) * scaleFactor);
         mTransform->addChild(mGeom);
 
+        if(Settings::Manager::getBool("occlusion culling", "Terrain"))
+            mGeom->setCullingActive(false);
+
         parentNode->addChild(mTransform);
     }
 
