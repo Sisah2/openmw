@@ -22,14 +22,17 @@ class OcclusionActivateCallback : public osg::NodeCallback
 public:
     virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
     {
-        osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
-        if (cv->getCullingMode() & osg::CullSettings::SHADOW_OCCLUSION_CULLING)
-            cv->pushCullingSet();
+        if(node->getNodeMask() != (1<<20))
+        {
+            osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(nv);
+            if (cv->getCullingMode() & osg::CullSettings::SHADOW_OCCLUSION_CULLING)
+                cv->pushCullingSet();
 
-        traverse(node, nv);
+            traverse(node, nv);
 
-        if (cv->getCullingMode() & osg::CullSettings::SHADOW_OCCLUSION_CULLING)
-            cv->popCullingSet();
+            if (cv->getCullingMode() & osg::CullSettings::SHADOW_OCCLUSION_CULLING)
+                cv->popCullingSet();
+        }
     }
 };
 
@@ -62,7 +65,7 @@ void Objects::insertBegin(const MWWorld::Ptr& ptr)
     if (found == mCellSceneNodes.end())
     {
         cellnode = new osg::Group;
-        cellnode->addCullCallback(new OcclusionActivateCallback);
+        if(mRootNode->getNodeName() != (1<<20)) cellnode->addCullCallback(new OcclusionActivateCallback);
         cellnode->setName("Cell Root");
         mRootNode->addChild(cellnode);
         mCellSceneNodes[ptr.getCell()] = cellnode;
@@ -205,7 +208,7 @@ void Objects::updatePtr(const MWWorld::Ptr &old, const MWWorld::Ptr &cur)
     osg::Group* cellnode;
     if(mCellSceneNodes.find(newCell) == mCellSceneNodes.end()) {
         cellnode = new osg::Group;
-        cellnode->addCullCallback(new OcclusionActivateCallback);
+        if(objectNode->getNodeMask() != (1<<20)) cellnode->addCullCallback(new OcclusionActivateCallback);
         cellnode->setName("Cell Root");
         mRootNode->addChild(cellnode);
         mCellSceneNodes[newCell] = cellnode;
