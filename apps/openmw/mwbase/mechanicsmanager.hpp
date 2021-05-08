@@ -33,6 +33,12 @@ namespace MWWorld
     class CellRef;
 }
 
+
+namespace MWRender
+{
+    class BobbingInfo;
+}
+
 namespace Loading
 {
     class Listener;
@@ -270,6 +276,8 @@ namespace MWBase
             virtual bool isAttackPreparing(const MWWorld::Ptr& ptr) = 0;
             virtual bool isRunning(const MWWorld::Ptr& ptr) = 0;
             virtual bool isSneaking(const MWWorld::Ptr& ptr) = 0;
+
+            virtual void getBobbingInfo(const MWWorld::Ptr &ptr, MWRender::BobbingInfo& outBobbingInfo) = 0;
 
             virtual void reportStats(unsigned int frameNumber, osg::Stats& stats) const = 0;
 

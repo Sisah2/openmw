@@ -46,6 +46,7 @@
 #include "../mwmechanics/summoning.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -1897,16 +1898,9 @@ namespace MWWorld
             MWBase::Environment::get().getWindowManager()->setWerewolfOverlay(false);
         }
 
-        // Sink the camera while sneaking
-        bool sneaking = player.getClass().getCreatureStats(getPlayerPtr()).getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool swimming = isSwimming(player);
-        bool flying = isFlying(player);
-
-        static const float i1stPersonSneakDelta = mStore.get<ESM::GameSetting>().find("i1stPersonSneakDelta")->mValue.getFloat();
-        if (sneaking && !swimming && !flying)
-            mRendering->getCamera()->setSneakOffset(i1stPersonSneakDelta);
-        else
-            mRendering->getCamera()->setSneakOffset(0.f);
+        static MWRender::BobbingInfo bobbingInfo = {};
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
+        mRendering->getCamera()->setBobbingInfo(bobbingInfo);
 
         int blind = 0;
         auto& magicEffects = player.getClass().getCreatureStats(player).getMagicEffects();
