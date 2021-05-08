@@ -33,7 +33,6 @@ namespace MWWorld
     class CellRef;
 }
 
-
 namespace MWRender
 {
     class BobbingInfo;

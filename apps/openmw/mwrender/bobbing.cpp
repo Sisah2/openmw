@@ -13,7 +13,7 @@ namespace
 namespace MWRender
 {
 
-void BobbingInfo::getOffsets(osg::Vec3d& outHeadOffset, osg::Vec3d& outHandOffset)
+void BobbingInfo::getOffsets(osg::Vec3d& outHandOffset)
 {
     static const float maximum = 2.f;
     static const float softLimit = std::max(Settings::Manager::getFloat("bobbing peak amplitude speed", "Camera"), 1.f); // Beyond this speed, head bobbing gradually becomes less pronounced

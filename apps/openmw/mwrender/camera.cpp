@@ -173,8 +173,8 @@ namespace MWRender
             }
         }
 
-        mAnimation->setFirstPersonOffset(fpOffset);
-        mAnimation->setFirstPersonRotation(fpPitch + wpnPitch, fpRoll, wpnYaw);
+        if(mAnimation != nullptr) mAnimation->setFirstPersonOffset(fpOffset);
+        if(mAnimation != nullptr) mAnimation->setFirstPersonRotation(fpPitch + wpnPitch, fpRoll, wpnYaw);
 
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }

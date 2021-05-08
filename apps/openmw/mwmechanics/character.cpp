@@ -2964,6 +2964,11 @@ bool CharacterController::isRunning() const
             mMovementState == CharState_SwimRunRight;
 }
 
+MWRender::BobbingInfo& CharacterController::getBobbingInfo()
+{
+    return mBobbingInfo;
+}
+
 void CharacterController::setAttackingOrSpell(bool attackingOrSpell)
 {
     mAttackingOrSpell = attackingOrSpell;
