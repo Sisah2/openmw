@@ -171,6 +171,16 @@ float linearizeDepth(float depth)
 
 void main(void)
 {
+
+#if @radialFog
+    float radialDepth = distance(position.xyz, (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz);
+    float fogValue = getFogValue(radialDepth);
+#else
+    float fogValue = getFogValue(linearDepth);
+#endif
+
+if(fogValue != 1.0)
+{
     frustumDepth = abs(far - near);
     vec3 worldPos = position.xyz + nodePosition.xyz;
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
@@ -219,7 +229,7 @@ void main(void)
     float radialise = 1.0;
 
 #if @radialFog
-    float radialDepth = distance(position.xyz, cameraPos);
+    //float radialDepth = distance(position.xyz, cameraPos);
     // TODO: Figure out how to properly radialise refraction depth and thus underwater fog
     // while avoiding oddities when the water plane is close to the clipping plane
     // radialise = radialDepth / linearDepth;
@@ -280,11 +290,10 @@ void main(void)
     gl_FragData[0].w = clamp(fresnel*6.0 + specular * sunSpec.w, 0.0, 1.0);     //clamp(fresnel*2.0 + specular * gl_LightSource[0].specular.w, 0.0, 1.0);
 #endif
 
-#if @radialFog
-    applyFog(false, radialDepth);
-#else
-    applyFog(false, linearDepth);
-#endif
+}
+//else gl_FragData[0] = vec4(1.0,0.0,0.0,1.0);
+
+    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
 #if (@gamma != 1000)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));

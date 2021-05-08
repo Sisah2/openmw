@@ -2421,7 +2421,7 @@ void CharacterController::update(float duration)
 
             if (mBobbingInfo.mHandBobEnabled)
             {
-                if (onground && isMoving && solid && speed > 0.f && !mSkipAnim/* && !animationOnly*/)
+                if (onground && isMoving && solid && speed > 0.f && !mSkipAnim)
                 {
                     if (mMovementAnimSpeed > mBobbingInfo.mAnimSpeed)
                         mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
@@ -2433,10 +2433,6 @@ void CharacterController::update(float duration)
                             mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
                     }
 
-                    float speedmult = speed / mBobbingInfo.mAnimSpeed;
-                    if (sneak)
-                        speedmult /= 3.444f;
-                    mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
                     mBobbingInfo.mSpeedSmoothed += speed * duration * 10.f;
                     if (mBobbingInfo.mSpeedSmoothed > speed)
                         mBobbingInfo.mSpeedSmoothed = speed;
@@ -2448,28 +2444,7 @@ void CharacterController::update(float duration)
                     {
                         mBobbingInfo.mSpeedSmoothed = 0.f;
                     }
-
-                    if (mBobbingInfo.mCycle != 0.f)
-                    {
-                        float speedmult = 1.f;
-                        if (sneak)
-                            speedmult /= 3.444f;
-                        if (mBobbingInfo.mCycle > osg::PI)
-                        {
-                            mBobbingInfo.mCycle += speedmult * duration * osg::PI * 2.f;
-                            if (mBobbingInfo.mCycle > osg::PI * 2.f)
-                                mBobbingInfo.mCycle = 0.f;
-                        }
-                        else
-                        {
-                            mBobbingInfo.mCycle -= speedmult * duration * osg::PI * 2.f;
-                            if (mBobbingInfo.mCycle < 0.f)
-                                mBobbingInfo.mCycle = 0.f;
-                        }
-                    }
                 }
-
-                mBobbingInfo.mCycle = std::fmod(mBobbingInfo.mCycle, osg::PI * 2.f);
 
                 // Smoothed Sneak Offset
                 if (sneak && !inwater && !flying)

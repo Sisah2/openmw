@@ -12,7 +12,6 @@ struct BobbingInfo
 {
     bool mHandBobEnabled;
 
-    float mCycle; /// Between 0.f and 2 * PI
     float mSpeedSmoothed; /// Smoothed movement speed
     float mAnimSpeed;
     float mSneakOffset;
@@ -21,8 +20,6 @@ struct BobbingInfo
 
     float mInertiaPitch;
     float mInertiaYaw;
-    float mPrevPitch;
-    float mPrevYaw;
 
     /// Returned y-axis value for head bobbing is the roll about y-axis NOT y-offset,
     void getOffsets(osg::Vec3d& outHandBobbing);

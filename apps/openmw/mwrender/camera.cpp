@@ -157,7 +157,6 @@ namespace MWRender
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
 
         osg::Vec3f fpOffset(0, 0, -mBobbingInfo.mSneakOffset);
-        float fpPitch = 0, fpRoll = 0;
         float wpnPitch = 0, wpnYaw = 0;
         if (isFirstPerson())
         {
@@ -174,7 +173,7 @@ namespace MWRender
         }
 
         if(mAnimation != nullptr) mAnimation->setFirstPersonOffset(fpOffset);
-        if(mAnimation != nullptr) mAnimation->setFirstPersonRotation(fpPitch + wpnPitch, fpRoll, wpnYaw);
+        if(mAnimation != nullptr) mAnimation->setFirstPersonRotation(wpnPitch, 0, wpnYaw);
 
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }

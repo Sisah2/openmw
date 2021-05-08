@@ -57,6 +57,19 @@ centroid varying vec3 passLighting;
 
 void main()
 {
+#if @underwaterFog
+    bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z >= -1.0 && !skip;
+    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+#endif
+    float fogValue = getFogValue(depth);
+
+#if @underwaterFog
+if(underwaterFogValue != 1.0 && fogValue != 1.0)
+#else
+if(fogValue != 1.0)
+#endif
+{
+
     float shadowpara = 1.0;
 
     vec2 adjustedUV = (gl_TextureMatrix[0] * vec4(uv, 0.0, 1.0)).xy;
@@ -143,12 +156,18 @@ void main()
     gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
-    bool isUnderwater = false;
-#if @underwaterFog
-    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z >= -1.0 && !skip;
+}
+else
+{
+#if @blendMap // what?
+     gl_FragData[0].a = texture2D(blendMap, (gl_TextureMatrix[1] * vec4(uv, 0.0, 1.0)).xy).a;
 #endif
+}
 
-    applyFog(isUnderwater, depth);
+#if @underwaterFog
+    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
+#endif
+    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));

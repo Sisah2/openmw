@@ -1,6 +1,6 @@
 #version 120
 
-#define PER_PIXEL_LIGHTING 0
+#define PER_PIXEL_LIGHTING @normalMap
 
 #define GRASS
 
@@ -12,6 +12,10 @@
 varying vec2 diffuseMapUV;
 #endif
 
+#if @normalMap
+varying vec4 passTangent;
+#endif
+
 varying float depth;
 #if !@radialFog
 varying float linearDepth;
@@ -21,16 +25,21 @@ varying float linearDepth;
 varying vec3 fogH;
 #endif
 
-#if @underwaterFog
+#if PER_PIXEL_LIGHTING || @underwaterFog
 varying vec3 passViewPos;
 #endif
 
-centroid varying vec3 passLighting;
+#if PER_PIXEL_LIGHTING
+varying vec3 passNormal;
+#endif
 
-#ifdef LINEAR_LIGHTING
-   #include "linear_lighting.glsl"
-#else
-   #include "lighting.glsl"
+#if !PER_PIXEL_LIGHTING
+  centroid varying vec3 passLighting;
+  #ifdef LINEAR_LIGHTING
+    #include "linear_lighting.glsl"
+  #else
+    #include "lighting.glsl"
+  #endif
 #endif
 
 uniform mat4 osg_ViewMatrixInverse;
@@ -123,10 +132,14 @@ void main(void)
     diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
 #endif
 
+#if @normalMap
+    passTangent = gl_MultiTexCoord7.xyzw;
+#endif
+
 vec3 viewNormal = normalize((gl_NormalMatrix * gl_Normal).xyz);
 
-
-vec3 shadowDiffuseLighting;
+#if !PER_PIXEL_LIGHTING
+    vec3 shadowDiffuseLighting;
 #ifdef LINEAR_LIGHTING
     passLighting = doLighting(viewPos.xyz, viewNormal, gl_Color);
 #else
@@ -134,12 +147,16 @@ vec3 shadowDiffuseLighting;
     doLighting(viewPos.xyz, viewNormal, diffuseLight, ambientLight, shadowDiffuseLighting);
     passLighting = diffuseLight + ambientLight;
 #endif
-
     clampLightingResult(passLighting);
     passLighting += shadowDiffuseLighting;
+#endif
 
-#if @underwaterFog
+#if PER_PIXEL_LIGHTING || @underwaterFog
     passViewPos = viewPos.xyz;
+#endif
+
+#if PER_PIXEL_LIGHTING
+    passNormal = gl_Normal.xyz;
 #endif
 
 #ifdef HEIGHT_FOG

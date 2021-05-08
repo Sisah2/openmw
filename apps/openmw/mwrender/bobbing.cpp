@@ -15,10 +15,8 @@ namespace MWRender
 
 void BobbingInfo::getOffsets(osg::Vec3d& outHandOffset)
 {
-    static const float maximum = 2.f;
-    static const float softLimit = std::max(Settings::Manager::getFloat("bobbing peak amplitude speed", "Camera"), 1.f); // Beyond this speed, head bobbing gradually becomes less pronounced
-
-    float level = std::sin(mCycle);
+    static const float maximum = 3.f;
+    static const float softLimit = 256.f;
 
     float scalar = std::min(mSpeedSmoothed / softLimit, 1.f);
     if (scalar < 1.f)
@@ -30,13 +28,6 @@ void BobbingInfo::getOffsets(osg::Vec3d& outHandOffset)
         float asymptote = mAnimSpeed / softLimit;
         scalar = std::max(0.f, 1.f - asymptote / (1 + asymptote));
     }
-
-    static const float handSway = clamp(Settings::Manager::getFloat("hand bobbing lateral sway", "Camera"), -maximum, maximum);
-    static const float handBounce = clamp(Settings::Manager::getFloat("hand bobbing vertical bounce", "Camera"), -maximum, maximum);
-
-    outHandOffset.x() = scalar * handBounce * 0.007f;
-    outHandOffset.x() -= std::abs(level) * scalar * handBounce * 0.015f;
-    outHandOffset.z() = level * scalar * handSway * 0.015f;
 
     static const float handInertia = clamp(Settings::Manager::getFloat("hand inertia", "Camera"), -maximum, maximum);
 

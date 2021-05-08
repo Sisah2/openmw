@@ -106,6 +106,23 @@ varying float depth;
 
 void main()
 {
+#if @underwaterFog
+    bool isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
+    float underwaterFogValue = (isUnderwater) ? getUnderwaterFogValue(depth) : 0.0;
+#endif
+
+#if @radialFog
+    float fogValue = getFogValue((simpleWater) ? length(passViewPos) : depth);
+#else
+    float fogValue = getFogValue(depth);
+#endif
+
+#if @underwaterFog
+if(underwaterFogValue != 1.0 && fogValue != 1.0)
+#else
+if(fogValue != 1.0)
+#endif
+{
 
 float shadowpara = 1.0;
 
@@ -294,24 +311,20 @@ if(simpleWater)
 
 }
 
-    bool isUnderwater = false;
-#if @underwaterFog && !@translucentFramebuffer
-    isUnderwater = (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z < -1.0 && osg_ViewMatrixInverse[3].z > -1.0 && !simpleWater && !skip && !isInterior && !isPlayer;
+#if @translucentFramebuffer
+// having testing & blending isn't enough - we need to write an opaque pixel to be opaque
+    if (noAlpha)
+         gl_FragData[0].a = 1.0;
 #endif
+ }
+//else gl_FragData[0].x = 1.0;
 
-#if @radialFog
-    applyFog(isUnderwater, (simpleWater) ? length(passViewPos) : depth);
-#else
-    applyFog(isUnderwater, depth);
+#if @underwaterFog
+    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, uwfogcolor, underwaterFogValue);
 #endif
+    gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
 #if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
     gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
 #endif  
-
-#if @translucentFramebuffer
-// having testing & blending isn't enough - we need to write an opaque pixel to be opaque
-    if (noAlpha) 
-         gl_FragData[0].a = 1.0;
-#endif
- }
+}
