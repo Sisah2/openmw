@@ -18,9 +18,6 @@ struct BobbingInfo
 
     float mInertiaPitch;
     float mInertiaYaw;
-
-    /// Returned y-axis value for head bobbing is the roll about y-axis NOT y-offset,
-    void getOffsets(osg::Vec3d& outHandBobbing);
 };
 
 } // namespace MWRender

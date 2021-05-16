@@ -344,11 +344,6 @@ namespace MWRender
         mFocalPointTransitionSpeed = (mFocalPointCurrentOffset - oldOffset) / duration;
     }
 
-    void Camera::setBobbingInfo(BobbingInfo& bobbingInfo)
-    {
-        mBobbingInfo = bobbingInfo;
-    }
-
     void Camera::toggleViewMode(bool force)
     {
         // Changing the view will stop all playing animations, so if we are playing
