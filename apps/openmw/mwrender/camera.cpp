@@ -156,25 +156,6 @@ namespace MWRender
         osg::Vec3d forward = orient * osg::Vec3d(0,1,0);
         osg::Vec3d up = orient * osg::Vec3d(0,0,1);
 
-        osg::Vec3f fpOffset(0, 0, -mBobbingInfo.mSneakOffset);
-        float wpnPitch = 0, wpnYaw = 0;
-        if (isFirstPerson())
-        {
-            osg::Vec3d hbOffset, wpnOffset;
-            mBobbingInfo.getOffsets(wpnOffset);
-
-            if (mBobbingInfo.mHandBobEnabled)
-            {
-                wpnPitch += wpnOffset.x();
-                wpnPitch -= mBobbingInfo.mLandingOffset * 0.001f;
-                wpnYaw += wpnOffset.z();
-                fpOffset.z() -= mBobbingInfo.mLandingOffset;
-            }
-        }
-
-        if(mAnimation != nullptr) mAnimation->setFirstPersonOffset(fpOffset);
-        if(mAnimation != nullptr) mAnimation->setFirstPersonRotation(wpnPitch, 0, wpnYaw);
-
         cam->setViewMatrixAsLookAt(position, position + forward, up);
     }
 
@@ -442,6 +423,16 @@ namespace MWRender
             calculateDeferredRotation();
         }
         processViewChange();
+    }
+
+    void Camera::setSneakOffset(float offset)
+    {
+        mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
+    }
+
+    void Camera::setWeaponRotation(float pitch, float yaw)
+    {
+        mAnimation->setFirstPersonRotation(pitch, 0, yaw);
     }
 
     void Camera::setYaw(float angle)

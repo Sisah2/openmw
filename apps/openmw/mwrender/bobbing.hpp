@@ -12,8 +12,6 @@ struct BobbingInfo
 {
     bool mHandBobEnabled;
 
-    float mSpeedSmoothed; /// Smoothed movement speed
-    float mAnimSpeed;
     float mSneakOffset;
     bool mLandingShake;
     float mLandingOffset;

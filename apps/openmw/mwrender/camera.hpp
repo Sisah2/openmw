@@ -9,8 +9,6 @@
 
 #include "../mwworld/ptr.hpp"
 
-#include "bobbing.hpp"
-
 namespace osg
 {
     class Camera;
@@ -55,8 +53,6 @@ namespace MWRender
         bool mViewModeToggleQueued;
 
         float mCameraDistance;
-
-        BobbingInfo mBobbingInfo;
 
         float mMaxNextCameraDistance;
 
@@ -138,7 +134,10 @@ namespace MWRender
         void applyDeferredPreviewRotationToPlayer(float dt);
         void disableDeferredPreviewRotation() { mDeferredRotationDisabled = true; }
 
-        void setBobbingInfo(BobbingInfo& bobbingInfo);
+        /// \brief Lowers the camera for sneak.
+        void setSneakOffset(float offset);
+
+        void setWeaponRotation(float pitch, float yaw);
 
         bool isFirstPerson() const { return mFirstPersonView && mMode == Mode::Normal; }
 

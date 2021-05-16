@@ -2415,37 +2415,13 @@ void CharacterController::update(float duration)
 
         { // First Person Head Bobbing
             static const float fSneakOffset = gmst.find("i1stPersonSneakDelta")->mValue.getFloat();
-            static const bool isHandBobbing = Settings::Manager::getBool("hand bobbing", "Camera");
+            static const bool isHandBobbing = Settings::Manager::getFloat("hand inertia", "Camera") == 0.0 ? false : true;
+            static const bool isHeadBobbing = Settings::Manager::getBool("head bobbing", "Camera");
 
             mBobbingInfo.mHandBobEnabled = isPlayer && isHandBobbing;
 
-            if (mBobbingInfo.mHandBobEnabled)
+            if (isPlayer && isHeadBobbing)
             {
-                if (onground && isMoving && solid && speed > 0.f && !mSkipAnim)
-                {
-                    if (mMovementAnimSpeed > mBobbingInfo.mAnimSpeed)
-                        mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
-                    else
-                    {
-                        // Changing speed downwards tends to be very jarring, it's blended over mutliple frames here to smooth it out
-                        mBobbingInfo.mAnimSpeed -= mBobbingInfo.mAnimSpeed * duration * 10.f;
-                        if (mBobbingInfo.mAnimSpeed < mMovementAnimSpeed)
-                            mBobbingInfo.mAnimSpeed = mMovementAnimSpeed;
-                    }
-
-                    mBobbingInfo.mSpeedSmoothed += speed * duration * 10.f;
-                    if (mBobbingInfo.mSpeedSmoothed > speed)
-                        mBobbingInfo.mSpeedSmoothed = speed;
-                }
-                else
-                {
-                    mBobbingInfo.mSpeedSmoothed -= mBobbingInfo.mSpeedSmoothed * duration * 20.f;
-                    if (mBobbingInfo.mSpeedSmoothed < 0.0001f)
-                    {
-                        mBobbingInfo.mSpeedSmoothed = 0.f;
-                    }
-                }
-
                 // Smoothed Sneak Offset
                 if (sneak && !inwater && !flying)
                     mBobbingInfo.mSneakOffset += fSneakOffset * duration * 10.f;

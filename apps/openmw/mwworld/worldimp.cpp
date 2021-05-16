@@ -1900,7 +1900,24 @@ namespace MWWorld
 
         static MWRender::BobbingInfo bobbingInfo = {};
         MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
-        mRendering->getCamera()->setBobbingInfo(bobbingInfo);
+
+        static const bool headbobEnabled = Settings::Manager::getBool("head bobbing", "Camera");
+
+        float fpOffset = bobbingInfo.mSneakOffset;
+        if (headbobEnabled)
+             fpOffset += bobbingInfo.mLandingOffset;
+
+        if (isFirstPerson && bobbingInfo.mHandBobEnabled)
+        {
+            static const float handInertia = std::min(3.f, std::max(-3.f, Settings::Manager::getFloat("hand inertia", "Camera")));
+
+            float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
+            float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
+
+            mRendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
+        }
+
+        mRendering->getCamera()->setSneakOffset(fpOffset);
 
         int blind = 0;
         auto& magicEffects = player.getClass().getCreatureStats(player).getMagicEffects();
