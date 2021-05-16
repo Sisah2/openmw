@@ -1902,19 +1902,24 @@ namespace MWWorld
         MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
 
         static const bool headbobEnabled = Settings::Manager::getBool("head bobbing", "Camera");
+        static const bool exteriorsInertia = Settings::Manager::getBool("exteriors inertia", "Camera");
 
         float fpOffset = bobbingInfo.mSneakOffset;
         if (headbobEnabled)
              fpOffset += bobbingInfo.mLandingOffset;
 
-        if (isFirstPerson && bobbingInfo.mHandBobEnabled)
+        if (isFirstPerson && bobbingInfo.mHandBobEnabled &&)
         {
-            static const float handInertia = std::min(3.f, std::max(-3.f, Settings::Manager::getFloat("hand inertia", "Camera")));
 
-            float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
-            float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
+            if (exteriorsInertia || (!exteriorsInertia && !player.getCell()->isExterior()))
+            {
+                static const float handInertia = std::min(3.f, std::max(-3.f, Settings::Manager::getFloat("hand inertia", "Camera")));
 
-            mRendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
+                float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
+                float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
+
+                mRendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
+            }
         }
 
         mRendering->getCamera()->setSneakOffset(fpOffset);
