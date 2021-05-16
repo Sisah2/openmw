@@ -1908,7 +1908,7 @@ namespace MWWorld
         if (headbobEnabled)
              fpOffset += bobbingInfo.mLandingOffset;
 
-        if (isFirstPerson && bobbingInfo.mHandBobEnabled &&)
+        if (isFirstPerson && bobbingInfo.mHandBobEnabled)
         {
 
             if (exteriorsInertia || (!exteriorsInertia && !player.getCell()->isExterior()))
