@@ -524,13 +524,13 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
         loadRenderingNode(entry, vd, mVertexLodMod, cellWorldSize, mActiveGrid, mChunkManagers, false);
     }
 
-    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING)
+    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING && mCollectOccludersVisitor)
     {
         collectOccluders(mCollectOccludersVisitor, cv, vd, mDebugOccluders, mOcclusionCullingZFactor, mOcclusionCullingZBias);
         cv->pushCullingSet();
     }
 
-    if (cv)
+    if (cv && mHeightCullCallback)
         updateWaterCullingView(mHeightCullCallback, vd, cv, mStorage->getCellWorldSize(), !isGridEmpty(), mDebugOccluders);
 
     for (unsigned int i=0; i<vd->getNumEntries(); ++i)
@@ -539,7 +539,7 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
         entry.mRenderingNode->accept(nv);
     }
 
-    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING)
+    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING && mCollectOccludersVisito)
         cv->popCullingSet();
 
     vd->markUnchanged();
