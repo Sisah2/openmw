@@ -539,7 +539,7 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
         entry.mRenderingNode->accept(nv);
     }
 
-    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING && mCollectOccludersVisito)
+    if (cv && cv->getCullingMode() & osg::CullStack::SHADOW_OCCLUSION_CULLING && mCollectOccludersVisitor)
         cv->popCullingSet();
 
     vd->markUnchanged();
