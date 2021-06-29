@@ -195,6 +195,9 @@ add_component_dir(detournavigator
     offmeshconnectionsmanager
     preparednavmeshdata
     navmeshcacheitem
+    generatenavmeshtile
+    navmeshdb
+    serialization
     )
 
 add_component_dir(loadinglistener
@@ -269,6 +272,7 @@ target_link_libraries(components
     RecastNavigation::Recast
 
     Base64
+    SQLiteCpp
     )
 
 target_link_libraries(components ${BULLET_LIBRARIES})

@@ -32,6 +32,7 @@ option(BUILD_DOCS               "Build documentation." OFF )
 option(BUILD_WITH_CODE_COVERAGE "Enable code coverage with gconv" OFF)
 option(BUILD_UNITTESTS          "Enable Unittests with Google C++ Unittest" OFF)
 option(BUILD_BENCHMARKS         "Build benchmarks with Google Benchmark" OFF)
+option(BUILD_NAVMESHTOOL        "Build navmesh tool" ON)
 
 set(OpenGL_GL_PREFERENCE LEGACY)  # Use LEGACY as we use GL2; GLNVD is for GL3 and up.
 
@@ -143,6 +144,15 @@ else()
     set(_recastnavigation_static_default ON)
 endif()
 option(RECASTNAVIGATION_STATIC "Build recastnavigation static libraries" ${_recastnavigation_static_default})
+
+option(OPENMW_USE_SYSTEM_SQLITECPP "Use system provided SQLiteCpp library" OFF)
+if(OPENMW_USE_SYSTEM_SQLITECPP)
+    set(_sqlitecpp_static_default OFF)
+    find_package(SQLiteCpp REQUIRED)
+else()
+    set(_sqlitecpp_static_default ON)
+endif()
+option(SQLITECPP_STATIC "Build SQLiteCpp static libraries" ${_sqlitecpp_static_default})
 
 option(OPENMW_UNITY_BUILD "Use fewer compilation units to speed up compile time" FALSE)
 option(OPENMW_LTO_BUILD "Build OpenMW with Link-Time Optimization (Needs ~2GB of RAM)" OFF)
@@ -589,6 +599,10 @@ if (BUILD_BENCHMARKS)
   add_subdirectory(apps/benchmarks)
 endif()
 
+if (BUILD_NAVMESHTOOL)
+  add_subdirectory(apps/navmeshtool)
+endif()
+
 if (WIN32)
   if (MSVC)
     if (OPENMW_MP_BUILD)
@@ -687,6 +701,10 @@ if (WIN32)
 
     if (BUILD_BENCHMARKS)
         set_target_properties(openmw_detournavigator_navmeshtilescache_benchmark PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
+    endif()
+
+    if (BUILD_NAVMESHTOOL)
+        set_target_properties(openmw-navmeshtool PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
     endif()
   endif(MSVC)
 
@@ -926,6 +944,9 @@ elseif(NOT APPLE)
         IF(BUILD_WIZARD)
             INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw-wizard" DESTINATION "${BINDIR}" )
         ENDIF(BUILD_WIZARD)
+        if(BUILD_NAVMESHTOOL)
+            install(PROGRAMS "${INSTALL_SOURCE}/openmw-navmeshtool" DESTINATION "${BINDIR}" )
+        endif()
 
         # Install licenses
         INSTALL(FILES "files/mygui/DejaVuFontLicense.txt" DESTINATION "${LICDIR}" )

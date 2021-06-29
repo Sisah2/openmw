@@ -188,3 +188,23 @@ if(NOT OPENMW_USE_SYSTEM_RECASTNAVIGATION)
     )
     FetchContent_MakeAvailableExcludeFromAll(recastnavigation)
 endif()
+
+if(NOT OPENMW_USE_SYSTEM_SQLITECPP)
+    if(SQLITECPP_STATIC)
+        set(BUILD_SHARED_LIBS OFF)
+    else()
+        set(BUILD_SHARED_LIBS ON)
+    endif()
+
+    if(MSVC)
+        set(SQLITECPP_USE_STATIC_RUNTIME OFF CACHE BOOL "")
+    endif()
+
+    include(FetchContent)
+    FetchContent_Declare(SQLiteCpp
+        URL https://github.com/SRombauts/SQLiteCpp/archive/0c46d86e0d82031924c5d10bf9b23fa917ba037e.zip
+        URL_HASH MD5=564576ee9bce1923745370145cdd900b
+        SOURCE_DIR fetched/SQLiteCpp
+    )
+    FetchContent_MakeAvailableExcludeFromAll(SQLiteCpp)
+endif()

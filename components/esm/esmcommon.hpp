@@ -121,6 +121,13 @@ struct FIXED_STRING<4> : public FIXED_STRING_BASE<FIXED_STRING, 4>
 
     char const* ro_data() const { return data; }
     char*       rw_data() { return data; }
+
+    uint32_t toInt() const
+    {
+        std::uint32_t result;
+        std::memcpy(&result, data, sizeof(data));
+        return result;
+    }
 };
 
 typedef FIXED_STRING<4> NAME;

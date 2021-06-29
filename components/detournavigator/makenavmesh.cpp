@@ -121,38 +121,6 @@ namespace
         return result;
     }
 
-    rcConfig makeConfig(const osg::Vec3f& agentHalfExtents, const osg::Vec3f& boundsMin, const osg::Vec3f& boundsMax,
-        const Settings& settings)
-    {
-        rcConfig config;
-
-        config.cs = settings.mCellSize;
-        config.ch = settings.mCellHeight;
-        config.walkableSlopeAngle = settings.mMaxSlope;
-        config.walkableHeight = static_cast<int>(std::ceil(getHeight(settings, agentHalfExtents) / config.ch));
-        config.walkableClimb = static_cast<int>(std::floor(getMaxClimb(settings) / config.ch));
-        config.walkableRadius = static_cast<int>(std::ceil(getRadius(settings, agentHalfExtents) / config.cs));
-        config.maxEdgeLen = static_cast<int>(std::round(settings.mMaxEdgeLen / config.cs));
-        config.maxSimplificationError = settings.mMaxSimplificationError;
-        config.minRegionArea = settings.mRegionMinSize * settings.mRegionMinSize;
-        config.mergeRegionArea = settings.mRegionMergeSize * settings.mRegionMergeSize;
-        config.maxVertsPerPoly = settings.mMaxVertsPerPoly;
-        config.detailSampleDist = settings.mDetailSampleDist < 0.9f ? 0 : config.cs * settings.mDetailSampleDist;
-        config.detailSampleMaxError = config.ch * settings.mDetailSampleMaxError;
-        config.borderSize = settings.mBorderSize;
-        config.width = settings.mTileSize + config.borderSize * 2;
-        config.height = settings.mTileSize + config.borderSize * 2;
-        rcVcopy(config.bmin, boundsMin.ptr());
-        rcVcopy(config.bmax, boundsMax.ptr());
-        config.bmin[0] -= getBorderSize(settings);
-        config.bmin[2] -= getBorderSize(settings);
-        config.bmax[0] += getBorderSize(settings);
-        config.bmax[2] += getBorderSize(settings);
-        config.tileSize = settings.mTileSize;
-
-        return config;
-    }
-
     void createHeightfield(rcContext& context, rcHeightfield& solid, int width, int height, const float* bmin,
         const float* bmax, const float cs, const float ch)
     {
@@ -391,15 +359,46 @@ namespace
 
 namespace DetourNavigator
 {
-    std::unique_ptr<PreparedNavMeshData> prepareNavMeshTileData(const RecastMesh& recastMesh,
-        const TilePosition& tile, const Bounds& bounds, const osg::Vec3f& agentHalfExtents, const Settings& settings)
+    rcConfig makeRecastConfig(const TilePosition& tilePosition, const Bounds& bounds,
+        const osg::Vec3f& agentHalfExtents, const Settings& settings)
     {
-        const TileBounds tileBounds = makeTileBounds(settings, tile);
+        const TileBounds tileBounds = makeTileBounds(settings, tilePosition);
         const osg::Vec3f boundsMin(tileBounds.mMin.x(), bounds.mMin.y() - 1, tileBounds.mMin.y());
         const osg::Vec3f boundsMax(tileBounds.mMax.x(), bounds.mMax.y() + 1, tileBounds.mMax.y());
 
+        rcConfig config;
+
+        config.cs = settings.mCellSize;
+        config.ch = settings.mCellHeight;
+        config.walkableSlopeAngle = settings.mMaxSlope;
+        config.walkableHeight = static_cast<int>(std::ceil(getHeight(settings, agentHalfExtents) / config.ch));
+        config.walkableClimb = static_cast<int>(std::floor(getMaxClimb(settings) / config.ch));
+        config.walkableRadius = static_cast<int>(std::ceil(getRadius(settings, agentHalfExtents) / config.cs));
+        config.maxEdgeLen = static_cast<int>(std::round(settings.mMaxEdgeLen / config.cs));
+        config.maxSimplificationError = settings.mMaxSimplificationError;
+        config.minRegionArea = settings.mRegionMinSize * settings.mRegionMinSize;
+        config.mergeRegionArea = settings.mRegionMergeSize * settings.mRegionMergeSize;
+        config.maxVertsPerPoly = settings.mMaxVertsPerPoly;
+        config.detailSampleDist = settings.mDetailSampleDist < 0.9f ? 0 : config.cs * settings.mDetailSampleDist;
+        config.detailSampleMaxError = config.ch * settings.mDetailSampleMaxError;
+        config.borderSize = settings.mBorderSize;
+        config.width = settings.mTileSize + config.borderSize * 2;
+        config.height = settings.mTileSize + config.borderSize * 2;
+        rcVcopy(config.bmin, boundsMin.ptr());
+        rcVcopy(config.bmax, boundsMax.ptr());
+        config.bmin[0] -= getBorderSize(settings);
+        config.bmin[2] -= getBorderSize(settings);
+        config.bmax[0] += getBorderSize(settings);
+        config.bmax[2] += getBorderSize(settings);
+        config.tileSize = settings.mTileSize;
+
+        return config;
+    }
+
+    std::unique_ptr<PreparedNavMeshData> prepareNavMeshTileData(const rcConfig& config, const RecastMesh& recastMesh,
+        const osg::Vec3f& agentHalfExtents, const Settings& settings)
+    {
         rcContext context;
-        const auto config = makeConfig(agentHalfExtents, boundsMin, boundsMax, settings);
 
         rcHeightfield solid;
         createHeightfield(context, solid, config.width, config.height, config.bmin, config.bmax, config.cs, config.ch);
@@ -507,6 +506,22 @@ namespace DetourNavigator
         return navMesh;
     }
 
+    Bounds getBounds(const RecastMesh& recastMesh, const osg::Vec3f& agentHalfExtents, const Settings& settings)
+    {
+        Bounds bounds = recastMesh.getBounds();
+        bounds.mMin = toNavMeshCoordinates(settings, bounds.mMin);
+        bounds.mMax = toNavMeshCoordinates(settings, bounds.mMax);
+
+        for (const auto& water : recastMesh.getWater())
+        {
+            const float height = toNavMeshCoordinates(settings, getSwimLevel(settings, water.mShift.z(), agentHalfExtents.z()));
+            bounds.mMin.y() = std::min(bounds.mMin.y(), height);
+            bounds.mMax.y() = std::max(bounds.mMax.y(), height);
+        }
+
+        return bounds;
+    }
+
     UpdateNavMeshStatus updateNavMesh(const osg::Vec3f& agentHalfExtents, const RecastMesh* recastMesh,
         const TilePosition& changedTile, const TilePosition& playerTile,
         const std::vector<OffMeshConnection>& offMeshConnections, const Settings& settings,
@@ -527,16 +542,7 @@ namespace DetourNavigator
             return navMeshCacheItem->lock()->removeTile(changedTile);
         }
 
-        auto recastMeshBounds = recastMesh->getBounds();
-        recastMeshBounds.mMin = toNavMeshCoordinates(settings, recastMeshBounds.mMin);
-        recastMeshBounds.mMax = toNavMeshCoordinates(settings, recastMeshBounds.mMax);
-
-        for (const auto& water : recastMesh->getWater())
-        {
-            const float height = toNavMeshCoordinates(settings, getSwimLevel(settings, water.mShift.z(), agentHalfExtents.z()));
-            recastMeshBounds.mMin.y() = std::min(recastMeshBounds.mMin.y(), height);
-            recastMeshBounds.mMax.y() = std::max(recastMeshBounds.mMax.y(), height);
-        }
+        const Bounds recastMeshBounds = getBounds(*recastMesh, agentHalfExtents, settings);
 
         if (isEmpty(recastMeshBounds))
         {
@@ -557,8 +563,8 @@ namespace DetourNavigator
 
         if (!cachedNavMeshData)
         {
-            auto prepared = prepareNavMeshTileData(*recastMesh, changedTile, recastMeshBounds,
-                                                   agentHalfExtents, settings);
+            const rcConfig config = makeRecastConfig(changedTile, recastMeshBounds, agentHalfExtents, settings);
+            auto prepared = prepareNavMeshTileData(config, *recastMesh, agentHalfExtents, settings);
 
             if (prepared == nullptr)
             {

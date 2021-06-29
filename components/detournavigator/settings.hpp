@@ -39,6 +39,7 @@ namespace DetourNavigator
         std::string mRecastMeshPathPrefix;
         std::string mNavMeshPathPrefix;
         std::chrono::milliseconds mMinUpdateInterval;
+        std::int64_t mNavMeshVersion = 0;
     };
 
     std::optional<Settings> makeSettingsFromSettingsManager();

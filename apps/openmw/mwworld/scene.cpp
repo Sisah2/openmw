@@ -519,8 +519,8 @@ namespace MWWorld
 
         if (!test && cell->getCell()->isExterior())
         {
-            float verts = ESM::Land::LAND_SIZE;
-            float worldsize = ESM::Land::REAL_SIZE;
+            const int verts = ESM::Land::LAND_SIZE;
+            const int worldsize = ESM::Land::REAL_SIZE;
 
             const int cellX = cell->getCell()->getGridX();
             const int cellY = cell->getCell()->getGridY();
@@ -529,13 +529,13 @@ namespace MWWorld
             const ESM::Land::LandData* data = land ? land->getData(ESM::Land::DATA_VHGT) : nullptr;
             if (data)
             {
-                mPhysics->addHeightField (data->mHeights, cellX, cellY, worldsize / (verts-1), verts, data->mMinHeight, data->mMaxHeight, land.get());
+                mPhysics->addHeightField(data->mHeights, cellX, cellY, worldsize, verts, data->mMinHeight, data->mMaxHeight, land.get());
             }
             else
             {
                 static std::vector<float> defaultHeight;
                 defaultHeight.resize(verts*verts, ESM::Land::DEFAULT_HEIGHT);
-                mPhysics->addHeightField (&defaultHeight[0], cellX, cellY, worldsize / (verts-1), verts, ESM::Land::DEFAULT_HEIGHT, ESM::Land::DEFAULT_HEIGHT, land.get());
+                mPhysics->addHeightField(defaultHeight.data(), cellX, cellY, worldsize, verts, ESM::Land::DEFAULT_HEIGHT, ESM::Land::DEFAULT_HEIGHT, land.get());
             }
         }
 
