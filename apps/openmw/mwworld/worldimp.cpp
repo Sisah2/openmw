@@ -191,8 +191,6 @@ namespace MWWorld
 
         if (auto navigatorSettings = DetourNavigator::makeSettingsFromSettingsManager())
         {
-            navigatorSettings->mMaxClimb = MWPhysics::sStepSizeUp;
-            navigatorSettings->mMaxSlope = MWPhysics::sMaxSlope;
             navigatorSettings->mSwimHeightScale = mSwimHeightScale;
             DetourNavigator::RecastGlobalAllocator::init();
             mNavigator.reset(new DetourNavigator::NavigatorImpl(*navigatorSettings));
