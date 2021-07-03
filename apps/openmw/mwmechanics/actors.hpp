@@ -31,6 +31,11 @@ namespace MWWorld
     class CellStore;
 }
 
+namespace MWRender
+{
+    struct BobbingInfo;
+}
+
 namespace MWMechanics
 {
     class Actor;
@@ -154,6 +159,8 @@ namespace MWMechanics
             bool isAttackPreparing(const MWWorld::Ptr& ptr);
             bool isRunning(const MWWorld::Ptr& ptr);
             bool isSneaking(const MWWorld::Ptr& ptr);
+
+            void getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo);
 
             void forceStateUpdate(const MWWorld::Ptr &ptr);
 

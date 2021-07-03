@@ -136,6 +136,8 @@ namespace MWRender
         /// \brief Lowers the camera for sneak.
         void setSneakOffset(float offset);
 
+        void setWeaponRotation(float pitch, float yaw);
+
         bool isFirstPerson() const { return mFirstPersonView && mMode == Mode::Normal; }
 
         void processViewChange();

@@ -47,6 +47,7 @@
 #include "../mwmechanics/summoning.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -1899,15 +1900,31 @@ namespace MWWorld
         }
 
         // Sink the camera while sneaking
-        bool sneaking = player.getClass().getCreatureStats(getPlayerPtr()).getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool swimming = isSwimming(player);
-        bool flying = isFlying(player);
+        static MWRender::BobbingInfo bobbingInfo = {};
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
 
-        static const float i1stPersonSneakDelta = mStore.get<ESM::GameSetting>().find("i1stPersonSneakDelta")->mValue.getFloat();
-        if (sneaking && !swimming && !flying)
-            mRendering->getCamera()->setSneakOffset(i1stPersonSneakDelta);
-        else
-            mRendering->getCamera()->setSneakOffset(0.f);
+        static const bool headbobEnabled = Settings::Manager::getBool("head bobbing", "Camera");
+        static const bool exteriorsInertia = Settings::Manager::getBool("exteriors inertia", "Camera");
+
+        float fpOffset = bobbingInfo.mSneakOffset;
+        if (headbobEnabled)
+             fpOffset += bobbingInfo.mLandingOffset;
+
+        if (isFirstPerson && bobbingInfo.mHandBobEnabled)
+        {
+
+            if (exteriorsInertia || (!exteriorsInertia && !player.getCell()->isExterior()))
+            {
+                static const float handInertia = std::min(3.f, std::max(-3.f, Settings::Manager::getFloat("hand inertia", "Camera")));
+
+                float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
+                float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
+
+                mRendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
+            }
+        }
+
+        mRendering->getCamera()->setSneakOffset(fpOffset);
 
         int blind = 0;
         auto& magicEffects = player.getClass().getCreatureStats(player).getMagicEffects();

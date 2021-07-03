@@ -223,6 +223,8 @@ namespace MWMechanics
             bool isRunning(const MWWorld::Ptr& ptr) override;
             bool isSneaking(const MWWorld::Ptr& ptr) override;
 
+            virtual void getBobbingInfo(const MWWorld::Ptr &ptr, MWRender::BobbingInfo& outBobbingInfo) override;
+
             void reportStats(unsigned int frameNumber, osg::Stats& stats) const override;
 
             int getGreetingTimer(const MWWorld::Ptr& ptr) const override;
