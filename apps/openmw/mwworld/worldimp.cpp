@@ -30,6 +30,7 @@
 #include <components/detournavigator/navigatorimpl.hpp>
 #include <components/detournavigator/navigatorstub.hpp>
 #include <components/detournavigator/recastglobalallocator.hpp>
+#include <components/detournavigator/navmeshdb.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/soundmanager.hpp"
@@ -193,7 +194,14 @@ namespace MWWorld
         {
             navigatorSettings->mSwimHeightScale = mSwimHeightScale;
             DetourNavigator::RecastGlobalAllocator::init();
-            mNavigator.reset(new DetourNavigator::NavigatorImpl(*navigatorSettings));
+            using DetourNavigator::NavMeshDb;
+            using DetourNavigator::NavigatorImpl;
+
+            std::unique_ptr<NavMeshDb> db;
+            if (Settings::Manager::getBool("enable nav mesh disk cache", "Navigator"))
+                db = std::make_unique<NavMeshDb>(userDataPath + "/navmesh.db");
+
+            mNavigator.reset(new NavigatorImpl(*navigatorSettings, std::move(db)));
         }
         else
         {
@@ -1524,9 +1532,10 @@ namespace MWWorld
             if (const auto object = mPhysics->getObject(door.first))
                 updateNavigatorObject(*object);
 
-        if (mShouldUpdateNavigator)
+        auto player = getPlayerPtr();
+        if (mShouldUpdateNavigator && player.getCell() != nullptr)
         {
-            mNavigator->update(getPlayerPtr().getRefData().getPosition().asVec3());
+            mNavigator->update(player.getRefData().getPosition().asVec3());
             mShouldUpdateNavigator = false;
         }
     }

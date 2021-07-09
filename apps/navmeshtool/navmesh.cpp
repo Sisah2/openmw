@@ -47,7 +47,6 @@ namespace NavMeshTool
         using DetourNavigator::NavMeshDb;
         using DetourNavigator::TileId;
         using DetourNavigator::TilePosition;
-        using DetourNavigator::TileRevision;
         using DetourNavigator::TileVersion;
 
         void logGeneratedTiles(std::size_t provided, std::size_t expected)

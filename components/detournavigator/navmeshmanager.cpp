@@ -40,12 +40,22 @@ namespace
 
 namespace DetourNavigator
 {
-    NavMeshManager::NavMeshManager(const Settings& settings)
+    NavMeshManager::NavMeshManager(const Settings& settings, std::unique_ptr<NavMeshDb>&& db)
         : mSettings(settings)
         , mRecastMeshManager(settings)
         , mOffMeshConnectionsManager(settings)
-        , mAsyncNavMeshUpdater(settings, mRecastMeshManager, mOffMeshConnectionsManager)
+        , mAsyncNavMeshUpdater(settings, mRecastMeshManager, mOffMeshConnectionsManager, std::move(db))
     {}
+
+    void NavMeshManager::setWorldspace(std::string_view worldspace)
+    {
+        if (worldspace == mWorldspace)
+            return;
+        mRecastMeshManager.setWorldspace(worldspace);
+        for (auto& [agent, cache] : mCache)
+            cache = std::make_shared<GuardedNavMeshCacheItem>(makeEmptyNavMesh(mSettings), ++mGenerationCounter);
+        mWorldspace = worldspace;
+    }
 
     bool NavMeshManager::addObject(const ObjectId id, const CollisionShape& shape, const btTransform& transform,
                                    const AreaType areaType)
@@ -204,7 +214,7 @@ namespace DetourNavigator
                     recastMeshManager.reportNavMeshChange(recastMeshManager.getVersion(), Version {0, 0});
             });
         }
-        mAsyncNavMeshUpdater.post(agentHalfExtents, cached, playerTile, tilesToPost);
+        mAsyncNavMeshUpdater.post(agentHalfExtents, cached, playerTile, mRecastMeshManager.getWorldspace(), tilesToPost);
         if (changedTiles != mChangedTiles.end())
             changedTiles->second.clear();
         Log(Debug::Debug) << "Cache update posted for agent=" << agentHalfExtents <<
@@ -237,9 +247,10 @@ namespace DetourNavigator
         std::vector<TilePosition> tiles;
         mRecastMeshManager.forEachTile(
             [&tiles] (const TilePosition& tile, const CachedRecastMeshManager&) { tiles.push_back(tile); });
+        const std::string worldspace = mRecastMeshManager.getWorldspace();
         RecastMeshTiles result;
         std::transform(tiles.begin(), tiles.end(), std::inserter(result, result.end()),
-            [this] (const TilePosition& tile) { return std::make_pair(tile, mRecastMeshManager.getMesh(tile)); });
+            [&] (const TilePosition& tile) { return std::make_pair(tile, mRecastMeshManager.getMesh(worldspace, tile)); });
         return result;
     }
 

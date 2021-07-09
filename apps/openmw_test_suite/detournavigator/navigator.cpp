@@ -2,6 +2,7 @@
 
 #include <components/detournavigator/navigatorimpl.hpp>
 #include <components/detournavigator/exceptions.hpp>
+#include <components/detournavigator/navmeshdb.hpp>
 #include <components/misc/rng.hpp>
 #include <components/loadinglistener/loadinglistener.hpp>
 #include <components/esm/loadland.hpp>
@@ -35,6 +36,7 @@ namespace
         Settings mSettings;
         std::unique_ptr<Navigator> mNavigator;
         osg::Vec3f mPlayerPosition;
+        std::string mWorldspace;
         osg::Vec3f mAgentHalfExtents;
         osg::Vec3f mStart;
         osg::Vec3f mEnd;
@@ -50,6 +52,7 @@ namespace
 
         DetourNavigatorNavigatorTest()
             : mPlayerPosition(0, 0, 0)
+            , mWorldspace("sys::default")
             , mAgentHalfExtents(29, 29, 66)
             , mStart(-204, 204, 1)
             , mEnd(204, -204, 1)
@@ -84,7 +87,7 @@ namespace
             mSettings.mMaxPolys = 4096;
             mSettings.mMaxTilesNumber = 512;
             mSettings.mMinUpdateInterval = std::chrono::milliseconds(50);
-            mNavigator.reset(new NavigatorImpl(mSettings));
+            mNavigator.reset(new NavigatorImpl(mSettings, std::make_unique<NavMeshDb>(":memory:")));
         }
     };
 
@@ -835,7 +838,7 @@ namespace
     TEST_F(DetourNavigatorNavigatorTest, multiple_threads_should_lock_tiles)
     {
         mSettings.mAsyncNavMeshUpdaterThreads = 2;
-        mNavigator.reset(new NavigatorImpl(mSettings));
+        mNavigator.reset(new NavigatorImpl(mSettings, std::make_unique<NavMeshDb>(":memory:")));
 
         const std::array<float, 5 * 5> heightfieldData {{
             0,   0,    0,    0,    0,

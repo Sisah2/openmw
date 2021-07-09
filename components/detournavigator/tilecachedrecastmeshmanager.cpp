@@ -14,16 +14,31 @@ namespace DetourNavigator
         : mSettings(settings)
     {}
 
+    std::string TileCachedRecastMeshManager::getWorldspace() const
+    {
+        const std::lock_guard lock(mMutex);
+        return mWorldspace;
+    }
+
+    void TileCachedRecastMeshManager::setWorldspace(std::string_view worldspace)
+    {
+        const std::lock_guard lock(mMutex);
+        if (mWorldspace == worldspace)
+            return;
+        mTiles.clear();
+        mWorldspace = worldspace;
+    }
+
     bool TileCachedRecastMeshManager::addObject(const ObjectId id, const CollisionShape& shape,
                                                 const btTransform& transform, const AreaType areaType)
     {
         std::vector<TilePosition> tilesPositions;
         const auto border = getBorderSize(mSettings);
         {
-            auto tiles = mTiles.lock();
+            const std::lock_guard lock(mMutex);
             getTilesPositions(shape.getShape(), transform, mSettings, [&] (const TilePosition& tilePosition)
                 {
-                    if (addTile(id, shape, transform, areaType, tilePosition, border, tiles.get()))
+                    if (addTile(id, shape, transform, areaType, tilePosition, border, mTiles))
                         tilesPositions.push_back(tilePosition);
                 });
         }
@@ -42,10 +57,10 @@ namespace DetourNavigator
             return std::nullopt;
         std::optional<RemovedRecastMeshObject> result;
         {
-            auto tiles = mTiles.lock();
+            const std::lock_guard lock(mMutex);
             for (const auto& tilePosition : object->second)
             {
-                const auto removed = removeTile(id, tilePosition, tiles.get());
+                const auto removed = removeTile(id, tilePosition, mTiles);
                 if (removed && !result)
                     result = removed;
             }
@@ -66,8 +81,8 @@ namespace DetourNavigator
 
         if (cellSize == std::numeric_limits<int>::max())
         {
-            const auto tiles = mTiles.lock();
-            for (auto& tile : *tiles)
+            const std::lock_guard lock(mMutex);
+            for (auto& tile : mTiles)
             {
                 if (tile.second->addWater(cellPosition, cellSize, shift))
                 {
@@ -80,14 +95,14 @@ namespace DetourNavigator
         {
             getTilesPositions(cellSize, shift, mSettings, [&] (const TilePosition& tilePosition)
                 {
-                    const auto tiles = mTiles.lock();
-                    auto tile = tiles->find(tilePosition);
-                    if (tile == tiles->end())
+                    const std::lock_guard lock(mMutex);
+                    auto tile = mTiles.find(tilePosition);
+                    if (tile == mTiles.end())
                     {
                         auto tileBounds = makeTileBounds(mSettings, tilePosition);
                         tileBounds.mMin -= osg::Vec2f(border, border);
                         tileBounds.mMax += osg::Vec2f(border, border);
-                        tile = tiles->insert(std::make_pair(tilePosition,
+                        tile = mTiles.insert(std::make_pair(tilePosition,
                                 std::make_shared<CachedRecastMeshManager>(mSettings, tileBounds, mTilesGeneration))).first;
                     }
                     if (tile->second->addWater(cellPosition, cellSize, shift))
@@ -112,14 +127,14 @@ namespace DetourNavigator
         std::optional<Cell> result;
         for (const auto& tilePosition : object->second)
         {
-            const auto tiles = mTiles.lock();
-            const auto tile = tiles->find(tilePosition);
-            if (tile == tiles->end())
+            const std::lock_guard lock(mMutex);
+            const auto tile = mTiles.find(tilePosition);
+            if (tile == mTiles.end())
                 continue;
             const auto tileResult = tile->second->removeWater(cellPosition);
             if (tile->second->isEmpty())
             {
-                tiles->erase(tile);
+                mTiles.erase(tile);
                 ++mTilesGeneration;
             }
             if (tileResult && !result)
@@ -141,14 +156,14 @@ namespace DetourNavigator
 
         getTilesPositions(cellSize, shift, mSettings, [&] (const TilePosition& tilePosition)
             {
-                const auto tiles = mTiles.lock();
-                auto tile = tiles->find(tilePosition);
-                if (tile == tiles->end())
+                const std::lock_guard lock(mMutex);
+                auto tile = mTiles.find(tilePosition);
+                if (tile == mTiles.end())
                 {
                     auto tileBounds = makeTileBounds(mSettings, tilePosition);
                     tileBounds.mMin -= osg::Vec2f(border, border);
                     tileBounds.mMax += osg::Vec2f(border, border);
-                    tile = tiles->insert(std::make_pair(tilePosition,
+                    tile = mTiles.insert(std::make_pair(tilePosition,
                             std::make_shared<CachedRecastMeshManager>(mSettings, tileBounds, mTilesGeneration))).first;
                 }
                 if (tile->second->addHeightfield(cellPosition, cellSize, shift, shape))
@@ -172,14 +187,14 @@ namespace DetourNavigator
         std::optional<Cell> result;
         for (const auto& tilePosition : object->second)
         {
-            const auto tiles = mTiles.lock();
-            const auto tile = tiles->find(tilePosition);
-            if (tile == tiles->end())
+            const std::lock_guard lock(mMutex);
+            const auto tile = mTiles.find(tilePosition);
+            if (tile == mTiles.end())
                 continue;
             const auto tileResult = tile->second->removeHeightfield(cellPosition);
             if (tile->second->isEmpty())
             {
-                tiles->erase(tile);
+                mTiles.erase(tile);
                 ++mTilesGeneration;
             }
             if (tileResult && !result)
@@ -190,16 +205,16 @@ namespace DetourNavigator
         return result;
     }
 
-    std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getMesh(const TilePosition& tilePosition) const
+    std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getMesh(std::string_view worldspace, const TilePosition& tilePosition) const
     {
-        if (const auto manager = getManager(tilePosition))
+        if (const auto manager = getManager(worldspace, tilePosition))
             return manager->getMesh();
         return nullptr;
     }
 
-    std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getNewMesh(const TilePosition& tilePosition) const
+    std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getNewMesh(std::string_view worldspace, const TilePosition& tilePosition) const
     {
-        if (const auto manager = getManager(tilePosition))
+        if (const auto manager = getManager(worldspace, tilePosition))
             return manager->getNewMesh();
         return nullptr;
     }
@@ -211,9 +226,9 @@ namespace DetourNavigator
 
     void TileCachedRecastMeshManager::reportNavMeshChange(const TilePosition& tilePosition, Version recastMeshVersion, Version navMeshVersion) const
     {
-        const auto tiles = mTiles.lockConst();
-        const auto it = tiles->find(tilePosition);
-        if (it == tiles->end())
+        const std::lock_guard lock(mMutex);
+        const auto it = mTiles.find(tilePosition);
+        if (it == mTiles.end())
             return;
         it->second->reportNavMeshChange(recastMeshVersion, navMeshVersion);
     }
@@ -256,11 +271,14 @@ namespace DetourNavigator
         return tileResult;
     }
 
-    std::shared_ptr<CachedRecastMeshManager> TileCachedRecastMeshManager::getManager(const TilePosition& tilePosition) const
+    std::shared_ptr<CachedRecastMeshManager> TileCachedRecastMeshManager::getManager(std::string_view worldspace,
+        const TilePosition& tilePosition) const
     {
-        const auto tiles = mTiles.lockConst();
-        const auto it = tiles->find(tilePosition);
-        if (it == tiles->end())
+        const std::lock_guard lock(mMutex);
+        if (mWorldspace != worldspace)
+            return nullptr;
+        const auto it = mTiles.find(tilePosition);
+        if (it == mTiles.end())
             return nullptr;
         return it->second;
     }

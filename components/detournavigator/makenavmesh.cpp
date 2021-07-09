@@ -10,9 +10,13 @@
 #include "preparednavmeshdata.hpp"
 #include "navmeshdata.hpp"
 #include "recastmeshbuilder.hpp"
+#include "navmeshdb.hpp"
+#include "serialization.hpp"
 
 #include <components/misc/convert.hpp>
 #include <components/bullethelpers/processtrianglecallback.hpp>
+#include <components/misc/convert.hpp>
+#include <components/misc/guarded.hpp>
 
 #include <DetourNavMesh.h>
 #include <DetourNavMeshBuilder.h>
@@ -523,9 +527,10 @@ namespace DetourNavigator
     }
 
     UpdateNavMeshStatus updateNavMesh(const osg::Vec3f& agentHalfExtents, const RecastMesh* recastMesh,
-        const TilePosition& changedTile, const TilePosition& playerTile,
+        const std::string& worldspace, const TilePosition& changedTile, const TilePosition& playerTile,
         const std::vector<OffMeshConnection>& offMeshConnections, const Settings& settings,
-        const SharedNavMeshCacheItem& navMeshCacheItem, NavMeshTilesCache& navMeshTilesCache, UpdateType updateType)
+        const SharedNavMeshCacheItem& navMeshCacheItem, NavMeshTilesCache& navMeshTilesCache, UpdateType updateType,
+        Misc::ScopeGuarded<std::unique_ptr<NavMeshDb>>& db)
     {
         Log(Debug::Debug) << std::fixed << std::setprecision(2) <<
             "Update NavMesh with multiple tiles:" <<
@@ -564,7 +569,22 @@ namespace DetourNavigator
         if (!cachedNavMeshData)
         {
             const rcConfig config = makeRecastConfig(changedTile, recastMeshBounds, agentHalfExtents, settings);
-            auto prepared = prepareNavMeshTileData(config, *recastMesh, agentHalfExtents, settings);
+
+            std::optional<TileData> stored;
+            if (const auto dbLocked = db.lock(); *dbLocked != nullptr)
+                stored = (*dbLocked)->getTileData(worldspace, changedTile,
+                                                  serialize(settings.mRecastScaleFactor, config, *recastMesh));
+
+            std::unique_ptr<PreparedNavMeshData> prepared;
+            if (stored.has_value() && stored->mVersion == settings.mNavMeshVersion)
+            {
+                prepared = std::make_unique<PreparedNavMeshData>();
+                if (!deserialize(stored->mData, *prepared))
+                    prepared = nullptr;
+            }
+
+            if (prepared == nullptr)
+                prepared = prepareNavMeshTileData(config, *recastMesh, agentHalfExtents, settings);
 
             if (prepared == nullptr)
             {

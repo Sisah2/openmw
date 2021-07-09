@@ -3,6 +3,7 @@
 #include "preparednavmeshdata.hpp"
 #include "recastmesh.hpp"
 #include "recast.hpp"
+#include "settings.hpp"
 
 #include <components/misc/endianness.hpp>
 
@@ -16,6 +17,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <functional>
 
 namespace DetourNavigator
 {
@@ -75,6 +77,50 @@ namespace
             {
                 std::memcpy(mDest, data, size);
                 mDest += size;
+            }
+            else
+            {
+                std::for_each_n(data, data + count, std::ref(*this));
+            }
+        }
+    };
+
+    struct BinaryReader
+    {
+        const std::byte* mPos;
+        const std::byte* const mEnd;
+
+        template <class T>
+        auto operator()(T& value)
+            -> std::enable_if_t<std::is_arithmetic_v<T>>
+        {
+            if (mEnd - mPos < static_cast<std::ptrdiff_t>(sizeof(value)))
+                throw std::runtime_error("Not enough data");
+            std::memcpy(&value, mPos, sizeof(value));
+            value = Misc::toLittleEndian(value);
+            mPos += sizeof(value);
+        }
+
+        template <class T>
+        inline auto operator()(T& value)
+            -> std::enable_if_t<!std::is_arithmetic_v<T>>;
+
+        template <class T>
+        auto operator()(T* data, std::size_t count)
+            -> std::enable_if_t<std::is_arithmetic_v<T>>
+        {
+            if (mEnd - mPos < static_cast<std::ptrdiff_t>(count * sizeof(T)))
+                throw std::runtime_error("Not enough data");
+            if (data == nullptr)
+            {
+                mPos += sizeof(T) * count;
+                return;
+            }
+            if constexpr (Misc::IS_LITTLE_ENDIAN || sizeof(T) == 1)
+            {
+                const std::size_t size = sizeof(T) * count;
+                std::memcpy(data, mPos, size);
+                mPos += size;
             }
             else
             {
@@ -262,6 +308,24 @@ namespace
         f(value.mPolyMeshDetail);
     }
 
+    template <class F>
+    auto serialize(PreparedNavMeshData& value, F&& f)
+    {
+        char magic[std::size(DetourNavigator::preparedNavMeshDataMagic)];
+        f(magic);
+        if (std::memcmp(magic, DetourNavigator::preparedNavMeshDataMagic, sizeof(magic)) != 0)
+            throw std::runtime_error("Bad PreparedNavMeshData magic");
+        std::uint32_t version = 0;
+        f(version);
+        if (version != DetourNavigator::preparedNavMeshDataVersion)
+            throw std::runtime_error("Bad PreparedNavMeshData version");
+        f(value.mUserId);
+        f(value.mCellSize);
+        f(value.mCellHeight);
+        f(value.mPolyMesh);
+        f(value.mPolyMeshDetail);
+    }
+
     template <class T>
     inline auto SizeAccumulator::operator()(const T& value)
         -> std::enable_if_t<!std::is_arithmetic_v<T>>
@@ -274,6 +338,44 @@ namespace
         -> std::enable_if_t<!std::is_arithmetic_v<T>>
     {
         serialize(value, *this);
+    }
+
+    template <class T>
+    inline auto BinaryReader::operator()(T& value)
+        -> std::enable_if_t<!std::is_arithmetic_v<T>>
+    {
+        serialize(value, *this);
+    }
+
+    void* permRecastAlloc(std::size_t size)
+    {
+        void* const result = rcAlloc(size, RC_ALLOC_PERM);
+        if (result == nullptr)
+            throw std::bad_alloc();
+        return result;
+    }
+
+    template <class T>
+    void permRecastAlloc(T*& values, int size)
+    {
+        static_assert(std::is_arithmetic_v<T>);
+        values = new (permRecastAlloc(size * sizeof(T))) T[static_cast<std::size_t>(size)];
+    }
+
+    void permRecastAlloc(rcPolyMesh& value)
+    {
+        permRecastAlloc(value.verts, getVertsLength(value));
+        permRecastAlloc(value.polys, getPolysLength(value));
+        permRecastAlloc(value.regs, getRegsLength(value));
+        permRecastAlloc(value.flags, getFlagsLength(value));
+        permRecastAlloc(value.areas, getAreasLength(value));
+    }
+
+    void permRecastAlloc(rcPolyMeshDetail& value)
+    {
+        permRecastAlloc(value.meshes, getMeshesLength(value));
+        permRecastAlloc(value.verts, getVertsLength(value));
+        permRecastAlloc(value.tris, getTrisLength(value));
     }
 }
 } // namespace DetourNavigator
@@ -296,5 +398,21 @@ namespace DetourNavigator
         std::vector<std::byte> result(sizeAccumulator.mValue);
         serialize(value, BinaryWriter {result.data(), result.data() + result.size()});
         return result;
+    }
+
+    bool deserialize(const std::vector<std::byte>& data, PreparedNavMeshData& value)
+    {
+        try
+        {
+            serialize(value, BinaryReader {data.data(), data.data() + data.size()});
+            permRecastAlloc(value.mPolyMesh);
+            permRecastAlloc(value.mPolyMeshDetail);
+            serialize(value, BinaryReader {data.data(), data.data() + data.size()});
+            return true;
+        }
+        catch (const std::exception&)
+        {
+            return false;
+        }
     }
 }
