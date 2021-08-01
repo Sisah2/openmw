@@ -76,7 +76,7 @@ namespace NavMeshTool
                 ("fallback", bpo::value<FallbackMap>()->default_value(FallbackMap(), "")
                     ->multitoken()->composing(), "fallback values")
 
-                ("threads", bpo::value<std::size_t>()->default_value(std::thread::hardware_concurrency()),
+                ("threads", bpo::value<std::size_t>()->default_value(std::max<std::size_t>(std::thread::hardware_concurrency() - 1, 1)),
                     "number of threads for parallel processing")
 
                 ("process-interior-cells", bpo::value<bool>()->implicit_value(true)

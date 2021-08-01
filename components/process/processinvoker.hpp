@@ -27,11 +27,15 @@ namespace Process
         inline bool startProcess(const QString &name, bool detached = false) { return startProcess(name, QStringList(), detached); }
         bool startProcess(const QString &name, const QStringList &arguments, bool detached = false);
 
+        void terminateProcess();
+
     private:
         QProcess *mProcess;
 
         QString mName;
         QStringList mArguments;
+
+        bool mIgnoreErrors = false;
 
     private slots:
         void processError(QProcess::ProcessError error);
