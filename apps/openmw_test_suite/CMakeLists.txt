@@ -35,6 +35,7 @@ if (GTEST_FOUND AND GMOCK_FOUND)
         detournavigator/navmeshtilescache.cpp
         detournavigator/tilecachedrecastmeshmanager.cpp
         detournavigator/navmeshdb.cpp
+        detournavigator/asyncnavmeshupdater.cpp
 
         settings/parser.cpp
 

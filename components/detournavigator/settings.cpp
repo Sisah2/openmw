@@ -43,6 +43,7 @@ namespace DetourNavigator
         navigatorSettings.mEnableNavMeshFileNameRevision = ::Settings::Manager::getBool("enable nav mesh file name revision", "Navigator");
         navigatorSettings.mMinUpdateInterval = std::chrono::milliseconds(::Settings::Manager::getInt("min update interval ms", "Navigator"));
         navigatorSettings.mNavMeshVersion = static_cast<std::int64_t>(::Settings::Manager::getInt("nav mesh version", "Navigator"));
+        navigatorSettings.mWriteToNavMeshDb = ::Settings::Manager::getBool("write to navmeshdb", "Navigator");
 
         return navigatorSettings;
     }

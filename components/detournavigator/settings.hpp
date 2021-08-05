@@ -13,6 +13,7 @@ namespace DetourNavigator
         bool mEnableWriteNavMeshToFile = false;
         bool mEnableRecastMeshFileNameRevision = false;
         bool mEnableNavMeshFileNameRevision = false;
+        bool mWriteToNavMeshDb = false;
         float mCellHeight = 0;
         float mCellSize = 0;
         float mDetailSampleDist = 0;

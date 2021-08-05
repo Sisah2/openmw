@@ -55,18 +55,6 @@ namespace DetourNavigator
     NavMeshPtr makeEmptyNavMesh(const Settings& settings);
 
     Bounds getBounds(const RecastMesh& recastMesh, const osg::Vec3f& agentHalfExtents, const Settings& settings);
-
-    enum class UpdateType
-    {
-        Persistent,
-        Temporary
-    };
-
-    UpdateNavMeshStatus updateNavMesh(const osg::Vec3f& agentHalfExtents, const RecastMesh* recastMesh,
-        const std::string& worldspace, const TilePosition& changedTile, const TilePosition& playerTile,
-        const std::vector<OffMeshConnection>& offMeshConnections, const Settings& settings,
-        const SharedNavMeshCacheItem& navMeshCacheItem, NavMeshTilesCache& navMeshTilesCache, UpdateType updateType,
-        Misc::ScopeGuarded<std::unique_ptr<NavMeshDb>>& db);
 }
 
 #endif

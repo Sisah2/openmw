@@ -198,6 +198,7 @@ add_component_dir(detournavigator
     generatenavmeshtile
     navmeshdb
     serialization
+    recast
     )
 
 add_component_dir(loadinglistener

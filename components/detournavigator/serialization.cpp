@@ -346,37 +346,6 @@ namespace
     {
         serialize(value, *this);
     }
-
-    void* permRecastAlloc(std::size_t size)
-    {
-        void* const result = rcAlloc(size, RC_ALLOC_PERM);
-        if (result == nullptr)
-            throw std::bad_alloc();
-        return result;
-    }
-
-    template <class T>
-    void permRecastAlloc(T*& values, int size)
-    {
-        static_assert(std::is_arithmetic_v<T>);
-        values = new (permRecastAlloc(size * sizeof(T))) T[static_cast<std::size_t>(size)];
-    }
-
-    void permRecastAlloc(rcPolyMesh& value)
-    {
-        permRecastAlloc(value.verts, getVertsLength(value));
-        permRecastAlloc(value.polys, getPolysLength(value));
-        permRecastAlloc(value.regs, getRegsLength(value));
-        permRecastAlloc(value.flags, getFlagsLength(value));
-        permRecastAlloc(value.areas, getAreasLength(value));
-    }
-
-    void permRecastAlloc(rcPolyMeshDetail& value)
-    {
-        permRecastAlloc(value.meshes, getMeshesLength(value));
-        permRecastAlloc(value.verts, getVertsLength(value));
-        permRecastAlloc(value.tris, getTrisLength(value));
-    }
 }
 } // namespace DetourNavigator
 
