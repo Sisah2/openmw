@@ -189,22 +189,22 @@ if(NOT OPENMW_USE_SYSTEM_RECASTNAVIGATION)
     FetchContent_MakeAvailableExcludeFromAll(recastnavigation)
 endif()
 
-if(NOT OPENMW_USE_SYSTEM_SQLITECPP)
-    if(SQLITECPP_STATIC)
-        set(BUILD_SHARED_LIBS OFF)
-    else()
-        set(BUILD_SHARED_LIBS ON)
-    endif()
-
-    if(MSVC)
-        set(SQLITECPP_USE_STATIC_RUNTIME OFF CACHE BOOL "")
-    endif()
-
+if (NOT OPENMW_USE_SYSTEM_SQLITE3)
     include(FetchContent)
-    FetchContent_Declare(SQLiteCpp
-        URL https://github.com/SRombauts/SQLiteCpp/archive/0c46d86e0d82031924c5d10bf9b23fa917ba037e.zip
-        URL_HASH MD5=564576ee9bce1923745370145cdd900b
-        SOURCE_DIR fetched/SQLiteCpp
+    FetchContent_Declare(sqlite3
+        URL https://www.sqlite.org/2021/sqlite-amalgamation-3360000.zip
+        URL_HASH MD5=c5d360c74111bafae1b704721ff18fe6
+        SOURCE_DIR fetched/sqlite3
     )
-    FetchContent_MakeAvailableExcludeFromAll(SQLiteCpp)
+    FetchContent_MakeAvailableExcludeFromAll(sqlite3)
+
+    add_library(sqlite3 STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
+    target_include_directories(sqlite3 INTERFACE ${sqlite3_SOURCE_DIR}/)
+    if (UNIX)
+        target_link_libraries(sqlite3 ${CMAKE_DL_LIBS})
+    endif()
+    add_library(SQLite::SQLite3 ALIAS sqlite3)
+
+    set(SQLite3_INCLUDE_DIR ${sqlite3_SOURCE_DIR}/ PARENT_SCOPE)
+    set(SQLite3_LIBRARY sqlite3 PARENT_SCOPE)
 endif()

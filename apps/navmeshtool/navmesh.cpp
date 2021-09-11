@@ -21,8 +21,6 @@
 
 #include <DetourNavMesh.h>
 
-#include <SQLiteCpp/Transaction.h>
-
 #include <osg/Vec3f>
 
 #include <algorithm>
@@ -48,6 +46,7 @@ namespace NavMeshTool
         using DetourNavigator::TileId;
         using DetourNavigator::TilePosition;
         using DetourNavigator::TileVersion;
+        using DetourNavigator::Transaction;
 
         void logGeneratedTiles(std::size_t provided, std::size_t expected)
         {
@@ -143,14 +142,14 @@ namespace NavMeshTool
 
             void commit()
             {
-                mTransaction->commit();
+                mTransaction.commit();
             }
 
         private:
             std::atomic_size_t mProvided {0};
             std::mutex mMutex;
             NavMeshDb mDb;
-            std::unique_ptr<SQLite::Transaction> mTransaction;
+            Transaction mTransaction;
             TileId mNextTileId;
             std::condition_variable mHasTile;
             ProgressReporter mReporter;

@@ -11,7 +11,6 @@ openmw_add_executable(openmw-navmeshtool ${NAVMESHTOOL})
 target_link_libraries(openmw-navmeshtool
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     components
-    SQLiteCpp
 )
 
 if (BUILD_WITH_CODE_COVERAGE)

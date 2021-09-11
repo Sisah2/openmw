@@ -3,10 +3,6 @@
 
 #include "tileposition.hpp"
 
-#include <SQLiteCpp/Database.h>
-#include <SQLiteCpp/Statement.h>
-#include <SQLiteCpp/Transaction.h>
-
 #include <boost/serialization/strong_typedef.hpp>
 
 #include <cstddef>
@@ -19,6 +15,10 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <memory>
+
+struct sqlite3;
+struct sqlite3_stmt;
 
 namespace DetourNavigator
 {
@@ -43,48 +43,82 @@ namespace DetourNavigator
     {
         struct GetMaxTileId
         {
-            static const char* text() noexcept;
-            static void bind(SQLite::Statement&) {}
+            static std::string_view text() noexcept;
+            static void bind(sqlite3&, sqlite3_stmt&) {}
         };
 
         struct FindTile
         {
-            static const char* text() noexcept;
-            static void bind(SQLite::Statement& statement, const std::string& worldspace, const TilePosition& tilePosition,
-                const std::vector<std::byte>& input);
+            static std::string_view text() noexcept;
+            static void bind(sqlite3& db, sqlite3_stmt& statement, const std::string& worldspace,
+                const TilePosition& tilePosition, const std::vector<std::byte>& input);
         };
 
         struct GetTileData
         {
-            static const char* text() noexcept;
-            static void bind(SQLite::Statement& statement, const std::string& worldspace, const TilePosition& tilePosition,
-                const std::vector<std::byte>& input);
+            static std::string_view text() noexcept;
+            static void bind(sqlite3& db, sqlite3_stmt& statement, const std::string& worldspace,
+                const TilePosition& tilePosition, const std::vector<std::byte>& input);
         };
 
         struct InsertTile
         {
-            static const char* text() noexcept;
-            static void bind(SQLite::Statement& statement, TileId tileId, const std::string& worldspace, const TilePosition& tilePosition,
-                TileVersion version, const std::vector<std::byte>& input, const std::vector<std::byte>& data);
+            static std::string_view text() noexcept;
+            static void bind(sqlite3& db, sqlite3_stmt& statement, TileId tileId, const std::string& worldspace,
+                const TilePosition& tilePosition, TileVersion version, const std::vector<std::byte>& input,
+                const std::vector<std::byte>& data);
         };
 
         struct UpdateTile
         {
-            static const char* text() noexcept;
-            static void bind(SQLite::Statement& statement, TileId tileId, TileVersion version, const std::vector<std::byte>& data);
+            static std::string_view text() noexcept;
+            static void bind(sqlite3& db, sqlite3_stmt& statement, TileId tileId, TileVersion version,
+                const std::vector<std::byte>& data);
         };
     }
+
+    struct CloseSqlite
+    {
+        void operator()(sqlite3* handle) const noexcept;
+    };
+
+    using Sqlite3Ptr = std::unique_ptr<sqlite3, CloseSqlite>;
+
+    struct CloseSqliteStmt
+    {
+        void operator()(sqlite3_stmt* handle) const noexcept;
+    };
+
+    using Sqlite3StmtPtr = std::unique_ptr<sqlite3_stmt, CloseSqliteStmt>;
+
+    Sqlite3StmtPtr makeStatement(sqlite3& db, std::string_view query);
 
     template <class Query>
     struct SqliteStatement
     {
         bool mNeedReset = false;
-        std::unique_ptr<SQLite::Statement> mStatement;
+        Sqlite3StmtPtr mStatement;
         Query mQuery;
 
-        explicit SqliteStatement(SQLite::Database& db, Query query = Query {})
-            : mStatement(std::make_unique<SQLite::Statement>(db, query.text())),
+        explicit SqliteStatement(sqlite3& db, Query query = Query {})
+            : mStatement(makeStatement(db, query.text())),
               mQuery(std::move(query)) {}
+    };
+
+    struct Rollback
+    {
+        void operator()(sqlite3* handle) const;
+    };
+
+    class Transaction
+    {
+    public:
+        Transaction(sqlite3& db);
+
+        void commit();
+
+    private:
+        std::unique_ptr<sqlite3, Rollback> mDb;
     };
 
     class NavMeshDb
@@ -92,7 +126,7 @@ namespace DetourNavigator
     public:
         explicit NavMeshDb(std::string_view path);
 
-        std::unique_ptr<SQLite::Transaction> startTransaction();
+        Transaction startTransaction();
 
         TileId getMaxTileId();
 
@@ -108,7 +142,7 @@ namespace DetourNavigator
         int updateTile(TileId tileId, TileVersion version, const std::vector<std::byte>& data);
 
     private:
-        SQLite::Database mDb;
+        Sqlite3Ptr mDb;
         SqliteStatement<DbQueries::GetMaxTileId> mGetMaxTileId;
         SqliteStatement<DbQueries::FindTile> mFindTile;
         SqliteStatement<DbQueries::GetTileData> mGetTileData;

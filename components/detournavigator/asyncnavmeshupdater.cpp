@@ -776,11 +776,11 @@ namespace DetourNavigator
             if (mWrites > writesPerTransaction)
             {
                 mWrites = 0;
-                transaction->commit();
+                transaction.commit();
                 transaction = mDb->startTransaction();
             }
         }
-        transaction->commit();
+        transaction.commit();
     }
 
     void DbWorker::processJob(JobIt job)
