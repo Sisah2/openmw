@@ -62,7 +62,7 @@ namespace Misc
 
             ScopeGuarded(const ScopeGuarded& other)
                 : mMutex()
-                , mValue(other.lock().get())
+                , mValue(other.lockConst().get())
             {}
 
             ScopeGuarded(ScopeGuarded&& other)

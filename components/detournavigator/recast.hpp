@@ -2,8 +2,11 @@
 #define OPENMW_COMPONENTS_DETOURNAVIGATOR_RECAST_H
 
 #include <Recast.h>
+#include <RecastAlloc.h>
 
 #include <cstddef>
+#include <new>
+#include <type_traits>
 
 namespace DetourNavigator
 {
@@ -46,6 +49,29 @@ namespace DetourNavigator
     {
         return 4 * static_cast<std::size_t>(value.ntris);
     }
+
+    inline void* permRecastAlloc(std::size_t size)
+    {
+        void* const result = rcAlloc(size, RC_ALLOC_PERM);
+        if (result == nullptr)
+            throw std::bad_alloc();
+        return result;
+    }
+
+    template <class T>
+    inline void permRecastAlloc(T*& values, std::size_t size)
+    {
+        static_assert(std::is_arithmetic_v<T>);
+        values = new (permRecastAlloc(size * sizeof(T))) T[size];
+    }
+
+    void permRecastAlloc(rcPolyMesh& value);
+
+    void permRecastAlloc(rcPolyMeshDetail& value);
+
+    void copyPolyMesh(const rcPolyMesh& src, rcPolyMesh& dst);
+
+    void copyPolyMeshDetail(const rcPolyMeshDetail& src, rcPolyMeshDetail& dst);
 }
 
 #endif

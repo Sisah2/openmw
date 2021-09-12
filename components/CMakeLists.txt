@@ -195,6 +195,10 @@ add_component_dir(detournavigator
     offmeshconnectionsmanager
     preparednavmeshdata
     navmeshcacheitem
+    generatenavmeshtile
+    navmeshdb
+    serialization
+    recast
     )
 
 add_component_dir(loadinglistener
@@ -237,6 +241,8 @@ endif ()
 
 include_directories(${BULLET_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
+find_package(SQLite3 REQUIRED)
+
 add_library(components STATIC ${COMPONENT_FILES})
 
 target_link_libraries(components
@@ -269,6 +275,7 @@ target_link_libraries(components
     RecastNavigation::Recast
 
     Base64
+    SQLite::SQLite3
     )
 
 target_link_libraries(components ${BULLET_LIBRARIES})

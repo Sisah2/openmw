@@ -1,7 +1,9 @@
 #include "operators.hpp"
+#include "settings.hpp"
 
 #include <components/detournavigator/navigatorimpl.hpp>
 #include <components/detournavigator/exceptions.hpp>
+#include <components/detournavigator/navmeshdb.hpp>
 #include <components/misc/rng.hpp>
 #include <components/loadinglistener/loadinglistener.hpp>
 #include <components/esm/loadland.hpp>
@@ -29,12 +31,14 @@ namespace
 {
     using namespace testing;
     using namespace DetourNavigator;
+    using namespace DetourNavigator::Tests;
 
     struct DetourNavigatorNavigatorTest : Test
     {
-        Settings mSettings;
+        Settings mSettings = makeSettings();
         std::unique_ptr<Navigator> mNavigator;
         osg::Vec3f mPlayerPosition;
+        std::string mWorldspace;
         osg::Vec3f mAgentHalfExtents;
         osg::Vec3f mStart;
         osg::Vec3f mEnd;
@@ -50,41 +54,14 @@ namespace
 
         DetourNavigatorNavigatorTest()
             : mPlayerPosition(0, 0, 0)
+            , mWorldspace("sys::default")
             , mAgentHalfExtents(29, 29, 66)
             , mStart(-204, 204, 1)
             , mEnd(204, -204, 1)
             , mOut(mPath)
             , mStepSize(28.333332061767578125f)
         {
-            mSettings.mEnableWriteRecastMeshToFile = false;
-            mSettings.mEnableWriteNavMeshToFile = false;
-            mSettings.mEnableRecastMeshFileNameRevision = false;
-            mSettings.mEnableNavMeshFileNameRevision = false;
-            mSettings.mBorderSize = 16;
-            mSettings.mCellHeight = 0.2f;
-            mSettings.mCellSize = 0.2f;
-            mSettings.mDetailSampleDist = 6;
-            mSettings.mDetailSampleMaxError = 1;
-            mSettings.mMaxClimb = 34;
-            mSettings.mMaxSimplificationError = 1.3f;
-            mSettings.mMaxSlope = 49;
-            mSettings.mRecastScaleFactor = 0.017647058823529415f;
-            mSettings.mSwimHeightScale = 0.89999997615814208984375f;
-            mSettings.mMaxEdgeLen = 12;
-            mSettings.mMaxNavMeshQueryNodes = 2048;
-            mSettings.mMaxVertsPerPoly = 6;
-            mSettings.mRegionMergeSize = 20;
-            mSettings.mRegionMinSize = 8;
-            mSettings.mTileSize = 64;
-            mSettings.mWaitUntilMinDistanceToPlayer = std::numeric_limits<int>::max();
-            mSettings.mAsyncNavMeshUpdaterThreads = 1;
-            mSettings.mMaxNavMeshTilesCacheSize = 1024 * 1024;
-            mSettings.mMaxPolygonPathSize = 1024;
-            mSettings.mMaxSmoothPathSize = 1024;
-            mSettings.mMaxPolys = 4096;
-            mSettings.mMaxTilesNumber = 512;
-            mSettings.mMinUpdateInterval = std::chrono::milliseconds(50);
-            mNavigator.reset(new NavigatorImpl(mSettings));
+            mNavigator.reset(new NavigatorImpl(mSettings, std::make_unique<NavMeshDb>(":memory:")));
         }
     };
 
@@ -835,7 +812,7 @@ namespace
     TEST_F(DetourNavigatorNavigatorTest, multiple_threads_should_lock_tiles)
     {
         mSettings.mAsyncNavMeshUpdaterThreads = 2;
-        mNavigator.reset(new NavigatorImpl(mSettings));
+        mNavigator.reset(new NavigatorImpl(mSettings, std::make_unique<NavMeshDb>(":memory:")));
 
         const std::array<float, 5 * 5> heightfieldData {{
             0,   0,    0,    0,    0,
