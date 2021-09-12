@@ -1,5 +1,6 @@
 #version 120
-    
+precision highp float;
+
 #include "helpsettings.glsl"
 varying vec3  screenCoordsPassthrough;
 varying vec4  position;

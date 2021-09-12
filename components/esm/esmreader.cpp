@@ -7,11 +7,6 @@ namespace ESM
 
 using namespace Misc;
 
-    std::string ESMReader::getName() const
-    {
-        return mCtx.filename;
-    }
-
 ESM_Context ESMReader::getContext()
 {
     // Update the file position before returning
@@ -27,11 +22,6 @@ ESMReader::ESMReader()
     , mFileSize(0)
 {
     clearCtx();
-}
-
-int ESMReader::getFormat() const
-{
-    return mHeader.mFormat;
 }
 
 void ESMReader::restoreContext(const ESM_Context &rc)
@@ -121,13 +111,13 @@ std::string ESMReader::getHString()
     // them. For some reason, they break the rules, and contain a byte
     // (value 0) even if the header says there is no data. If
     // Morrowind accepts it, so should we.
-    if (mCtx.leftSub == 0 && !mEsm->peek())
+    if (mCtx.leftSub == 0 && hasMoreSubs() && !mEsm->peek())
     {
         // Skip the following zero byte
         mCtx.leftRec--;
         char c;
-        getExact(&c, 1);
-        return "";
+        getT(c);
+        return std::string();
     }
 
     return getString(mCtx.leftSub);
@@ -137,11 +127,7 @@ void ESMReader::getHExact(void*p, int size)
 {
     getSubHeader();
     if (size != static_cast<int> (mCtx.leftSub))
-    {
-        std::stringstream error;
-        error << "getHExact(): size mismatch (requested " << size << ", got " << mCtx.leftSub << ")";
-        fail(error.str());
-    }
+        reportSubSizeMismatch(size, mCtx.leftSub);
     getExact(p, size);
 }
 
@@ -157,14 +143,12 @@ void ESMReader::getSubNameIs(const char* name)
 {
     getSubName();
     if (mCtx.subName != name)
-        fail(
-                "Expected subrecord " + std::string(name) + " but got "
-                        + mCtx.subName.toString());
+        fail("Expected subrecord " + std::string(name) + " but got " + mCtx.subName.toString());
 }
 
 bool ESMReader::isNextSub(const char* name)
 {
-    if (!mCtx.leftRec)
+    if (!hasMoreSubs())
         return false;
 
     getSubName();
@@ -179,18 +163,13 @@ bool ESMReader::isNextSub(const char* name)
 
 bool ESMReader::peekNextSub(const char *name)
 {
-    if (!mCtx.leftRec)
+    if (!hasMoreSubs())
         return false;
 
     getSubName();
 
     mCtx.subCached = true;
     return mCtx.subName == name;
-}
-
-void ESMReader::cacheSubName()
-{
-    mCtx.subCached = true;
 }
 
 // Read subrecord name. This gets called a LOT, so I've optimized it
@@ -220,7 +199,7 @@ void ESMReader::skipHSubSize(int size)
 {
     skipHSub();
     if (static_cast<int> (mCtx.leftSub) != size)
-        fail("skipHSubSize() mismatch");
+        reportSubSizeMismatch(mCtx.leftSub, size);
 }
 
 void ESMReader::skipHSubUntil(const char *name)
@@ -236,21 +215,17 @@ void ESMReader::skipHSubUntil(const char *name)
 
 void ESMReader::getSubHeader()
 {
-    if (mCtx.leftRec < 4)
+    if (mCtx.leftRec < sizeof(mCtx.leftSub))
         fail("End of record while reading sub-record header");
 
     // Get subrecord size
     getT(mCtx.leftSub);
+    mCtx.leftRec -= sizeof(mCtx.leftSub);
 
     // Adjust number of record bytes left
-    mCtx.leftRec -= mCtx.leftSub + 4;
-}
-
-void ESMReader::getSubHeaderIs(int size)
-{
-    getSubHeader();
-    if (size != static_cast<int> (mCtx.leftSub))
-        fail("getSubHeaderIs(): Sub header mismatch");
+    if (mCtx.leftRec < mCtx.leftSub)
+        fail("Record size is larger than rest of file");
+    mCtx.leftRec -= mCtx.leftSub;
 }
 
 NAME ESMReader::getRecName()
@@ -278,7 +253,7 @@ void ESMReader::skipRecord()
 void ESMReader::getRecHeader(uint32_t &flags)
 {
     // General error checking
-    if (mCtx.leftFile < 12)
+    if (mCtx.leftFile < 3 * sizeof(uint32_t))
         fail("End of file while reading record header");
     if (mCtx.leftRec)
         fail("Previous record contains unread bytes");
@@ -286,11 +261,11 @@ void ESMReader::getRecHeader(uint32_t &flags)
     getUint(mCtx.leftRec);
     getUint(flags);// This header entry is always zero
     getUint(flags);
-    mCtx.leftFile -= 12;
+    mCtx.leftFile -= 3 * sizeof(uint32_t);
 
     // Check that sizes add up
     if (mCtx.leftFile < mCtx.leftRec)
-        fail("Record size is larger than rest of file");
+        reportSubSizeMismatch(mCtx.leftFile, mCtx.leftRec);
 
     // Adjust number of bytes mCtx.left in file
     mCtx.leftFile -= mCtx.leftRec;
@@ -301,18 +276,6 @@ void ESMReader::getRecHeader(uint32_t &flags)
  *  Lowest level data reading and misc methods
  *
  *************************************************************************/
-
-void ESMReader::getExact(void*x, int size)
-{
-    try
-    {
-        mEsm->read((char*)x, size);
-    }
-    catch (std::exception& e)
-    {
-        fail(std::string("Read error: ") + e.what());
-    }
-}
 
 std::string ESMReader::getString(int size)
 {
@@ -338,7 +301,7 @@ std::string ESMReader::getString(int size)
     return std::string (ptr, size);
 }
 
-void ESMReader::fail(const std::string &msg)
+[[noreturn]] void ESMReader::fail(const std::string &msg)
 {
     std::stringstream ss;
 
@@ -349,21 +312,6 @@ void ESMReader::fail(const std::string &msg)
     if (mEsm.get())
         ss << "\n  Offset: 0x" << std::hex << mEsm->tellg();
     throw std::runtime_error(ss.str());
-}
-
-void ESMReader::setEncoder(ToUTF8::Utf8Encoder* encoder)
-{
-    mEncoder = encoder;
-}
-
-size_t ESMReader::getFileOffset() const
-{
-    return mEsm->tellg();
-}
-
-void ESMReader::skip(int bytes)
-{
-    mEsm->seekg(getFileOffset()+bytes);
 }
 
 }

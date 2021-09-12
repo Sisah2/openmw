@@ -228,6 +228,7 @@ namespace Resource
         , mApplyLightingToEnvMaps(false)
         , mLightingMethod(SceneUtil::LightingMethod::FFP)
         , mConvertAlphaTestToAlphaToCoverage(false)
+        , mDepthFormat(0)
         , mInstanceCache(new MultiObjectCache)
         , mSharedStateManager(new SharedStateManager)
         , mImageManager(imageManager)
@@ -273,6 +274,16 @@ namespace Resource
     bool SceneManager::getClampLighting() const
     {
         return mClampLighting;
+    }
+
+    void SceneManager::setDepthFormat(GLenum format)
+    {
+        mDepthFormat = format;
+    }
+
+    GLenum SceneManager::getDepthFormat() const
+    {
+        return mDepthFormat;
     }
 
     void SceneManager::setAutoUseNormalMaps(bool use)
@@ -512,6 +523,12 @@ namespace Resource
             else if(str.find("MERGE_GEOMETRY")!=std::string::npos) options |= Optimizer::MERGE_GEOMETRY;
         }
         return options;
+    }
+
+    void SceneManager::shareState(osg::ref_ptr<osg::Node> node) {
+        mSharedStateMutex.lock();
+        mSharedStateManager->share(node.get());
+        mSharedStateMutex.unlock();
     }
 
     osg::ref_ptr<const osg::Node> SceneManager::getTemplate(const std::string &name, bool compile)

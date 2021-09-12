@@ -41,6 +41,8 @@
 
 #include <iterator>
 
+#include <components/sceneutil/util.hpp>
+
 using namespace osgUtil;
 
 namespace SceneUtil
@@ -1580,7 +1582,7 @@ bool Optimizer::MergeGeometryVisitor::mergeGroup(osg::Group& group)
                 }
                 if (_alphaBlendingActive && _mergeAlphaBlending && !geom->getStateSet())
                 {
-                    osg::Depth* d = new osg::Depth;
+                    auto d = createDepth();
                     d->setWriteMask(0);
                     geom->getOrCreateStateSet()->setAttribute(d);
                 }

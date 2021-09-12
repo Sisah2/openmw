@@ -4,6 +4,8 @@
 #include <cctype>
 #include <string>
 #include <algorithm>
+#include <string_view>
+#include <iterator>
 
 #include "utf8stream.hpp"
 
@@ -45,19 +47,19 @@ public:
     {
         // Russian alphabet
         if (ch >= 0x0410 && ch < 0x0430)
-            return ch += 0x20;
+            return ch + 0x20;
 
         // Cyrillic IO character
         if (ch == 0x0401)
-            return ch += 0x50;
+            return ch + 0x50;
 
         // Latin alphabet
         if (ch >= 0x41 && ch < 0x60)
-            return ch += 0x20;
+            return ch + 0x20;
 
         // Deutch characters
         if (ch == 0xc4 || ch == 0xd6 || ch == 0xdc)
-            return ch += 0x20;
+            return ch + 0x20;
         if (ch == 0x1e9e)
             return 0xdf;
 
@@ -66,7 +68,7 @@ public:
         return ch;
     }
 
-    static std::string lowerCaseUtf8(const std::string str)
+    static std::string lowerCaseUtf8(const std::string& str)
     {
         if (str.empty())
             return str;
@@ -109,18 +111,34 @@ public:
         return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end(), ci());
     }
 
-    static bool ciEqual(const std::string &x, const std::string &y) {
-        if (x.size() != y.size()) {
+    template <class X, class Y>
+    static bool ciEqual(const X& x, const Y& y)
+    {
+        if (std::size(x) != std::size(y))
             return false;
-        }
-        std::string::const_iterator xit = x.begin();
-        std::string::const_iterator yit = y.begin();
-        for (; xit != x.end(); ++xit, ++yit) {
-            if (toLower(*xit) != toLower(*yit)) {
-                return false;
-            }
-        }
-        return true;
+        return std::equal(std::begin(x), std::end(x), std::begin(y),
+                          [] (char l, char r) { return toLower(l) == toLower(r); });
+    }
+
+    template <std::size_t n>
+    static auto ciEqual(const char(& x)[n], const char(& y)[n])
+    {
+        static_assert(n > 0);
+        return ciEqual(std::string_view(x, n - 1), std::string_view(y, n - 1));
+    }
+
+    template <std::size_t n, class T>
+    static auto ciEqual(const char(& x)[n], const T& y)
+    {
+        static_assert(n > 0);
+        return ciEqual(std::string_view(x, n - 1), y);
+    }
+
+    template <std::size_t n, class T>
+    static auto ciEqual(const T& x, const char(& y)[n])
+    {
+        static_assert(n > 0);
+        return ciEqual(x, std::string_view(y, n - 1));
     }
 
     static int ciCompareLen(const std::string &x, const std::string &y, size_t len)
@@ -157,9 +175,9 @@ public:
     }
 
     /// Returns lower case copy of input string
-    static std::string lowerCase(const std::string &in)
+    static std::string lowerCase(std::string_view in)
     {
-        std::string out = in;
+        std::string out(in);
         lowerCaseInPlace(out);
         return out;
     }
@@ -279,7 +297,7 @@ public:
     // TODO: use the std::string_view once we will use the C++17.
     // It should allow us to avoid data copying while we still will support both string and literal arguments.
 
-    static inline void replaceAll(std::string& data, std::string toSearch, std::string replaceStr)
+    static inline void replaceAll(std::string& data, const std::string& toSearch, const std::string& replaceStr)
     {
         size_t pos = data.find(toSearch);
 
@@ -290,7 +308,7 @@ public:
         }
     }
 
-     static inline void replaceLast(std::string& str, std::string substr, std::string with)
+     static inline void replaceLast(std::string& str, const std::string& substr, const std::string& with)
      {
          size_t pos = str.rfind(substr);
          if (pos == std::string::npos)

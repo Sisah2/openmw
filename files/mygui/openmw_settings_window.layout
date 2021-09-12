@@ -443,7 +443,7 @@
                             </Widget>
                             <Widget type="HBox" skin="" position="4 56 350 24">
                                 <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="WaterReflectionDetail">
-                                    <Property key="AddItem" value="Off"/>
+                                    <Property key="AddItem" value="Sky"/>
                                     <Property key="AddItem" value="Terrain"/>
                                     <Property key="AddItem" value="World"/>
                                     <Property key="AddItem" value="Objects"/>
@@ -498,7 +498,7 @@
                         </Widget>
                         <Widget type="ScrollBar" skin="MW_HScroll" position="0 104 352 18" align="HStretch Top">
                             <Property key="Range" value="8192"/>
-                            <Property key="Page" value="1"/>
+                            <Property key="Page" value="128"/>
                             <UserString key="SettingType" value="Slider"/>
                             <UserString key="SettingMin" value="0"/>
                             <UserString key="SettingMax" value="8192"/>

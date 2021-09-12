@@ -105,6 +105,19 @@ namespace
 
         return checkAngle && checkDist;
     }
+
+    struct IsValidShortcut
+    {
+        const DetourNavigator::Navigator* mNavigator;
+        const osg::Vec3f mHalfExtents;
+        const DetourNavigator::Flags mFlags;
+
+        bool operator()(const osg::Vec3f& start, const osg::Vec3f& end) const
+        {
+            const auto position = mNavigator->raycast(mHalfExtents, start, end, mFlags);
+            return position.has_value() && std::abs((position.value() - start).length2() - (end - start).length2()) <= 1;
+        }
+    };
 }
 
 namespace MWMechanics
@@ -193,9 +206,6 @@ namespace MWMechanics
             endPointInLocalCoords,
                 startNode);
 
-        if (!endNode.second)
-            return;
-
         // if it's shorter for actor to travel from start to end, than to travel from either
         // start or end to nearest pathgrid point, just travel from start to end.
         float startToEndLength2 = (endPointInLocalCoords - startPointInLocalCoords).length2();
@@ -266,7 +276,8 @@ namespace MWMechanics
         // unreachable pathgrid point.
         //
         // The AI routines will have to deal with such situations.
-        *out++ = endPoint;
+        if (endNode.second)
+            *out++ = endPoint;
     }
 
     float PathFinder::getZAngleToNext(float x, float y) const
@@ -296,7 +307,8 @@ namespace MWMechanics
     }
 
     void PathFinder::update(const osg::Vec3f& position, float pointTolerance, float destinationTolerance,
-                            bool shortenIfAlmostStraight, bool canMoveByZ)
+                            bool shortenIfAlmostStraight, bool canMoveByZ, const osg::Vec3f& halfExtents,
+                            const DetourNavigator::Flags flags)
     {
         if (mPath.empty())
             return;
@@ -306,9 +318,15 @@ namespace MWMechanics
 
         if (shortenIfAlmostStraight)
         {
-            while (mPath.size() > 2 && isAlmostStraight(mPath[0], mPath[1], mPath[2], pointTolerance))
+            const IsValidShortcut isValidShortcut {
+                MWBase::Environment::get().getWorld()->getNavigator(),
+                halfExtents, flags
+            };
+            while (mPath.size() > 2 && isAlmostStraight(mPath[0], mPath[1], mPath[2], pointTolerance)
+                   && isValidShortcut(mPath[0], mPath[2]))
                 mPath.erase(mPath.begin() + 1);
-            if (mPath.size() > 1 && isAlmostStraight(position, mPath[0], mPath[1], pointTolerance))
+            if (mPath.size() > 1 && isAlmostStraight(position, mPath[0], mPath[1], pointTolerance)
+                    && isValidShortcut(position, mPath[1]))
                 mPath.pop_front();
         }
 
@@ -344,12 +362,18 @@ namespace MWMechanics
 
     void PathFinder::buildPathByNavMesh(const MWWorld::ConstPtr& actor, const osg::Vec3f& startPoint,
         const osg::Vec3f& endPoint, const osg::Vec3f& halfExtents, const DetourNavigator::Flags flags,
-        const DetourNavigator::AreaCosts& areaCosts)
+        const DetourNavigator::AreaCosts& areaCosts, float endTolerance, PathType pathType)
     {
         mPath.clear();
 
         // If it's not possible to build path over navmesh due to disabled navmesh generation fallback to straight path
-        if (!buildPathByNavigatorImpl(actor, startPoint, endPoint, halfExtents, flags, areaCosts, std::back_inserter(mPath)))
+        DetourNavigator::Status status = buildPathByNavigatorImpl(actor, startPoint, endPoint, halfExtents, flags,
+            areaCosts, endTolerance, pathType, std::back_inserter(mPath));
+
+        if (status != DetourNavigator::Status::Success)
+            mPath.clear();
+
+        if (status == DetourNavigator::Status::NavMeshNotFound)
             mPath.push_back(endPoint);
 
         mConstructed = !mPath.empty();
@@ -357,40 +381,52 @@ namespace MWMechanics
 
     void PathFinder::buildPath(const MWWorld::ConstPtr& actor, const osg::Vec3f& startPoint, const osg::Vec3f& endPoint,
         const MWWorld::CellStore* cell, const PathgridGraph& pathgridGraph, const osg::Vec3f& halfExtents,
-        const DetourNavigator::Flags flags, const DetourNavigator::AreaCosts& areaCosts)
+        const DetourNavigator::Flags flags, const DetourNavigator::AreaCosts& areaCosts, float endTolerance,
+        PathType pathType)
     {
         mPath.clear();
         mCell = cell;
 
-        bool hasNavMesh = false;
+        DetourNavigator::Status status = DetourNavigator::Status::NavMeshNotFound;
 
         if (!actor.getClass().isPureWaterCreature(actor) && !actor.getClass().isPureFlyingCreature(actor))
-            hasNavMesh = buildPathByNavigatorImpl(actor, startPoint, endPoint, halfExtents, flags, areaCosts, std::back_inserter(mPath));
+        {
+            status = buildPathByNavigatorImpl(actor, startPoint, endPoint, halfExtents, flags, areaCosts,
+                                              endTolerance, pathType, std::back_inserter(mPath));
+            if (status != DetourNavigator::Status::Success)
+                mPath.clear();
+        }
 
-        if (hasNavMesh && mPath.empty())
-            buildPathByNavigatorImpl(actor, startPoint, endPoint, halfExtents,
-                                     flags | DetourNavigator::Flag_usePathgrid, areaCosts, std::back_inserter(mPath));
+        if (status != DetourNavigator::Status::NavMeshNotFound && mPath.empty())
+        {
+            status = buildPathByNavigatorImpl(actor, startPoint, endPoint, halfExtents,
+                flags | DetourNavigator::Flag_usePathgrid, areaCosts, endTolerance, pathType, std::back_inserter(mPath));
+            if (status != DetourNavigator::Status::Success)
+                mPath.clear();
+        }
 
         if (mPath.empty())
             buildPathByPathgridImpl(startPoint, endPoint, pathgridGraph, std::back_inserter(mPath));
 
-        if (!hasNavMesh && mPath.empty())
+        if (status == DetourNavigator::Status::NavMeshNotFound && mPath.empty())
             mPath.push_back(endPoint);
 
         mConstructed = !mPath.empty();
     }
 
-    bool PathFinder::buildPathByNavigatorImpl(const MWWorld::ConstPtr& actor, const osg::Vec3f& startPoint,
+    DetourNavigator::Status PathFinder::buildPathByNavigatorImpl(const MWWorld::ConstPtr& actor, const osg::Vec3f& startPoint,
         const osg::Vec3f& endPoint, const osg::Vec3f& halfExtents, const DetourNavigator::Flags flags,
-        const DetourNavigator::AreaCosts& areaCosts, std::back_insert_iterator<std::deque<osg::Vec3f>> out)
+        const DetourNavigator::AreaCosts& areaCosts, float endTolerance, PathType pathType,
+        std::back_insert_iterator<std::deque<osg::Vec3f>> out)
     {
         const auto world = MWBase::Environment::get().getWorld();
         const auto stepSize = getPathStepSize(actor);
         const auto navigator = world->getNavigator();
-        const auto status = navigator->findPath(halfExtents, stepSize, startPoint, endPoint, flags, areaCosts, out);
+        const auto status = navigator->findPath(halfExtents, stepSize, startPoint, endPoint, flags, areaCosts,
+                                                endTolerance, out);
 
-        if (status == DetourNavigator::Status::NavMeshNotFound)
-            return false;
+        if (pathType == PathType::Partial && status == DetourNavigator::Status::PartialPath)
+            return DetourNavigator::Status::Success;
 
         if (status != DetourNavigator::Status::Success)
         {
@@ -400,7 +436,7 @@ namespace MWMechanics
                 << DetourNavigator::WriteFlags {flags} << ")";
         }
 
-        return true;
+        return status;
     }
 
     void PathFinder::buildPathByNavMeshToNextPoint(const MWWorld::ConstPtr& actor, const osg::Vec3f& halfExtents,
@@ -418,8 +454,9 @@ namespace MWMechanics
         const auto navigator = MWBase::Environment::get().getWorld()->getNavigator();
         std::deque<osg::Vec3f> prePath;
         auto prePathInserter = std::back_inserter(prePath);
+        const float endTolerance = 0;
         const auto status = navigator->findPath(halfExtents, stepSize, startPoint, mPath.front(), flags, areaCosts,
-                                                prePathInserter);
+                                                endTolerance, prePathInserter);
 
         if (status == DetourNavigator::Status::NavMeshNotFound)
             return;
@@ -444,7 +481,8 @@ namespace MWMechanics
 
     void PathFinder::buildLimitedPath(const MWWorld::ConstPtr& actor, const osg::Vec3f& startPoint, const osg::Vec3f& endPoint,
         const MWWorld::CellStore* cell, const PathgridGraph& pathgridGraph, const osg::Vec3f& halfExtents,
-        const DetourNavigator::Flags flags, const DetourNavigator::AreaCosts& areaCosts)
+        const DetourNavigator::Flags flags, const DetourNavigator::AreaCosts& areaCosts, float endTolerance,
+        PathType pathType)
     {
         const auto navigator = MWBase::Environment::get().getWorld()->getNavigator();
         const auto maxDistance = std::min(
@@ -454,8 +492,9 @@ namespace MWMechanics
         const auto startToEnd = endPoint - startPoint;
         const auto distance = startToEnd.length();
         if (distance <= maxDistance)
-            return buildPath(actor, startPoint, endPoint, cell, pathgridGraph, halfExtents, flags, areaCosts);
+            return buildPath(actor, startPoint, endPoint, cell, pathgridGraph, halfExtents, flags, areaCosts,
+                             endTolerance, pathType);
         const auto end = startPoint + startToEnd * maxDistance / distance;
-        buildPath(actor, startPoint, end, cell, pathgridGraph, halfExtents, flags, areaCosts);
+        buildPath(actor, startPoint, end, cell, pathgridGraph, halfExtents, flags, areaCosts, endTolerance, pathType);
     }
 }

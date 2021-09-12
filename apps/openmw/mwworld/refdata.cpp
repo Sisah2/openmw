@@ -8,6 +8,8 @@
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
 
+#include "../mwlua/localscripts.hpp"
+
 namespace
 {
 enum RefDataFlags
@@ -21,6 +23,12 @@ enum RefDataFlags
 namespace MWWorld
 {
 
+    void RefData::setLuaScripts(std::shared_ptr<MWLua::LocalScripts>&& scripts)
+    {
+        mChanged = true;
+        mLuaScripts = std::move(scripts);
+    }
+
     void RefData::copy (const RefData& refData)
     {
         mBaseNode = refData.mBaseNode;
@@ -31,20 +39,23 @@ namespace MWWorld
         mChanged = refData.mChanged;
         mDeletedByContentFile = refData.mDeletedByContentFile;
         mFlags = refData.mFlags;
+        mPhysicsPostponed = refData.mPhysicsPostponed;
 
         mAnimationState = refData.mAnimationState;
 
         mCustomData = refData.mCustomData ? refData.mCustomData->clone() : nullptr;
+        mLuaScripts = refData.mLuaScripts;
     }
 
     void RefData::cleanup()
     {
         mBaseNode = nullptr;
         mCustomData = nullptr;
+        mLuaScripts = nullptr;
     }
 
     RefData::RefData()
-    : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true), mCount (1), mCustomData (nullptr), mChanged(false), mFlags(0)
+    : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true), mCount (1), mCustomData (nullptr), mChanged(false), mFlags(0), mPhysicsPostponed(false)
     {
         for (int i=0; i<3; ++i)
         {
@@ -57,7 +68,7 @@ namespace MWWorld
     : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true),
       mCount (1), mPosition (cellRef.mPos),
       mCustomData (nullptr),
-      mChanged(false), mFlags(0) // Loading from ESM/ESP files -> assume unchanged
+      mChanged(false), mFlags(0), mPhysicsPostponed(false) // Loading from ESM/ESP files -> assume unchanged
     {
     }
 
@@ -68,7 +79,7 @@ namespace MWWorld
       mPosition (objectState.mPosition),
       mAnimationState(objectState.mAnimationState),
       mCustomData (nullptr),
-      mChanged(true), mFlags(objectState.mFlags) // Loading from a savegame -> assume changed
+      mChanged(true), mFlags(objectState.mFlags), mPhysicsPostponed(false) // Loading from a savegame -> assume changed
     {
         // "Note that the ActivationFlag_UseEnabled is saved to the reference,
         // which will result in permanently suppressed activation if the reference script is removed.
@@ -128,6 +139,9 @@ namespace MWWorld
         catch (...)
         {}
     }
+
+    RefData::RefData(RefData&& other) noexcept = default;
+    RefData& RefData::operator=(RefData&& other) noexcept = default;
 
     void RefData::setBaseNode(SceneUtil::PositionAttitudeTransform *base)
     {

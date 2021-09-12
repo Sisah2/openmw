@@ -5,6 +5,7 @@ endif()
 # Copy resource files into the build directory
 set(SDIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(DDIRRELATIVE resources/shaders)
+set(DDIRRELATIVE2 resources/shaders/glsl-tone-map-master)
 
 set(SHADER_FILES
     ../myshaders/fog.glsl
@@ -37,6 +38,25 @@ set(SHADER_FILES
     ../myshaders/nv_default_fragment.glsl
     ../myshaders/nv_nolighting_vertex.glsl
     ../myshaders/nv_nolighting_fragment.glsl
+    ../myshaders/gui_vertex.glsl
+    ../myshaders/gui_fragment.glsl
+    ../myshaders/debug_vertex.glsl
+    ../myshaders/debug_fragment.glsl
+)
+
+set(TONEMAP_FILES
+    ../myshaders/glsl-tone-map-master/aces.glsl
+    ../myshaders/glsl-tone-map-master/filmic.glsl
+    ../myshaders/glsl-tone-map-master/lottes.glsl
+    ../myshaders/glsl-tone-map-master/none.glsl
+    ../myshaders/glsl-tone-map-master/reinhard.glsl
+    ../myshaders/glsl-tone-map-master/reinhard2.glsl
+    ../myshaders/glsl-tone-map-master/uchimura.glsl
+    ../myshaders/glsl-tone-map-master/uncharted2.glsl
+    ../myshaders/glsl-tone-map-master/unreal.glsl
+    ../myshaders/glsl-tone-map-master/vtastek.glsl
+
 )
 
 copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRRELATIVE} "${SHADER_FILES}")
+copy_all_resource_files(${CMAKE_CURRENT_SOURCE_DIR} ${OPENMW_SHADERS_ROOT} ${DDIRRELATIVE2} "${TONEMAP_FILES}")

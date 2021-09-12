@@ -42,9 +42,18 @@ namespace MWScript
 
                 void execute (Interpreter::Runtime& runtime) override
                 {
-                    MWWorld::Ptr from = R()(runtime);
+                    MWWorld::Ptr from = R()(runtime, !R::implicit);
                     std::string name = runtime.getStringLiteral (runtime[0].mInteger);
                     runtime.pop();
+
+                    if (from.isEmpty())
+                    {
+                        std::string error = "Missing implicit ref";
+                        runtime.getContext().report(error);
+                        Log(Debug::Error) << error;
+                        runtime.push(0.f);
+                        return;
+                    }
 
                     if (from.getContainerStore()) // is the object contained?
                     {
@@ -158,17 +167,17 @@ namespace MWScript
                     // XYZ axis use the inverse (XYZ) rotation order like vanilla SetAngle.
                     // UWV axis use the standard (ZYX) rotation order like TESCS/OpenMW-CS and the rest of the game.
                     if (axis == "x")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,angle,ay,az,MWBase::RotationFlag_inverseOrder);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,osg::Vec3f(angle,ay,az),MWBase::RotationFlag_inverseOrder);
                     else if (axis == "y")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,angle,az,MWBase::RotationFlag_inverseOrder);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,osg::Vec3f(ax,angle,az),MWBase::RotationFlag_inverseOrder);
                     else if (axis == "z")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay,angle,MWBase::RotationFlag_inverseOrder);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,osg::Vec3f(ax,ay,angle),MWBase::RotationFlag_inverseOrder);
                     else if (axis == "u")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,angle,ay,az,MWBase::RotationFlag_none);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,osg::Vec3f(angle,ay,az),MWBase::RotationFlag_none);
                     else if (axis == "w")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,angle,az,MWBase::RotationFlag_none);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,osg::Vec3f(ax,angle,az),MWBase::RotationFlag_none);
                     else if (axis == "v")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay,angle,MWBase::RotationFlag_none);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,osg::Vec3f(ax,ay,angle),MWBase::RotationFlag_none);
                 }
         };
 
@@ -384,17 +393,17 @@ namespace MWScript
                     if(store)
                     {
                         MWWorld::Ptr base = ptr;
-                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr,store,x,y,z);
+                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr,store,osg::Vec3f(x,y,z));
                         dynamic_cast<MWScript::InterpreterContext&>(runtime.getContext()).updatePtr(base,ptr);
 
-                        float ax = ptr.getRefData().getPosition().rot[0];
-                        float ay = ptr.getRefData().getPosition().rot[1];
+                        auto rot = ptr.getRefData().getPosition().asRotationVec3();
                         // Note that you must specify ZRot in minutes (1 degree = 60 minutes; north = 0, east = 5400, south = 10800, west = 16200)
                         // except for when you position the player, then degrees must be used.
                         // See "Morrowind Scripting for Dummies (9th Edition)" pages 50 and 54 for reference.
                         if(ptr != MWMechanics::getPlayer())
                             zRot = zRot/60.0f;
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay,osg::DegreesToRadians(zRot));
+                        rot.z() = osg::DegreesToRadians(zRot);
+                        MWBase::Environment::get().getWorld()->rotateObject(ptr,rot);
 
                         ptr.getClass().adjustPosition(ptr, false);
                     }
@@ -435,22 +444,22 @@ namespace MWScript
                     if (ptr == MWMechanics::getPlayer())
                     {
                         MWWorld::CellStore* cell = MWBase::Environment::get().getWorld()->getExterior(cx,cy);
-                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr,cell,x,y,z);
+                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr, cell, osg::Vec3(x, y, z));
                     }
                     else
                     {
-                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr, x, y, z, true, true);
+                        ptr = MWBase::Environment::get().getWorld()->moveObject(ptr, osg::Vec3f(x, y, z), true, true);
                     }
                     dynamic_cast<MWScript::InterpreterContext&>(runtime.getContext()).updatePtr(base,ptr);
 
-                    float ax = ptr.getRefData().getPosition().rot[0];
-                    float ay = ptr.getRefData().getPosition().rot[1];
+                    auto rot = ptr.getRefData().getPosition().asRotationVec3();
                     // Note that you must specify ZRot in minutes (1 degree = 60 minutes; north = 0, east = 5400, south = 10800, west = 16200)
                     // except for when you position the player, then degrees must be used.
                     // See "Morrowind Scripting for Dummies (9th Edition)" pages 50 and 54 for reference.
                     if(ptr != MWMechanics::getPlayer())
                         zRot = zRot/60.0f;
-                    MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay,osg::DegreesToRadians(zRot));
+                    rot.z() = osg::DegreesToRadians(zRot);
+                    MWBase::Environment::get().getWorld()->rotateObject(ptr,rot);
                     ptr.getClass().adjustPosition(ptr, false);
                 }
         };
@@ -501,6 +510,7 @@ namespace MWScript
                         pos.rot[0] = pos.rot[1] = 0;
                         pos.rot[2] = osg::DegreesToRadians(zRotDegrees);
                         MWWorld::ManualRef ref(MWBase::Environment::get().getWorld()->getStore(),itemID);
+                        ref.getPtr().mRef->mData.mPhysicsPostponed = !ref.getPtr().getClass().isActor();
                         ref.getPtr().getCellRef().setPosition(pos);
                         MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->placeObject(ref.getPtr(),store,pos);
                         placed.getClass().adjustPosition(placed, true);
@@ -548,6 +558,7 @@ namespace MWScript
                     pos.rot[0] = pos.rot[1] = 0;
                     pos.rot[2] = osg::DegreesToRadians(zRotDegrees);
                     MWWorld::ManualRef ref(MWBase::Environment::get().getWorld()->getStore(),itemID);
+                    ref.getPtr().mRef->mData.mPhysicsPostponed = !ref.getPtr().getClass().isActor();
                     ref.getPtr().getCellRef().setPosition(pos);
                     MWWorld::Ptr placed = MWBase::Environment::get().getWorld()->placeObject(ref.getPtr(),store,pos);
                     placed.getClass().adjustPosition(placed, true);
@@ -588,6 +599,7 @@ namespace MWScript
                     {
                         // create item
                         MWWorld::ManualRef ref(MWBase::Environment::get().getWorld()->getStore(), itemID, 1);
+                        ref.getPtr().mRef->mData.mPhysicsPostponed = !ref.getPtr().getClass().isActor();
 
                         MWWorld::Ptr ptr = MWBase::Environment::get().getWorld()->safePlaceObject(ref.getPtr(), actor, actor.getCell(), direction, distance);
                         MWBase::Environment::get().getWorld()->scaleObject(ptr, actor.getCellRef().getScale());
@@ -609,16 +621,14 @@ namespace MWScript
                     Interpreter::Type_Float rotation = osg::DegreesToRadians(runtime[0].mFloat*MWBase::Environment::get().getFrameDuration());
                     runtime.pop();
 
-                    float ax = ptr.getRefData().getPosition().rot[0];
-                    float ay = ptr.getRefData().getPosition().rot[1];
-                    float az = ptr.getRefData().getPosition().rot[2];
-
+                    auto rot = ptr.getRefData().getPosition().asRotationVec3();
                     if (axis == "x")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax+rotation,ay,az);
+                        rot.x() += rotation;
                     else if (axis == "y")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay+rotation,az);
+                        rot.y() += rotation;
                     else if (axis == "z")
-                        MWBase::Environment::get().getWorld()->rotateObject(ptr,ax,ay,az+rotation);
+                        rot.z() += rotation;
+                    MWBase::Environment::get().getWorld()->rotateObject(ptr,rot);
                 }
         };
 
@@ -670,15 +680,10 @@ namespace MWScript
                     if (!ptr.isInCell())
                         return;
 
-                    float xr = ptr.getCellRef().getPosition().rot[0];
-                    float yr = ptr.getCellRef().getPosition().rot[1];
-                    float zr = ptr.getCellRef().getPosition().rot[2];
-
-                    MWBase::Environment::get().getWorld()->rotateObject(ptr, xr, yr, zr);
+                    MWBase::Environment::get().getWorld()->rotateObject(ptr, ptr.getCellRef().getPosition().asRotationVec3());
 
                     dynamic_cast<MWScript::InterpreterContext&>(runtime.getContext()).updatePtr(ptr,
-                        MWBase::Environment::get().getWorld()->moveObject(ptr, ptr.getCellRef().getPosition().pos[0],
-                            ptr.getCellRef().getPosition().pos[1], ptr.getCellRef().getPosition().pos[2]));
+                        MWBase::Environment::get().getWorld()->moveObject(ptr, ptr.getCellRef().getPosition().asVec3()));
 
                 }
         };

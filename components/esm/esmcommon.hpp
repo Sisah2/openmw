@@ -16,6 +16,11 @@ enum Version
     VER_13 = 0x3fa66666
   };
 
+enum RecordFlag
+  {
+    FLAG_Persistent = 0x00000400,
+    FLAG_Blocked    = 0x00002000
+  };
 
 // CRTP for FIXED_STRING class, a structure used for holding fixed-length strings
 template< template<size_t> class DERIVED, size_t SIZE>
@@ -116,6 +121,13 @@ struct FIXED_STRING<4> : public FIXED_STRING_BASE<FIXED_STRING, 4>
 
     char const* ro_data() const { return data; }
     char*       rw_data() { return data; }
+
+    uint32_t toInt() const
+    {
+        std::uint32_t result;
+        std::memcpy(&result, data, sizeof(data));
+        return result;
+    }
 };
 
 typedef FIXED_STRING<4> NAME;

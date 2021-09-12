@@ -13,6 +13,7 @@ namespace DetourNavigator
         bool mEnableWriteNavMeshToFile = false;
         bool mEnableRecastMeshFileNameRevision = false;
         bool mEnableNavMeshFileNameRevision = false;
+        bool mWriteToNavMeshDb = false;
         float mCellHeight = 0;
         float mCellSize = 0;
         float mDetailSampleDist = 0;
@@ -39,6 +40,7 @@ namespace DetourNavigator
         std::string mRecastMeshPathPrefix;
         std::string mNavMeshPathPrefix;
         std::chrono::milliseconds mMinUpdateInterval;
+        std::int64_t mNavMeshVersion = 0;
     };
 
     std::optional<Settings> makeSettingsFromSettingsManager();

@@ -6,17 +6,25 @@
 #include "tileposition.hpp"
 #include "sharednavmesh.hpp"
 #include "navmeshtilescache.hpp"
+#include "offmeshconnection.hpp"
+#include "navmeshdb.hpp"
+
+#include <components/misc/guarded.hpp>
 
 #include <osg/Vec3f>
 
 #include <memory>
+#include <vector>
 
 class dtNavMesh;
+struct rcConfig;
 
 namespace DetourNavigator
 {
     class RecastMesh;
     struct Settings;
+    struct PreparedNavMeshData;
+    struct NavMeshData;
 
     inline float getLength(const osg::Vec2i& value)
     {
@@ -34,12 +42,19 @@ namespace DetourNavigator
         return expectedTilesCount <= maxTiles;
     }
 
+    rcConfig makeRecastConfig(const TilePosition& tilePosition, const Bounds& bounds,
+        const osg::Vec3f& agentHalfExtents, const Settings& settings);
+
+    std::unique_ptr<PreparedNavMeshData> prepareNavMeshTileData(const rcConfig& config, const RecastMesh& recastMesh,
+        const osg::Vec3f& agentHalfExtents, const Settings& settings);
+
+    NavMeshData makeNavMeshTileData(const PreparedNavMeshData& data,
+        const std::vector<OffMeshConnection>& offMeshConnections, const osg::Vec3f& agentHalfExtents,
+        const TilePosition& tile, const Settings& settings);
+
     NavMeshPtr makeEmptyNavMesh(const Settings& settings);
 
-    UpdateNavMeshStatus updateNavMesh(const osg::Vec3f& agentHalfExtents, const RecastMesh* recastMesh,
-        const TilePosition& changedTile, const TilePosition& playerTile,
-        const std::vector<OffMeshConnection>& offMeshConnections, const Settings& settings,
-        const SharedNavMeshCacheItem& navMeshCacheItem, NavMeshTilesCache& navMeshTilesCache);
+    Bounds getBounds(const RecastMesh& recastMesh, const osg::Vec3f& agentHalfExtents, const Settings& settings);
 }
 
 #endif

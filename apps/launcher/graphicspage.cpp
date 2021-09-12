@@ -14,8 +14,7 @@
 #include <SDL_video.h>
 
 #include <numeric>
-
-#include <components/files/configurationmanager.hpp>
+#include <array>
 
 QString getAspect(int x, int y)
 {
@@ -92,6 +91,7 @@ bool Launcher::GraphicsPage::loadSettings()
     if (!setupSDL())
         return false;
 
+    // Visuals
     if (Settings::Manager::getBool("vsync", "Video"))
         vSyncCheckBox->setCheckState(Qt::Checked);
 
@@ -131,6 +131,15 @@ bool Launcher::GraphicsPage::loadSettings()
         framerateLimitSpinBox->setValue(fpsLimit);
     }
 
+    // Lighting
+    int lightingMethod = 1;
+    if (Settings::Manager::getString("lighting method", "Shaders") == "legacy")
+        lightingMethod = 0;
+    else if (Settings::Manager::getString("lighting method", "Shaders") == "shaders")
+        lightingMethod = 2;
+    lightingMethodComboBox->setCurrentIndex(lightingMethod);
+
+    // Shadows
     if (Settings::Manager::getBool("actor shadows", "Shadows"))
         actorShadowsCheckBox->setCheckState(Qt::Checked);
     if (Settings::Manager::getBool("player shadows", "Shadows"))
@@ -167,6 +176,8 @@ bool Launcher::GraphicsPage::loadSettings()
 
 void Launcher::GraphicsPage::saveSettings()
 {
+    // Visuals
+
     // Ensure we only set the new settings if they changed. This is to avoid cluttering the
     // user settings file (which by definition should only contain settings the user has touched)
     bool cVSync = vSyncCheckBox->checkState();
@@ -219,6 +230,11 @@ void Launcher::GraphicsPage::saveSettings()
         Settings::Manager::setFloat("framerate limit", "Video", 0);
     }
 
+    // Lighting
+    static std::array<std::string, 3> lightingMethodMap = {"legacy", "shaders compatibility", "shaders"};
+    Settings::Manager::setString("lighting method", "Shaders", lightingMethodMap[lightingMethodComboBox->currentIndex()]);
+
+    // Shadows
     int cShadowDist = shadowDistanceCheckBox->checkState() != Qt::Unchecked ? shadowDistanceSpinBox->value() : 0;
     if (Settings::Manager::getInt("maximum shadow map distance", "Shadows") != cShadowDist)
         Settings::Manager::setInt("maximum shadow map distance", "Shadows", cShadowDist);

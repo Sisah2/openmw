@@ -30,7 +30,7 @@ namespace Resource
 
                 std::vector<SceneUtil::EmulatedAnimation> emulatedAnimations;
 
-                for (auto animation : mAnimationManager->getAnimationList())
+                for (const auto& animation : mAnimationManager->getAnimationList())
                 {
                     if (animation)
                     {
@@ -40,7 +40,7 @@ namespace Resource
                         }
 
                         osg::ref_ptr<Resource::Animation> mergedAnimationTrack = new Resource::Animation;
-                        std::string animationName = animation->getName();
+                        const std::string animationName = animation->getName();
                         mergedAnimationTrack->setName(animationName);
 
                         const osgAnimation::ChannelList& channels = animation->getChannels();
@@ -106,7 +106,7 @@ namespace Resource
         return time;
     }
 
-    std::string RetrieveAnimationsVisitor::changeFileExtension(const std::string file, const std::string ext)
+    std::string RetrieveAnimationsVisitor::changeFileExtension(const std::string& file, const std::string& ext)
     {
         size_t extPos = file.find_last_of('.');
         if (extPos != std::string::npos && extPos+1 < file.size())

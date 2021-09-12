@@ -253,7 +253,7 @@ namespace MWMechanics
             mObjects.addObject(ptr);
     }
 
-    void MechanicsManager::castSpell(const MWWorld::Ptr& ptr, const std::string spellId, bool manualSpell)
+    void MechanicsManager::castSpell(const MWWorld::Ptr& ptr, const std::string& spellId, bool manualSpell)
     {
         if(ptr.getClass().isActor())
             mActors.castSpell(ptr, spellId, manualSpell);
@@ -409,7 +409,7 @@ namespace MWMechanics
         mActors.rest(hours, sleep);
     }
 
-    void MechanicsManager::restoreDynamicStats(MWWorld::Ptr actor, double hours, bool sleep)
+    void MechanicsManager::restoreDynamicStats(const MWWorld::Ptr& actor, double hours, bool sleep)
     {
         mActors.restoreDynamicStats(actor, hours, sleep);
     }
@@ -490,7 +490,7 @@ namespace MWMechanics
         mUpdatePlayer = true;
     }
 
-    int MechanicsManager::getDerivedDisposition(const MWWorld::Ptr& ptr, bool addTemporaryDispositionChange)
+    int MechanicsManager::getDerivedDisposition(const MWWorld::Ptr& ptr, bool clamp)
     {
         const MWMechanics::NpcStats& npcSkill = ptr.getClass().getNpcStats(ptr);
         float x = static_cast<float>(npcSkill.getBaseDisposition());
@@ -569,11 +569,9 @@ namespace MWMechanics
 
         x += ptr.getClass().getCreatureStats(ptr).getMagicEffects().get(ESM::MagicEffect::Charm).getMagnitude();
 
-        if(addTemporaryDispositionChange)
-          x += MWBase::Environment::get().getDialogueManager()->getTemporaryDispositionChange();
-
-        int effective_disposition = std::max(0,std::min(int(x),100));//, normally clamped to [0..100] when used
-        return effective_disposition;
+        if(clamp)
+            return std::max(0,std::min(int(x),100));//, normally clamped to [0..100] when used
+        return int(x);
     }
 
     int MechanicsManager::getBarterOffer(const MWWorld::Ptr& ptr,int basePrice, bool buying)
@@ -610,7 +608,7 @@ namespace MWMechanics
         return mActors.countDeaths (id);
     }
 
-    void MechanicsManager::getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, float& tempChange, float& permChange)
+    void MechanicsManager::getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, int& tempChange, int& permChange)
     {
         const MWWorld::Store<ESM::GameSetting> &gmst =
             MWBase::Environment::get().getWorld()->getStore().get<ESM::GameSetting>();
@@ -734,19 +732,22 @@ namespace MWMechanics
             x = success ? std::max(iPerMinChange, c) : c;
         }
 
-        tempChange = type == PT_Intimidate ? x : int(x * fPerTempMult);
+        tempChange = type == PT_Intimidate ? int(x) : int(x * fPerTempMult);
 
 
-        float cappedDispositionChange = tempChange;
-        if (currentDisposition + tempChange > 100.f)
-            cappedDispositionChange = static_cast<float>(100 - currentDisposition);
-        if (currentDisposition + tempChange < 0.f)
-            cappedDispositionChange = static_cast<float>(-currentDisposition);
+        int cappedDispositionChange = tempChange;
+        if (currentDisposition + tempChange > 100)
+            cappedDispositionChange = 100 - currentDisposition;
+        if (currentDisposition + tempChange < 0)
+        {
+            cappedDispositionChange = -currentDisposition;
+            tempChange = 0;
+        }
 
         permChange = floor(cappedDispositionChange / fPerTempMult);
         if (type == PT_Intimidate)
         {
-            permChange = success ? -int(cappedDispositionChange/ fPerTempMult) : y;
+            permChange = success ? -int(cappedDispositionChange/ fPerTempMult) : int(y);
         }
     }
 
@@ -810,7 +811,7 @@ namespace MWMechanics
         MWBase::World* world = MWBase::Environment::get().getWorld();
         world->getNavigator()->setUpdatesEnabled(mAI);
         if (mAI)
-           world->getNavigator()->update(world->getPlayerPtr().getRefData().getPosition().asVec3());
+            world->getNavigator()->update(world->getPlayerPtr().getRefData().getPosition().asVec3());
 
         return mAI;
     }
@@ -876,7 +877,7 @@ namespace MWMechanics
         int lockLevel = cellref.getLockLevel();
         if (target.getClass().isDoor() &&
             (lockLevel <= 0 || lockLevel == ESM::UnbreakableLock) &&
-            ptr.getCellRef().getTrap().empty())
+            cellref.getTrap().empty())
         {
             return true;
         }
@@ -1729,7 +1730,7 @@ namespace MWMechanics
 
         int disposition = 50;
         if (ptr.getClass().isNpc())
-            disposition = getDerivedDisposition(ptr, true);
+            disposition = getDerivedDisposition(ptr);
 
         int fight = ptr.getClass().getCreatureStats(ptr).getAiSetting(CreatureStats::AI_Fight).getModified()
                 + static_cast<int>(getFightDistanceBias(ptr, target) + getFightDispositionBias(static_cast<float>(disposition)));

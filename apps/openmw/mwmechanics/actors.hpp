@@ -68,7 +68,7 @@ namespace MWMechanics
 
             void purgeSpellEffects (int casterActorId);
 
-            void predictAndAvoidCollisions();
+            void predictAndAvoidCollisions(float duration);
 
         public:
 
@@ -106,7 +106,7 @@ namespace MWMechanics
 
             void resurrect (const MWWorld::Ptr& ptr);
 
-            void castSpell(const MWWorld::Ptr& ptr, const std::string spellId, bool manualSpell=false);
+            void castSpell(const MWWorld::Ptr& ptr, const std::string& spellId, bool manualSpell=false);
 
             void updateActor(const MWWorld::Ptr &old, const MWWorld::Ptr& ptr);
             ///< Updates an actor with a new Ptr

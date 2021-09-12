@@ -12,6 +12,7 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/shader/shadermanager.hpp>
+#include <components/sceneutil/util.hpp>
 
 #include <components/settings/settings.hpp>
 
@@ -22,6 +23,7 @@
 #include "util.hpp"
 #include "vismask.hpp"
 #include "water.hpp"
+#include "postprocessor.hpp"
 
 namespace MWRender
 {
@@ -61,6 +63,7 @@ namespace MWRender
 
         void reset(unsigned int frame)
         {
+            std::lock_guard<std::mutex> lock(mMutex);
             mDone = false;
             mFrame = frame;
         }
@@ -87,6 +90,18 @@ namespace MWRender
             int topPadding = std::max(0, static_cast<int>(screenH - screenW / imageaspect) / 2);
             int width = screenW - leftPadding*2;
             int height = screenH - topPadding*2;
+
+            // Ensure we are reading from the resolved framebuffer and not the multisampled render buffer when in use.
+            // glReadPixel() cannot read from multisampled targets.
+            PostProcessor* postProcessor = dynamic_cast<PostProcessor*>(renderInfo.getCurrentCamera()->getUserData());
+
+            if (postProcessor && postProcessor->getFbo() && postProcessor->getMsaaFbo())
+            {
+                osg::GLExtensions* ext = osg::GLExtensions::Get(renderInfo.getContextID(), false);
+                if (ext)
+                    ext->glBindFramebuffer(GL_FRAMEBUFFER_EXT, postProcessor->getFbo()->getHandle(renderInfo.getContextID()));
+            }
+
             mImage->readPixels(leftPadding, topPadding, width, height, GL_RGB, GL_UNSIGNED_BYTE);
             mImage->scaleImage(mWidth, mHeight, 1);
         }
@@ -104,11 +119,6 @@ namespace MWRender
         , mResourceSystem(resourceSystem)
         , mWater(water)
     {
-        // Note: This assumes no other final draw callbacks are set anywhere and that this callback will remain set until the application exits.
-        // This works around *DrawCallback manipulation being unsafe in OSG >= 3.5.10 for release 0.47
-        // If you need to set other final draw callbacks, read the comments of issue 6013 for a suggestion
-        // Ref https://gitlab.com/OpenMW/openmw/-/issues/6013
-        mViewer->getCamera()->setFinalDrawCallback(mDrawCompleteCallback);
     }
 
     ScreenshotManager::~ScreenshotManager()
@@ -181,6 +191,7 @@ namespace MWRender
             screenshotH = screenshotW;   // use square resolution for planet mapping
 
         std::vector<osg::ref_ptr<osg::Image>> images;
+        images.reserve(6);
 
         for (int i = 0; i < 6; ++i)
             images.push_back(new osg::Image);
@@ -240,6 +251,7 @@ namespace MWRender
 
         osg::ref_ptr<osg::Camera> screenshotCamera(new osg::Camera);
         osg::ref_ptr<osg::ShapeDrawable> quad(new osg::ShapeDrawable(new osg::Box(osg::Vec3(0,0,0), 2.0)));
+        quad->getOrCreateStateSet()->setRenderBinDetails(100, "RenderBin", osg::StateSet::USE_RENDERBIN_DETAILS);
 
         std::map<std::string, std::string> defineMap;
 
@@ -269,7 +281,10 @@ namespace MWRender
 
     void ScreenshotManager::traversalsAndWait(unsigned int frame)
     {
+        // Ref https://gitlab.com/OpenMW/openmw/-/issues/6013
         mDrawCompleteCallback->reset(frame);
+        mViewer->getCamera()->setFinalDrawCallback(mDrawCompleteCallback);
+
         mViewer->eventTraversal();
         mViewer->updateTraversal();
         mViewer->renderingTraversals();
@@ -283,8 +298,9 @@ namespace MWRender
         camera->setRenderOrder(osg::Camera::PRE_RENDER);
         camera->setReferenceFrame(osg::Camera::ABSOLUTE_RF);
         camera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT,osg::Camera::PIXEL_BUFFER_RTT);
-
         camera->setViewport(0, 0, w, h);
+
+        SceneUtil::setCameraClearDepth(camera);
 
         osg::ref_ptr<osg::Texture2D> texture (new osg::Texture2D);
         texture->setInternalFormat(GL_RGB);
@@ -313,20 +329,23 @@ namespace MWRender
         mRootNode->removeChild(camera);
     }
 
-    void ScreenshotManager::makeCubemapScreenshot(osg::Image *image, int w, int h, osg::Matrixd cameraTransform)
+    void ScreenshotManager::makeCubemapScreenshot(osg::Image *image, int w, int h, const osg::Matrixd& cameraTransform)
     {
         osg::ref_ptr<osg::Camera> rttCamera (new osg::Camera);
         float nearClip = Settings::Manager::getFloat("near clip", "Camera");
         float viewDistance = Settings::Manager::getFloat("viewing distance", "Camera");
         // each cubemap side sees 90 degrees
-        rttCamera->setProjectionMatrixAsPerspective(90.0, w/float(h), nearClip, viewDistance);
+        if (SceneUtil::getReverseZ())
+            rttCamera->setProjectionMatrix(SceneUtil::getReversedZProjectionMatrixAsPerspectiveInf(90.0, w/float(h), nearClip));
+        else
+            rttCamera->setProjectionMatrixAsPerspective(90.0, w/float(h), nearClip, viewDistance);
         rttCamera->setViewMatrix(mViewer->getCamera()->getViewMatrix() * cameraTransform);
 
         rttCamera->setUpdateCallback(new NoTraverseCallback);
         rttCamera->addChild(mSceneRoot);
 
-        rttCamera->addChild(mWater->getReflectionCamera());
-        rttCamera->addChild(mWater->getRefractionCamera());
+        rttCamera->addChild(mWater->getReflectionNode());
+        rttCamera->addChild(mWater->getRefractionNode());
 
         rttCamera->setCullMask(mViewer->getCamera()->getCullMask() & (~Mask_GUI));
 

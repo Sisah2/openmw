@@ -15,6 +15,11 @@ namespace DetourNavigator
         {
             return std::tie(lhs.mGeneration, lhs.mRevision) < std::tie(rhs.mGeneration, rhs.mRevision);
         }
+
+        friend inline bool operator<=(const Version& lhs, const Version& rhs)
+        {
+            return std::tie(lhs.mGeneration, lhs.mRevision) <= std::tie(rhs.mGeneration, rhs.mRevision);
+        }
     };
 }
 

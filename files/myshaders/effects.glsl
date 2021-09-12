@@ -63,23 +63,6 @@ float getParallaxShadow(float height, vec2 UV)
 #endif
 #endif
 
-vec3 Uncharted2ToneMapping(vec3 color)
-{
-	float A = 0.105;
-	float B = 0.714;
-	float C = 0.57;
-	float D = 0.21;
-	float E = 0.092;
-	float F = 0.886;
-	float W = 600.0;
-	float exposure = 2.;
-	color *= exposure * 2.0;
-	color = ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
-	float white = ((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E / F;
-	color /= white;
-	return color;
-}
-
 vec3 SpecialContrast(vec3 x, float suncon) 
 {
 	//x = pow(x, vec3(0.5 * 2.2));

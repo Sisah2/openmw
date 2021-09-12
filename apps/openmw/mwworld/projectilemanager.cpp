@@ -238,9 +238,6 @@ namespace MWWorld
             state.mNode->addChild(projectileLightSource);
             projectileLightSource->setLight(projectileLight);
         }
-        
-        SceneUtil::DisableFreezeOnCullVisitor disableFreezeOnCullVisitor;
-        state.mNode->accept(disableFreezeOnCullVisitor);
 
         state.mNode->addCullCallback(new SceneUtil::LightListCallback);
 
@@ -319,13 +316,13 @@ namespace MWWorld
 
         // in case there are multiple effects, the model is a dummy without geometry. Use the second effect for physics shape
         if (state.mIdMagic.size() > 1)
-            model = "meshes\\" + MWBase::Environment::get().getWorld()->getStore().get<ESM::Weapon>().find(state.mIdMagic.at(1))->mModel;
+            model = "meshes\\" + MWBase::Environment::get().getWorld()->getStore().get<ESM::Weapon>().find(state.mIdMagic[1])->mModel;
         state.mProjectileId = mPhysics->addProjectile(caster, pos, model, true, false);
         state.mToDelete = false;
         mMagicBolts.push_back(state);
     }
 
-    void ProjectileManager::launchProjectile(Ptr actor, ConstPtr projectile, const osg::Vec3f &pos, const osg::Quat &orient, Ptr bow, float speed, float attackStrength)
+    void ProjectileManager::launchProjectile(const Ptr& actor, const ConstPtr& projectile, const osg::Vec3f &pos, const osg::Quat &orient, const Ptr& bow, float speed, float attackStrength)
     {
         ProjectileState state;
         state.mActorId = actor.getClass().getCreatureStats(actor).getActorId();
@@ -524,7 +521,7 @@ namespace MWWorld
             }
 
             MWMechanics::projectileHit(caster, target, bow, projectileRef.getPtr(), pos, projectileState.mAttackStrength);
-            cleanupProjectile(projectileState);
+            projectileState.mToDelete = true;
         }
         for (auto& magicBoltState : mMagicBolts)
         {
@@ -553,7 +550,19 @@ namespace MWWorld
             cast.inflict(target, caster, magicBoltState.mEffects, ESM::RT_Target, false, true);
 
             MWBase::Environment::get().getWorld()->explodeSpell(pos, magicBoltState.mEffects, caster, target, ESM::RT_Target, magicBoltState.mSpellId, magicBoltState.mSourceName);
-            cleanupMagicBolt(magicBoltState);
+            magicBoltState.mToDelete = true;
+        }
+
+        for (auto& projectileState : mProjectiles)
+        {
+            if (projectileState.mToDelete)
+                cleanupProjectile(projectileState);
+        }
+
+        for (auto& magicBoltState : mMagicBolts)
+        {
+            if (magicBoltState.mToDelete)
+                cleanupMagicBolt(magicBoltState);
         }
         mProjectiles.erase(std::remove_if(mProjectiles.begin(), mProjectiles.end(), [](const State& state) { return state.mToDelete; }),
                 mProjectiles.end());

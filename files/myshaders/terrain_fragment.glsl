@@ -120,9 +120,7 @@ if(fogValue != 1.0)
     gl_FragData[0].a *= texture2D(blendMap, blendMapUV).a;
 #endif
 
-#ifdef LINEAR_LIGHTING
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
-#endif
+    gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
 
     vec4 diffuseColor = getDiffuseColor();
     gl_FragData[0].a *= diffuseColor.a;
@@ -150,10 +148,10 @@ if(fogValue != 1.0)
     gl_FragData[0].xyz += getSpecular(normalize(viewNormal), normalize(passViewPos), shininess, matSpec) * shadowpara;
 #endif
 
+   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
+
 #ifdef LINEAR_LIGHTING
-    gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
-    gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
+        gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
 }
@@ -169,12 +167,6 @@ else
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
-#endif
-
-
-//float hcoef = /*1.0 +*/ ( (osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z / 12000.0);
-//gl_FragData[0].x = hcoef;
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 
 }

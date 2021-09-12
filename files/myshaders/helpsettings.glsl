@@ -1,6 +1,14 @@
 //#define LINEAR_LIGHTING
 //#define ATTEN_FIX
 
+#ifdef LINEAR_LIGHTING
+    //dont change this vtastek lighting is made with specific tonemaper in mind!
+    #include "glsl-tone-map-master/vtastek.glsl"
+#else
+    //custom tonemaper can be changed here.
+    #include "glsl-tone-map-master/none.glsl"
+#endif
+
 // contrast for day and night
 // night setting also affects interiors
 const float conday = 1.0;

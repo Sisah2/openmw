@@ -136,6 +136,18 @@ namespace Debug
     }
 }
 
+namespace
+{
+    bool hasStdin()
+    {
+#if (defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix))
+        return isatty(fileno(stdin));
+#else
+        return false;
+#endif
+    }
+}
+
 static std::unique_ptr<std::ostream> rawStdout = nullptr;
 
 std::ostream& getRawStdout()
@@ -143,7 +155,8 @@ std::ostream& getRawStdout()
     return rawStdout ? *rawStdout : std::cout;
 }
 
-int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, char *argv[], const std::string& appName)
+int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, char *argv[], const std::string& appName,
+        Debug::ApplicationType type)
 {
 #if defined _WIN32
     (void)Debug::attachParentConsole();
@@ -206,9 +219,7 @@ int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, c
     }
     catch (const std::exception& e)
     {
-#if (defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix))
-        if (!isatty(fileno(stdin)))
-#endif
+        if (type == Debug::ApplicationType::Graphic && !hasStdin())
             SDL_ShowSimpleMessageBox(0, (appName + ": Fatal error").c_str(), e.what(), nullptr);
 
         Log(Debug::Error) << "Error: " << e.what();

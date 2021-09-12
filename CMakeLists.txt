@@ -32,6 +32,7 @@ option(BUILD_DOCS               "Build documentation." OFF )
 option(BUILD_WITH_CODE_COVERAGE "Enable code coverage with gconv" OFF)
 option(BUILD_UNITTESTS          "Enable Unittests with Google C++ Unittest" OFF)
 option(BUILD_BENCHMARKS         "Build benchmarks with Google Benchmark" OFF)
+option(BUILD_NAVMESHTOOL        "Build navmesh tool" ON)
 
 set(OpenGL_GL_PREFERENCE LEGACY)  # Use LEGACY as we use GL2; GLNVD is for GL3 and up.
 
@@ -65,7 +66,7 @@ endif()
 message(STATUS "Configuring OpenMW...")
 
 set(OPENMW_VERSION_MAJOR 0)
-set(OPENMW_VERSION_MINOR 47)
+set(OPENMW_VERSION_MINOR 48)
 set(OPENMW_VERSION_RELEASE 0)
 
 set(OPENMW_VERSION_COMMITHASH "")
@@ -143,6 +144,8 @@ else()
     set(_recastnavigation_static_default ON)
 endif()
 option(RECASTNAVIGATION_STATIC "Build recastnavigation static libraries" ${_recastnavigation_static_default})
+
+option(OPENMW_USE_SYSTEM_SQLITE3 "Use system provided SQLite3 library" ON)
 
 option(OPENMW_UNITY_BUILD "Use fewer compilation units to speed up compile time" FALSE)
 option(OPENMW_LTO_BUILD "Build OpenMW with Link-Time Optimization (Needs ~2GB of RAM)" OFF)
@@ -355,7 +358,11 @@ if(NOT HAVE_STDINT_H)
 endif()
 
 if(OPENMW_USE_SYSTEM_OSG)
-    find_package(OpenSceneGraph 3.3.4 REQUIRED ${USED_OSG_COMPONENTS})
+    find_package(OpenSceneGraph 3.4.0 REQUIRED ${USED_OSG_COMPONENTS})
+    if (${OPENSCENEGRAPH_VERSION} VERSION_GREATER 3.6.2 AND ${OPENSCENEGRAPH_VERSION} VERSION_LESS 3.6.5)
+        message(FATAL_ERROR "OpenSceneGraph version ${OPENSCENEGRAPH_VERSION} has critical regressions which cause crashes. Please upgrade to 3.6.5 or later. We strongly recommend using the tip of the official 'OpenSceneGraph-3.6' branch or the tip of '3.6' OpenMW/osg (OSGoS).")
+    endif()
+
     if(OSG_STATIC)
         find_package(OSGPlugins REQUIRED COMPONENTS ${USED_OSG_PLUGINS})
     endif()
@@ -390,6 +397,19 @@ endif()
 find_package(SDL2 2.0.9 REQUIRED)
 find_package(OpenAL REQUIRED)
 
+option(USE_LUAJIT "Switch Lua/LuaJit (TRUE is highly recommended)" TRUE)
+if(USE_LUAJIT)
+   find_package(LuaJit REQUIRED)
+   set(LUA_INCLUDE_DIR ${LuaJit_INCLUDE_DIR})
+   set(LUA_LIBRARIES ${LuaJit_LIBRARIES})
+else(USE_LUAJIT)
+   find_package(Lua REQUIRED)
+   add_compile_definitions(NO_LUAJIT)
+endif(USE_LUAJIT)
+
+# C++ library binding to Lua
+set(SOL_INCLUDE_DIRS ${OpenMW_SOURCE_DIR}/extern/sol3.2.2 ${OpenMW_SOURCE_DIR}/extern/sol_config)
+
 include_directories(
     BEFORE SYSTEM
     "."
@@ -399,6 +419,8 @@ include_directories(
     ${OPENAL_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIRS}
+    ${LUA_INCLUDE_DIR}
+    ${SOL_INCLUDE_DIRS}
 )
 
 link_directories(${SDL2_LIBRARY_DIRS} ${Boost_LIBRARY_DIRS})
@@ -438,8 +460,8 @@ endif (APPLE)
 
 # Other files
 
-configure_resource_file(${OpenMW_SOURCE_DIR}/files/settings-default.cfg
-    "${OpenMW_BINARY_DIR}" "settings-default.cfg")
+pack_resource_file(${OpenMW_SOURCE_DIR}/files/settings-default.cfg
+    "${OpenMW_BINARY_DIR}" "defaults.bin")
 
 configure_resource_file(${OpenMW_SOURCE_DIR}/files/openmw.appdata.xml
     "${OpenMW_BINARY_DIR}" "openmw.appdata.xml")
@@ -454,8 +476,8 @@ else ()
         "${OpenMW_BINARY_DIR}/openmw.cfg")
 endif ()
 
-configure_resource_file(${OpenMW_SOURCE_DIR}/files/openmw-cs.cfg
-    "${OpenMW_BINARY_DIR}" "openmw-cs.cfg")
+pack_resource_file(${OpenMW_SOURCE_DIR}/files/openmw-cs.cfg
+    "${OpenMW_BINARY_DIR}" "defaults-cs.bin")
 
 # Needs the copy version because the configure version assumes the end of the file has been reached when a null character is reached and there are no CMake expressions to evaluate.
 copy_resource_file(${OpenMW_SOURCE_DIR}/files/opencs/defaultfilters
@@ -493,7 +515,7 @@ endif()
 
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wundef -Wno-unused-parameter -pedantic -Wno-long-long")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wundef -Wno-unused-parameter -pedantic -Wno-long-long ${CMAKE_CXX_FLAGS}")
     add_definitions( -DBOOST_NO_CXX11_SCOPED_ENUMS=ON )
 
     if (APPLE)
@@ -516,13 +538,13 @@ endif (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID STREQUAL Clan
 
 add_subdirectory (extern/osg-ffmpeg-videoplayer)
 add_subdirectory (extern/oics)
+add_subdirectory (extern/Base64)
 if (BUILD_OPENCS)
     add_subdirectory (extern/osgQt)
 endif()
 
 # Components
 add_subdirectory (components)
-target_compile_definitions(components PRIVATE OPENMW_DOC_BASEURL="${OPENMW_DOC_BASEURL}")
 
 # Apps and tools
 if (BUILD_OPENMW)
@@ -568,6 +590,10 @@ endif()
 
 if (BUILD_BENCHMARKS)
   add_subdirectory(apps/benchmarks)
+endif()
+
+if (BUILD_NAVMESHTOOL)
+  add_subdirectory(apps/navmeshtool)
 endif()
 
 if (WIN32)
@@ -656,21 +682,33 @@ if (WIN32)
     endif()
 
     if (BUILD_OPENMW)
-        if (OPENMW_UNITY_BUILD)
-            set_target_properties(openmw PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD} /bigobj")
-        else()
-            set_target_properties(openmw PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
-        endif()
+        # \bigobj is required:
+        #  1) for OPENMW_UNITY_BUILD;
+        #  2) to compile lua bindings, because sol3 is heavily templated.
+        set_target_properties(openmw PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD} /bigobj")
     endif()
 
     if (BUILD_WIZARD)
         set_target_properties(openmw-wizard PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
+    endif()
+
+    if (BUILD_BENCHMARKS)
+        set_target_properties(openmw_detournavigator_navmeshtilescache_benchmark PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
+    endif()
+
+    if (BUILD_NAVMESHTOOL)
+        set_target_properties(openmw-navmeshtool PROPERTIES COMPILE_FLAGS "${WARNINGS} ${MT_BUILD}")
     endif()
   endif(MSVC)
 
   # TODO: At some point release builds should not use the console but rather write to a log file
   #set_target_properties(openmw PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS")
   #set_target_properties(openmw PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS")
+endif()
+
+if (BUILD_OPENMW AND APPLE)
+    # Without these flags LuaJit crashes on startup on OSX
+    set_target_properties(openmw PROPERTIES LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
 # Apple bundling
@@ -805,7 +843,7 @@ elseif(NOT APPLE)
         INSTALL(FILES "${OpenMW_SOURCE_DIR}/README.md" DESTINATION "." RENAME "README.txt")
         INSTALL(FILES "${OpenMW_SOURCE_DIR}/LICENSE" DESTINATION "." RENAME "LICENSE.txt")
         INSTALL(FILES "${OpenMW_SOURCE_DIR}/files/mygui/DejaVuFontLicense.txt" DESTINATION ".")
-        INSTALL(FILES "${INSTALL_SOURCE}/settings-default.cfg" DESTINATION ".")
+        INSTALL(FILES "${INSTALL_SOURCE}/defaults.bin" DESTINATION ".")
         INSTALL(FILES "${INSTALL_SOURCE}/gamecontrollerdb.txt" DESTINATION ".")
 
         INSTALL(DIRECTORY "${INSTALL_SOURCE}/resources" DESTINATION ".")
@@ -847,13 +885,13 @@ elseif(NOT APPLE)
         SET(VCREDIST32 "${OpenMW_BINARY_DIR}/vcredist_x86.exe")
         if(EXISTS ${VCREDIST32})
             INSTALL(FILES ${VCREDIST32} DESTINATION "redist")
-            SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "ExecWait '\\\"$INSTDIR\\\\redist\\\\vcredist_x86.exe\\\" /q'" )
+            SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "ExecWait '\\\"$INSTDIR\\\\redist\\\\vcredist_x86.exe\\\" /q /norestart'" )
         endif(EXISTS ${VCREDIST32})
 
         SET(VCREDIST64 "${OpenMW_BINARY_DIR}/vcredist_x64.exe")
         if(EXISTS ${VCREDIST64})
             INSTALL(FILES ${VCREDIST64} DESTINATION "redist")
-            SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "ExecWait '\\\"$INSTDIR\\\\redist\\\\vcredist_x64.exe\\\" /q'" )
+            SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "ExecWait '\\\"$INSTDIR\\\\redist\\\\vcredist_x64.exe\\\" /q /norestart'" )
         endif(EXISTS ${VCREDIST64})
 
         SET(OALREDIST "${OpenMW_BINARY_DIR}/oalinst.exe")
@@ -899,6 +937,9 @@ elseif(NOT APPLE)
         IF(BUILD_WIZARD)
             INSTALL(PROGRAMS "${INSTALL_SOURCE}/openmw-wizard" DESTINATION "${BINDIR}" )
         ENDIF(BUILD_WIZARD)
+        if(BUILD_NAVMESHTOOL)
+            install(PROGRAMS "${INSTALL_SOURCE}/openmw-navmeshtool" DESTINATION "${BINDIR}" )
+        endif()
 
         # Install licenses
         INSTALL(FILES "files/mygui/DejaVuFontLicense.txt" DESTINATION "${LICDIR}" )
@@ -913,13 +954,13 @@ elseif(NOT APPLE)
         ENDIF(BUILD_OPENCS)
 
         # Install global configuration files
-        INSTALL(FILES "${INSTALL_SOURCE}/settings-default.cfg" DESTINATION "${SYSCONFDIR}" COMPONENT "openmw")
+        INSTALL(FILES "${INSTALL_SOURCE}/defaults.bin" DESTINATION "${SYSCONFDIR}" COMPONENT "openmw")
         INSTALL(FILES "${INSTALL_SOURCE}/openmw.cfg.install" DESTINATION "${SYSCONFDIR}" RENAME "openmw.cfg" COMPONENT "openmw")
         INSTALL(FILES "${INSTALL_SOURCE}/resources/version" DESTINATION "${SYSCONFDIR}" COMPONENT "openmw")
         INSTALL(FILES "${INSTALL_SOURCE}/gamecontrollerdb.txt" DESTINATION "${SYSCONFDIR}" COMPONENT "openmw")
 
         IF(BUILD_OPENCS)
-            INSTALL(FILES "${INSTALL_SOURCE}/openmw-cs.cfg" DESTINATION "${SYSCONFDIR}" COMPONENT "opencs")
+            INSTALL(FILES "${INSTALL_SOURCE}/defaults-cs.bin" DESTINATION "${SYSCONFDIR}" COMPONENT "opencs")
         ENDIF(BUILD_OPENCS)
 
         # Install resources

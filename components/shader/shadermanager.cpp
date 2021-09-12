@@ -75,7 +75,7 @@ namespace Shader
     // Recursively replaces include statements with the actual source of the included files.
     // Adjusts #line statements accordingly and detects cyclic includes.
     // includingFiles is the set of files that include this file directly or indirectly, and is intentionally not a reference to allow automatic cleanup.
-    static bool parseIncludes(boost::filesystem::path shaderPath, std::string& source, const std::string& fileName, int& fileNumber, std::set<boost::filesystem::path> includingFiles)
+    static bool parseIncludes(const boost::filesystem::path& shaderPath, std::string& source, const std::string& fileName, int& fileNumber, std::set<boost::filesystem::path> includingFiles)
     {
         // An include is cyclic if it is being included by itself
         if (includingFiles.insert(shaderPath/fileName).second == false)
@@ -335,9 +335,10 @@ namespace Shader
 
             osg::ref_ptr<osg::Shader> shader (new osg::Shader(shaderType));
             shader->setShaderSource(shaderSource);
-            // Assign a unique name to allow the SharedStateManager to compare shaders efficiently
+            // Assign a unique prefix to allow the SharedStateManager to compare shaders efficiently.
+            // Append shader source filename for debugging.
             static unsigned int counter = 0;
-            shader->setName(std::to_string(counter++));
+            shader->setName(Misc::StringUtils::format("%u %s", counter++, templateName));
 
             shaderIt = mShaders.insert(std::make_pair(std::make_pair(templateName, defines), shader)).first;
         }
@@ -370,11 +371,10 @@ namespace Shader
     void ShaderManager::setGlobalDefines(DefineMap & globalDefines)
     {
         mGlobalDefines = globalDefines;
-        for (auto shaderMapElement: mShaders)
+        for (const auto& [key, shader]: mShaders)
         {
-            std::string templateId = shaderMapElement.first.first;
-            ShaderManager::DefineMap defines = shaderMapElement.first.second;
-            osg::ref_ptr<osg::Shader> shader = shaderMapElement.second;
+            std::string templateId = key.first;
+            ShaderManager::DefineMap defines = key.second;
             if (shader == nullptr)
                 // I'm not sure how to handle a shader that was already broken as there's no way to get a potential replacement to the nodes that need it.
                 continue;
@@ -390,13 +390,13 @@ namespace Shader
     void ShaderManager::releaseGLObjects(osg::State *state)
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        for (auto shader : mShaders)
+        for (const auto& [_, shader] : mShaders)
         {
-            if (shader.second != nullptr)
-                shader.second->releaseGLObjects(state);
+            if (shader != nullptr)
+                shader->releaseGLObjects(state);
         }
-        for (auto program : mPrograms)
-            program.second->releaseGLObjects(state);
+        for (const auto& [_, program] : mPrograms)
+            program->releaseGLObjects(state);
     }
 
 }

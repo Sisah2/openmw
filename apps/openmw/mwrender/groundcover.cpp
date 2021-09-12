@@ -172,7 +172,7 @@ namespace MWRender
         osg::Vec3f pos = ref.mPos.asVec3();
         osg::Vec3f cellPos = pos / ESM::Land::REAL_SIZE;
         if ((minBound.x() > std::floor(minBound.x()) && cellPos.x() < minBound.x()) || (minBound.y() > std::floor(minBound.y()) && cellPos.y() < minBound.y())
-            || (maxBound.x() < std::ceil(maxBound.x()) && cellPos.x() >= maxBound.x()) || (minBound.y() < std::ceil(maxBound.y()) && cellPos.y() >= maxBound.y()))
+            || (maxBound.x() < std::ceil(maxBound.x()) && cellPos.x() >= maxBound.x()) || (maxBound.y() < std::ceil(maxBound.y()) && cellPos.y() >= maxBound.y()))
             return false;
 
         return true;
@@ -180,7 +180,7 @@ namespace MWRender
 
     osg::ref_ptr<osg::Node> Groundcover::getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
-        ChunkId id = std::make_tuple(center, size, activeGrid);
+        GroundcoverChunkId id = std::make_tuple(center, size);
 
         osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id);
         if (obj)
@@ -196,7 +196,7 @@ namespace MWRender
     }
 
     Groundcover::Groundcover(Resource::SceneManager* sceneManager, float density)
-         : GenericResourceManager<ChunkId>(nullptr)
+         : GenericResourceManager<GroundcoverChunkId>(nullptr)
          , mSceneManager(sceneManager)
          , mDensity(density)
     {
@@ -220,12 +220,12 @@ namespace MWRender
                 calculator.reset();
                 for (size_t i=0; i<cell->mContextList.size(); ++i)
                 {
-                    unsigned int index = cell->mContextList.at(i).index;
+                    unsigned int index = cell->mContextList[i].index;
                     if (esm.size() <= index)
                         esm.resize(index+1);
                     cell->restore(esm[index], i);
                     ESM::CellRef ref;
-                    ref.mRefNum.mContentFile = ESM::RefNum::RefNum_NoContentFile;
+                    ref.mRefNum.unset();
                     bool deleted = false;
                     while(cell->getNextRef(esm[index], ref, deleted))
                     {

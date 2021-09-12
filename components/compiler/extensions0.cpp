@@ -337,6 +337,8 @@ namespace Compiler
             extensions.registerInstruction ("setnavmeshnumber", "l", opcodeSetNavMeshNumberToRender);
             extensions.registerFunction ("repairedonme", 'l', "S", opcodeRepairedOnMe, opcodeRepairedOnMeExplicit);
             extensions.registerInstruction ("togglerecastmesh", "", opcodeToggleRecastMesh);
+            extensions.registerInstruction ("help", "", opcodeHelp);
+            extensions.registerInstruction ("reloadlua", "", opcodeReloadLua);
         }
     }
 

@@ -1,6 +1,7 @@
 #include "settings.hpp"
 
 #include <components/settings/settings.hpp>
+#include <components/misc/constants.hpp>
 
 namespace DetourNavigator
 {
@@ -16,9 +17,9 @@ namespace DetourNavigator
         navigatorSettings.mCellSize = ::Settings::Manager::getFloat("cell size", "Navigator");
         navigatorSettings.mDetailSampleDist = ::Settings::Manager::getFloat("detail sample dist", "Navigator");
         navigatorSettings.mDetailSampleMaxError = ::Settings::Manager::getFloat("detail sample max error", "Navigator");
-        navigatorSettings.mMaxClimb = 0;
+        navigatorSettings.mMaxClimb = Constants::sStepSizeUp;
         navigatorSettings.mMaxSimplificationError = ::Settings::Manager::getFloat("max simplification error", "Navigator");
-        navigatorSettings.mMaxSlope = 0;
+        navigatorSettings.mMaxSlope = Constants::sMaxSlope;
         navigatorSettings.mRecastScaleFactor = ::Settings::Manager::getFloat("recast scale factor", "Navigator");
         navigatorSettings.mSwimHeightScale = 0;
         navigatorSettings.mMaxEdgeLen = ::Settings::Manager::getInt("max edge len", "Navigator");
@@ -41,6 +42,8 @@ namespace DetourNavigator
         navigatorSettings.mEnableRecastMeshFileNameRevision = ::Settings::Manager::getBool("enable recast mesh file name revision", "Navigator");
         navigatorSettings.mEnableNavMeshFileNameRevision = ::Settings::Manager::getBool("enable nav mesh file name revision", "Navigator");
         navigatorSettings.mMinUpdateInterval = std::chrono::milliseconds(::Settings::Manager::getInt("min update interval ms", "Navigator"));
+        navigatorSettings.mNavMeshVersion = static_cast<std::int64_t>(::Settings::Manager::getInt("nav mesh version", "Navigator"));
+        navigatorSettings.mWriteToNavMeshDb = ::Settings::Manager::getBool("write to navmeshdb", "Navigator");
 
         return navigatorSettings;
     }

@@ -93,7 +93,7 @@ namespace MWBase
             virtual void setPlayerClass (const ESM::Class& class_) = 0;
             ///< Set player class to custom class.
 
-            virtual void restoreDynamicStats(MWWorld::Ptr actor, double hours, bool sleep) = 0;
+            virtual void restoreDynamicStats(const MWWorld::Ptr& actor, double hours, bool sleep) = 0;
 
             virtual void rest(double hours, bool sleep) = 0;
             ///< If the player is sleeping or waiting, this should be called every hour.
@@ -105,7 +105,7 @@ namespace MWBase
             virtual int getBarterOffer(const MWWorld::Ptr& ptr,int basePrice, bool buying) = 0;
             ///< This is used by every service to determine the price of objects given the trading skills of the player and NPC.
 
-            virtual int getDerivedDisposition(const MWWorld::Ptr& ptr, bool addTemporaryDispositionChange = true) = 0;
+            virtual int getDerivedDisposition(const MWWorld::Ptr& ptr, bool clamp = true) = 0;
             ///< Calculate the diposition of an NPC toward the player.
 
             virtual int countDeaths (const std::string& id) const = 0;
@@ -161,7 +161,7 @@ namespace MWBase
                 PT_Bribe100,
                 PT_Bribe1000
             };
-            virtual void getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, float& tempChange, float& permChange) = 0;
+            virtual void getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, int& tempChange, int& permChange) = 0;
             ///< Perform a persuasion action on NPC
 
             virtual void forceStateUpdate(const MWWorld::Ptr &ptr) = 0;
@@ -235,7 +235,7 @@ namespace MWBase
             virtual bool isReadyToBlock (const MWWorld::Ptr& ptr) const = 0;
             virtual bool isAttackingOrSpell(const MWWorld::Ptr &ptr) const = 0;
 
-            virtual void castSpell(const MWWorld::Ptr& ptr, const std::string spellId, bool manualSpell) = 0;
+            virtual void castSpell(const MWWorld::Ptr& ptr, const std::string& spellId, bool manualSpell) = 0;
 
             virtual void processChangedSettings (const std::set< std::pair<std::string, std::string> >& settings) = 0;
 

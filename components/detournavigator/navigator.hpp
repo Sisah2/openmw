@@ -7,6 +7,13 @@
 #include "objectid.hpp"
 #include "navmeshcacheitem.hpp"
 #include "recastmeshtiles.hpp"
+#include "waitconditiontype.hpp"
+#include "heightfieldshape.hpp"
+
+#include <components/resource/bulletshape.hpp>
+
+#include <variant>
+#include <string_view>
 
 namespace ESM
 {
@@ -23,11 +30,10 @@ namespace DetourNavigator
 {
     struct ObjectShapes
     {
-        const btCollisionShape& mShape;
-        const btCollisionShape* mAvoid;
+        osg::ref_ptr<const Resource::BulletShapeInstance> mShapeInstance;
 
-        ObjectShapes(const btCollisionShape& shape, const btCollisionShape* avoid)
-            : mShape(shape), mAvoid(avoid)
+        ObjectShapes(const osg::ref_ptr<const Resource::BulletShapeInstance>& shapeInstance)
+            : mShapeInstance(shapeInstance)
         {}
     };
 
@@ -36,9 +42,9 @@ namespace DetourNavigator
         osg::Vec3f mConnectionStart;
         osg::Vec3f mConnectionEnd;
 
-        DoorShapes(const btCollisionShape& shape, const btCollisionShape* avoid,
+        DoorShapes(const osg::ref_ptr<const Resource::BulletShapeInstance>& shapeInstance,
                    const osg::Vec3f& connectionStart,const osg::Vec3f& connectionEnd)
-            : ObjectShapes(shape, avoid)
+            : ObjectShapes(shapeInstance)
             , mConnectionStart(connectionStart)
             , mConnectionEnd(connectionEnd)
         {}
@@ -69,13 +75,10 @@ namespace DetourNavigator
         virtual void removeAgent(const osg::Vec3f& agentHalfExtents) = 0;
 
         /**
-         * @brief addObject is used to add object represented by single btCollisionShape and btTransform.
-         * @param id is used to distinguish different objects.
-         * @param shape must live until object is updated by another shape removed from Navigator.
-         * @param transform allows to setup object geometry according to its world state.
-         * @return true if object is added, false if there is already object with given id.
+         * @brief setWorldspace should be called before adding object from new worldspace
+         * @param worldspace
          */
-        virtual bool addObject(const ObjectId id, const btCollisionShape& shape, const btTransform& transform) = 0;
+        virtual void setWorldspace(std::string_view worldspace) = 0;
 
         /**
          * @brief addObject is used to add complex object with allowed to walk and avoided to walk shapes
@@ -94,15 +97,6 @@ namespace DetourNavigator
          * @return true if object is added, false if there is already object with given id.
          */
         virtual bool addObject(const ObjectId id, const DoorShapes& shapes, const btTransform& transform) = 0;
-
-        /**
-         * @brief updateObject replace object geometry by given data.
-         * @param id is used to find object.
-         * @param shape must live until object is updated by another shape removed from Navigator.
-         * @param transform allows to setup objects geometry according to its world state.
-         * @return true if object is updated, false if there is no object with given id.
-         */
-        virtual bool updateObject(const ObjectId id, const btCollisionShape& shape, const btTransform& transform) = 0;
 
         /**
          * @brief updateObject replace object geometry by given data.
@@ -133,14 +127,12 @@ namespace DetourNavigator
          * @brief addWater is used to set water level at given world cell.
          * @param cellPosition allows to distinguish cells if there is many in current world.
          * @param cellSize set cell borders. std::numeric_limits<int>::max() disables cell borders.
-         * @param level set z coordinate of water surface at the scene.
-         * @param transform set global shift of cell center.
+         * @param shift set global shift of cell center.
          * @return true if there was no water at given cell if cellSize != std::numeric_limits<int>::max() or there is
          * at least single object is added to the scene, false if there is already water for given cell or there is no
          * any other objects.
          */
-        virtual bool addWater(const osg::Vec2i& cellPosition, const int cellSize, const btScalar level,
-            const btTransform& transform) = 0;
+        virtual bool addWater(const osg::Vec2i& cellPosition, int cellSize, const osg::Vec3f& shift) = 0;
 
         /**
          * @brief removeWater to make it no more available at the scene.
@@ -149,15 +141,26 @@ namespace DetourNavigator
          */
         virtual bool removeWater(const osg::Vec2i& cellPosition) = 0;
 
+        virtual bool addHeightfield(const osg::Vec2i& cellPosition, int cellSize, const osg::Vec3f& shift,
+            const HeightfieldShape& shape) = 0;
+
+        virtual bool removeHeightfield(const osg::Vec2i& cellPosition) = 0;
+
         virtual void addPathgrid(const ESM::Cell& cell, const ESM::Pathgrid& pathgrid) = 0;
 
         virtual void removePathgrid(const ESM::Pathgrid& pathgrid) = 0;
 
         /**
-         * @brief update start background navmesh update using current scene state.
+         * @brief update starts background navmesh update using current scene state.
          * @param playerPosition setup initial point to order build tiles of navmesh.
          */
         virtual void update(const osg::Vec3f& playerPosition) = 0;
+
+        /**
+         * @brief updatePlayerPosition starts background navmesh update using current scene state only when player position has been changed.
+         * @param playerPosition setup initial point to order build tiles of navmesh.
+         */
+        virtual void updatePlayerPosition(const osg::Vec3f& playerPosition) = 0;
 
         /**
          * @brief disable navigator updates
@@ -165,9 +168,10 @@ namespace DetourNavigator
         virtual void setUpdatesEnabled(bool enabled) = 0;
 
         /**
-         * @brief wait locks thread until all tiles are updated from last update call.
+         * @brief wait locks thread until tiles are updated from last update call based on passed condition type.
+         * @param waitConditionType defines when waiting will stop
          */
-        virtual void wait(Loading::Listener& listener) = 0;
+        virtual void wait(Loading::Listener& listener, WaitConditionType waitConditionType) = 0;
 
         /**
          * @brief findPath fills output iterator with points of scene surfaces to be used for actor to walk through.
@@ -176,13 +180,14 @@ namespace DetourNavigator
          * @param end path at given point.
          * @param includeFlags setup allowed surfaces for actor to walk.
          * @param out the beginning of the destination range.
+         * @param endTolerance defines maximum allowed distance to end path point in addition to agentHalfExtents
          * @return Output iterator to the element in the destination range, one past the last element of found path.
          * Equal to out if no path is found.
          */
         template <class OutputIterator>
         Status findPath(const osg::Vec3f& agentHalfExtents, const float stepSize, const osg::Vec3f& start,
             const osg::Vec3f& end, const Flags includeFlags, const DetourNavigator::AreaCosts& areaCosts,
-            OutputIterator& out) const
+            float endTolerance, OutputIterator& out) const
         {
             static_assert(
                 std::is_same<
@@ -197,7 +202,7 @@ namespace DetourNavigator
             const auto settings = getSettings();
             return findSmoothPath(navMesh->lockConst()->getImpl(), toNavMeshCoordinates(settings, agentHalfExtents),
                 toNavMeshCoordinates(settings, stepSize), toNavMeshCoordinates(settings, start),
-                toNavMeshCoordinates(settings, end), includeFlags, areaCosts, settings, out);
+                toNavMeshCoordinates(settings, end), includeFlags, areaCosts, settings, endTolerance, out);
         }
 
         /**

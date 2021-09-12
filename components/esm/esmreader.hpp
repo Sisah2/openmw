@@ -37,10 +37,10 @@ public:
   const std::string getDesc() const { return mHeader.mData.desc; }
   const std::vector<Header::MasterData> &getGameFiles() const { return mHeader.mMaster; }
   const Header& getHeader() const { return mHeader; }
-  int getFormat() const;
+  int getFormat() const { return mHeader.mFormat; };
   const NAME &retSubName() const { return mCtx.subName; }
   uint32_t getSubSize() const { return mCtx.leftSub; }
-  std::string getName() const;
+  std::string getName() const {return mCtx.filename; };
 
   /*************************************************************************
    *
@@ -74,7 +74,7 @@ public:
   void openRaw(const std::string &filename);
 
   /// Get the current position in the file. Make sure that the file has been opened!
-  size_t getFileOffset() const;
+  size_t getFileOffset() const { return mEsm->tellg(); };
 
   // This is a quick hack for multiple esm/esp files. Each plugin introduces its own
   //  terrain palette, but ESMReader does not pass a reference to the correct plugin
@@ -135,11 +135,7 @@ public:
   {
       getSubHeader();
       if (mCtx.leftSub != sizeof(X))
-      {
-          std::stringstream error;
-          error << "getHT(): subrecord size mismatch (requested " << sizeof(X) << ", got " << mCtx.leftSub << ")";
-          fail(error.str());
-      }
+          reportSubSizeMismatch(sizeof(X), mCtx.leftSub);
       getT(x);
   }
 
@@ -186,7 +182,7 @@ public:
   bool peekNextSub(const char* name);
 
   // Store the current subrecord name for the next call of getSubName()
-  void cacheSubName();
+  void cacheSubName() {mCtx.subCached = true; };
 
   // Read subrecord name. This gets called a LOT, so I've optimized it
   // slightly.
@@ -206,10 +202,6 @@ public:
      sub-record as well. leftSub contains size of current sub-record.
   */
   void getSubHeader();
-
-  /** Get sub header and check the size
-   */
-  void getSubHeaderIs(int size);
 
   /*************************************************************************
    *
@@ -244,7 +236,7 @@ public:
   template <typename X>
   void getT(X &x) { getExact(&x, sizeof(X)); }
 
-  void getExact(void*x, int size);
+  void getExact(void* x, int size) { mEsm->read((char*)x, size); }
   void getName(NAME &name) { getT(name); }
   void getUint(uint32_t &u) { getT(u); }
 
@@ -252,13 +244,13 @@ public:
   // them from native encoding to UTF8 in the process.
   std::string getString(int size);
 
-  void skip(int bytes);
+  void skip(int bytes) { mEsm->seekg(getFileOffset()+bytes); };
 
   /// Used for error handling
-  void fail(const std::string &msg);
+  [[noreturn]] void fail(const std::string &msg);
 
   /// Sets font encoder for ESM strings
-  void setEncoder(ToUTF8::Utf8Encoder* encoder);
+  void setEncoder(ToUTF8::Utf8Encoder* encoder) { mEncoder = encoder; };
 
   /// Get record flags of last record
   unsigned int getRecordFlags() { return mRecordFlags; }
@@ -266,6 +258,13 @@ public:
   size_t getFileSize() const { return mFileSize; }
 
 private:
+  [[noreturn]] void reportSubSizeMismatch(size_t want, size_t got) {
+          fail("record size mismatch, requested " +
+                  std::to_string(want) +
+                  ", got" +
+                  std::to_string(got));
+  }
+
   void clearCtx();
 
   Files::IStreamPtr mEsm;

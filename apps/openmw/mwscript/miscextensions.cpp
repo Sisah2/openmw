@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iomanip>
 
+#include <components/compiler/extensions.hpp>
 #include <components/compiler/opcodes.hpp>
 #include <components/compiler/locals.hpp>
 
@@ -24,9 +25,11 @@
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/scriptmanager.hpp"
 #include "../mwbase/soundmanager.hpp"
 #include "../mwbase/world.hpp"
+#include "../mwbase/luamanager.hpp"
 
 #include "../mwworld/class.hpp"
 #include "../mwworld/player.hpp"
@@ -1231,8 +1234,11 @@ namespace MWScript
 
                 if (ptr.getClass().isActor())
                 {
-                    MWMechanics::AiCast castPackage(targetId, spellId, true);
-                    ptr.getClass().getCreatureStats (ptr).getAiSequence().stack(castPackage, ptr);
+                    if (!MWBase::Environment::get().getMechanicsManager()->isCastingSpell(ptr))
+                    {
+                        MWMechanics::AiCast castPackage(targetId, spellId, true);
+                        ptr.getClass().getCreatureStats (ptr).getAiSequence().stack(castPackage, ptr);
+                    }
                     return;
                 }
 
@@ -1274,8 +1280,11 @@ namespace MWScript
 
                 if (ptr.getClass().isActor())
                 {
-                    MWMechanics::AiCast castPackage(ptr.getCellRef().getRefId(), spellId, true);
-                    ptr.getClass().getCreatureStats (ptr).getAiSequence().stack(castPackage, ptr);
+                    if (!MWBase::Environment::get().getMechanicsManager()->isCastingSpell(ptr))
+                    {
+                        MWMechanics::AiCast castPackage(ptr.getCellRef().getRefId(), spellId, true);
+                        ptr.getClass().getCreatureStats (ptr).getAiSequence().stack(castPackage, ptr);
+                    }
                     return;
                 }
 
@@ -1354,17 +1363,18 @@ namespace MWScript
                 std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
                 msg << std::put_time(std::gmtime(&currentTime), "%Y.%m.%d %T UTC") << std::endl;
 
-                msg << "Content file: ";
+                msg << "Content file: " << ptr.getCellRef().getRefNum().mContentFile;
 
                 if (!ptr.getCellRef().hasContentFile())
-                    msg << "[None]" << std::endl;
+                    msg << " [None]" << std::endl;
                 else
                 {
                     std::vector<std::string> contentFiles = MWBase::Environment::get().getWorld()->getContentFiles();
 
-                    msg << contentFiles.at (ptr.getCellRef().getRefNum().mContentFile) << std::endl;
-                    msg << "RefNum: " << ptr.getCellRef().getRefNum().mIndex << std::endl;
+                    msg << " [" << contentFiles.at (ptr.getCellRef().getRefNum().mContentFile) << "]" << std::endl;
                 }
+
+                msg << "RefNum: " << ptr.getCellRef().getRefNum().mIndex << std::endl;
 
                 if (ptr.getRefData().isDeletedByContentFile())
                     msg << "[Deleted by content file]" << std::endl;
@@ -1580,6 +1590,33 @@ namespace MWScript
                 }
         };
 
+        class OpHelp : public Interpreter::Opcode0
+        {
+            public:
+
+                void execute(Interpreter::Runtime& runtime) override
+                {
+                    std::stringstream message;
+                    message << MWBase::Environment::get().getWindowManager()->getVersionDescription() << "\n\n";
+                    std::vector<std::string> commands;
+                    MWBase::Environment::get().getScriptManager()->getExtensions().listKeywords(commands);
+                    for(const auto& command : commands)
+                        message << command << "\n";
+                    runtime.getContext().report(message.str());
+                }
+        };
+
+        class OpReloadLua : public Interpreter::Opcode0
+        {
+            public:
+
+                void execute (Interpreter::Runtime& runtime) override
+                {
+                    MWBase::Environment::get().getLuaManager()->reloadAllScripts();
+                    runtime.getContext().report("All Lua scripts are reloaded");
+                }
+        };
+
         void installOpcodes (Interpreter::Interpreter& interpreter)
         {
             interpreter.installSegment5 (Compiler::Misc::opcodeMenuMode, new OpMenuMode);
@@ -1699,6 +1736,8 @@ namespace MWScript
             interpreter.installSegment5 (Compiler::Misc::opcodeRepairedOnMe, new OpRepairedOnMe<ImplicitRef>);
             interpreter.installSegment5 (Compiler::Misc::opcodeRepairedOnMeExplicit, new OpRepairedOnMe<ExplicitRef>);
             interpreter.installSegment5 (Compiler::Misc::opcodeToggleRecastMesh, new OpToggleRecastMesh);
+            interpreter.installSegment5 (Compiler::Misc::opcodeHelp, new OpHelp);
+            interpreter.installSegment5 (Compiler::Misc::opcodeReloadLua, new OpReloadLua);
         }
     }
 }

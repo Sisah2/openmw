@@ -62,7 +62,7 @@ float FogMerge(float a, float b)
 }
 #endif
 
-#ifndef WATER
+#if !defined(WATER) && @underwaterFog
 float getUnderwaterFogValue(float depth)
 {
     float deepValue = abs((osg_ViewMatrixInverse * vec4(passViewPos, 1.0)).z);

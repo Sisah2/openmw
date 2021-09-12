@@ -1,24 +1,30 @@
 #ifndef OPENMW_COMPONENTS_DETOURNAVIGATOR_RECASTMESHMANAGER_H
 #define OPENMW_COMPONENTS_DETOURNAVIGATOR_RECASTMESHMANAGER_H
 
-#include "recastmeshbuilder.hpp"
 #include "oscillatingrecastmeshobject.hpp"
 #include "objectid.hpp"
 #include "version.hpp"
+#include "recastmesh.hpp"
+#include "heightfieldshape.hpp"
 
 #include <LinearMath/btTransform.h>
 
 #include <osg/Vec2i>
 
-#include <list>
 #include <map>
 #include <optional>
-#include <unordered_map>
+#include <memory>
+#include <variant>
+#include <tuple>
+#include <mutex>
 
 class btCollisionShape;
 
 namespace DetourNavigator
 {
+    struct Settings;
+    class RecastMesh;
+
     struct RemovedRecastMeshObject
     {
         std::reference_wrapper<const btCollisionShape> mShape;
@@ -28,30 +34,31 @@ namespace DetourNavigator
     class RecastMeshManager
     {
     public:
-        struct Water
-        {
-            int mCellSize = 0;
-            btTransform mTransform;
-        };
-
         RecastMeshManager(const Settings& settings, const TileBounds& bounds, std::size_t generation);
 
-        bool addObject(const ObjectId id, const btCollisionShape& shape, const btTransform& transform,
+        bool addObject(const ObjectId id, const CollisionShape& shape, const btTransform& transform,
                        const AreaType areaType);
 
         bool updateObject(const ObjectId id, const btTransform& transform, const AreaType areaType);
 
-        bool addWater(const osg::Vec2i& cellPosition, const int cellSize, const btTransform& transform);
-
-        std::optional<Water> removeWater(const osg::Vec2i& cellPosition);
-
         std::optional<RemovedRecastMeshObject> removeObject(const ObjectId id);
 
-        std::shared_ptr<RecastMesh> getMesh();
+        bool addWater(const osg::Vec2i& cellPosition, const int cellSize, const osg::Vec3f& shift);
+
+        std::optional<Cell> removeWater(const osg::Vec2i& cellPosition);
+
+        bool addHeightfield(const osg::Vec2i& cellPosition, int cellSize, const osg::Vec3f& shift,
+            const HeightfieldShape& shape);
+
+        std::optional<Cell> removeHeightfield(const osg::Vec2i& cellPosition);
+
+        std::shared_ptr<RecastMesh> getMesh() const;
 
         bool isEmpty() const;
 
-        void reportNavMeshChange(Version recastMeshVersion, Version navMeshVersion);
+        void reportNavMeshChange(const Version& recastMeshVersion, const Version& navMeshVersion);
+
+        Version getVersion() const;
 
     private:
         struct Report
@@ -60,17 +67,22 @@ namespace DetourNavigator
             Version mNavMeshVersion;
         };
 
+        struct Heightfield
+        {
+            Cell mCell;
+            HeightfieldShape mShape;
+        };
+
+        const Settings& mSettings;
+        const std::size_t mGeneration;
+        const TileBounds mTileBounds;
+        mutable std::mutex mMutex;
         std::size_t mRevision = 0;
-        std::size_t mGeneration;
-        RecastMeshBuilder mMeshBuilder;
-        std::list<OscillatingRecastMeshObject> mObjectsOrder;
-        std::unordered_map<ObjectId, std::list<OscillatingRecastMeshObject>::iterator> mObjects;
-        std::list<Water> mWaterOrder;
-        std::map<osg::Vec2i, std::list<Water>::iterator> mWater;
+        std::map<ObjectId, OscillatingRecastMeshObject> mObjects;
+        std::map<osg::Vec2i, Cell> mWater;
+        std::map<osg::Vec2i, Heightfield> mHeightfields;
         std::optional<Report> mLastNavMeshReportedChange;
         std::optional<Report> mLastNavMeshReport;
-
-        void rebuild();
     };
 }
 

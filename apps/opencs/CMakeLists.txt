@@ -19,7 +19,7 @@ opencs_hdrs_noqt (model/doc
 
 opencs_units (model/world
     idtable idtableproxymodel regionmap data commanddispatcher idtablebase resourcetable nestedtableproxymodel idtree infotableproxymodel landtexturetableproxymodel
-    actoradapter
+    actoradapter idcollection
     )
 
 
@@ -89,7 +89,7 @@ opencs_units (view/render
     scenewidget worldspacewidget pagedworldspacewidget unpagedworldspacewidget
     previewwidget editmode instancemode instanceselectionmode instancemovemode
     orbitcameramode pathgridmode selectionmode pathgridselectionmode cameracontroller
-    cellwater terraintexturemode actor terrainselection terrainshapemode brushdraw
+    cellwater terraintexturemode actor terrainselection terrainshapemode brushdraw commands
     )
 
 opencs_units_noqt (view/render
@@ -158,7 +158,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if(APPLE)
     set (OPENCS_MAC_ICON "${CMAKE_SOURCE_DIR}/files/mac/openmw-cs.icns")
-    set (OPENCS_CFG "${OpenMW_BINARY_DIR}/openmw-cs.cfg")
+    set (OPENCS_CFG "${OpenMW_BINARY_DIR}/defaults-cs.bin")
     set (OPENCS_DEFAULT_FILTERS_FILE "${OpenMW_BINARY_DIR}/resources/defaultfilters")
     set (OPENCS_OPENMW_CFG "${OpenMW_BINARY_DIR}/openmw.cfg")
 else()
@@ -229,33 +229,8 @@ target_link_libraries(openmw-cs
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_FILESYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    components
+    components_qt
 )
-
-if(OSG_STATIC)
-    unset(_osg_plugins_static_files)
-    add_library(openmw_cs_osg_plugins INTERFACE)
-    foreach(_plugin ${USED_OSG_PLUGINS})
-        string(TOUPPER ${_plugin} _plugin_uc)
-        if(OPENMW_USE_SYSTEM_OSG)
-            list(APPEND _osg_plugins_static_files ${${_plugin_uc}_LIBRARY})
-        else()
-            list(APPEND _osg_plugins_static_files $<TARGET_FILE:${${_plugin_uc}_LIBRARY}>)
-            target_link_libraries(openmw_cs_osg_plugins INTERFACE $<TARGET_PROPERTY:${${_plugin_uc}_LIBRARY},LINK_LIBRARIES>)
-            add_dependencies(openmw_cs_osg_plugins ${${_plugin_uc}_LIBRARY})
-        endif()
-    endforeach()
-    # We use --whole-archive because OSG plugins use registration.
-    get_whole_archive_options(_opts ${_osg_plugins_static_files})
-    target_link_options(openmw_cs_osg_plugins INTERFACE ${_opts})
-    target_link_libraries(openmw-cs openmw_cs_osg_plugins)
-
-    if(OPENMW_USE_SYSTEM_OSG)
-        # OSG plugin pkgconfig files are missing these dependencies.
-        # https://github.com/openscenegraph/OpenSceneGraph/issues/1052
-        target_link_libraries(openmw freetype jpeg png)
-    endif()
-endif(OSG_STATIC)
 
 target_link_libraries(openmw-cs Qt5::Widgets Qt5::Core Qt5::Network Qt5::OpenGL)
 
@@ -270,7 +245,7 @@ if (WIN32)
         SET(INSTALL_SOURCE "${OpenMW_BINARY_DIR}")
     endif ()
 
-    INSTALL(FILES "${INSTALL_SOURCE}/openmw-cs.cfg" DESTINATION ".")
+    INSTALL(FILES "${INSTALL_SOURCE}/defaults-cs.bin" DESTINATION ".")
 endif()
 
 if (MSVC)

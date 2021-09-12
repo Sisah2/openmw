@@ -103,26 +103,11 @@ namespace SceneUtil
             : mData(new osg::FloatArray(3*4*count))
             , mEndian(osg::getCpuByteOrder())
             , mCount(count)
-            , mStride(12)
             , mCachedSunPos(osg::Vec4())
         {
-            mOffsets[Diffuse] = 0;
-            mOffsets[Ambient] = 1;
-            mOffsets[Specular] = 2;
-            mOffsets[DiffuseSign] = 3;
-            mOffsets[Position] = 4;
-            mOffsets[AttenuationRadius] = 8;
         }
 
-        LightBuffer(const LightBuffer& copy)
-            : osg::Referenced()
-            , mData(copy.mData)
-            , mEndian(copy.mEndian)
-            , mCount(copy.mCount)
-            , mStride(copy.mStride)
-            , mOffsets(copy.mOffsets)
-            , mCachedSunPos(copy.mCachedSunPos)
-        {}
+        LightBuffer(const LightBuffer&) = delete;
 
         void setDiffuse(int index, const osg::Vec4& value)
         {
@@ -173,7 +158,7 @@ namespace SceneUtil
 
         static constexpr int queryBlockSize(int sz)
         {
-            return 3 * osg::Vec4::num_components * sizeof(GL_FLOAT) * sz;
+            return 3 * osg::Vec4::num_components * sizeof(GLfloat) * sz;
         }
 
         void setCachedSunPos(const osg::Vec4& pos)
@@ -192,42 +177,71 @@ namespace SceneUtil
             return mEndian == osg::BigEndian ? value.asABGR() : value.asRGBA();
         }
 
-        int getOffset(int index, LayoutOffset slot)
+        int getOffset(int index, LayoutOffset slot) const
         {
-            return mStride * index + mOffsets[slot];
+            return mOffsets.get(index, slot);
         }
 
         void configureLayout(int offsetColors, int offsetPosition, int offsetAttenuationRadius, int size, int stride)
         {
-            constexpr auto sizeofFloat = sizeof(GL_FLOAT);
-            constexpr auto sizeofVec4 = sizeofFloat * osg::Vec4::num_components;
+            const Offsets offsets(offsetColors, offsetPosition, offsetAttenuationRadius, stride);
 
-            LightBuffer oldBuffer = LightBuffer(*this);
-
-            mOffsets[Diffuse] = offsetColors / sizeofFloat;
-            mOffsets[Ambient] = mOffsets[Diffuse] + 1;
-            mOffsets[Specular] = mOffsets[Diffuse] + 2;
-            mOffsets[DiffuseSign] = mOffsets[Diffuse] + 3;
-            mOffsets[Position] = offsetPosition / sizeofFloat;
-            mOffsets[AttenuationRadius] = offsetAttenuationRadius / sizeofFloat;
-            mStride = (offsetAttenuationRadius + sizeofVec4 + stride) / 4;
-
-            // Copy over previous buffers light data. Buffers populate before we know the layout.
-            mData->resize(size / sizeofFloat);
-            for (int i = 0; i < oldBuffer.mCount; ++i)
+            // Copy cloned data using current layout into current data using new layout.
+            // This allows to preserve osg::FloatArray buffer object in mData.
+            const auto data = mData->asVector();
+            mData->resizeArray(static_cast<unsigned>(size));
+            for (int i = 0; i < mCount; ++i)
             {
-                std::memcpy(&(*mData)[getOffset(i, Diffuse)], &(*oldBuffer.mData)[oldBuffer.getOffset(i, Diffuse)], sizeof(osg::Vec4f));
-                std::memcpy(&(*mData)[getOffset(i, Position)], &(*oldBuffer.mData)[oldBuffer.getOffset(i, Position)], sizeof(osg::Vec4f));
-                std::memcpy(&(*mData)[getOffset(i, AttenuationRadius)], &(*oldBuffer.mData)[oldBuffer.getOffset(i, AttenuationRadius)], sizeof(osg::Vec4f));
+                std::memcpy(&(*mData)[offsets.get(i, Diffuse)], data.data() + getOffset(i, Diffuse), sizeof(osg::Vec4f));
+                std::memcpy(&(*mData)[offsets.get(i, Position)], data.data() + getOffset(i, Position), sizeof(osg::Vec4f));
+                std::memcpy(&(*mData)[offsets.get(i, AttenuationRadius)], data.data() + getOffset(i, AttenuationRadius), sizeof(osg::Vec4f));
             }
+            mOffsets = offsets;
         }
 
     private:
+        class Offsets
+        {
+            public:
+                Offsets()
+                    : mStride(12)
+                {
+                    mValues[Diffuse] = 0;
+                    mValues[Ambient] = 1;
+                    mValues[Specular] = 2;
+                    mValues[DiffuseSign] = 3;
+                    mValues[Position] = 4;
+                    mValues[AttenuationRadius] = 8;
+                }
+
+                Offsets(int offsetColors, int offsetPosition, int offsetAttenuationRadius, int stride)
+                    : mStride((offsetAttenuationRadius + sizeof(GLfloat) * osg::Vec4::num_components + stride) / 4)
+                {
+                    constexpr auto sizeofFloat = sizeof(GLfloat);
+                    const auto diffuseOffset = offsetColors / sizeofFloat;
+
+                    mValues[Diffuse] = diffuseOffset;
+                    mValues[Ambient] = diffuseOffset + 1;
+                    mValues[Specular] = diffuseOffset + 2;
+                    mValues[DiffuseSign] = diffuseOffset + 3;
+                    mValues[Position] = offsetPosition / sizeofFloat;
+                    mValues[AttenuationRadius] = offsetAttenuationRadius / sizeofFloat;
+                }
+
+                int get(int index, LayoutOffset slot) const
+                {
+                    return mStride * index + mValues[slot];
+                }
+
+            private:
+                int mStride;
+                std::array<int, 6> mValues;
+        };
+
         osg::ref_ptr<osg::FloatArray> mData;
         osg::Endian mEndian;
         int mCount;
-        int mStride;
-        std::array<std::size_t, 6> mOffsets;
+        Offsets mOffsets;
         osg::Vec4 mCachedSunPos;
     };
 
@@ -444,7 +458,11 @@ namespace SceneUtil
 
         void apply(osg::State &state) const override
         {
-            auto* lightUniform = mLightManager->getStateSet()->getUniform("LightBuffer");
+            osg::StateSet* stateSet = mLightManager->getStateSet();
+            if (!stateSet)
+                return;
+
+            auto* lightUniform = stateSet->getUniform("LightBuffer");
             for (size_t i = 0; i < mLights.size(); ++i)
             {
                 auto light = mLights[i];
@@ -731,7 +749,7 @@ namespace SceneUtil
 
         META_StateAttribute(NifOsg, LightManagerStateAttribute, osg::StateAttribute::LIGHT)
 
-        void initSharedLayout(osg::GLExtensions* ext, int handle, LightManager& lightManager) const
+        void initSharedLayout(osg::GLExtensions* ext, int handle) const
         {
             constexpr std::array<unsigned int, 1> index = { static_cast<unsigned int>(Shader::UBOBinding::LightBuffer) };
             int totalBlockSize = -1;
@@ -752,18 +770,11 @@ namespace SceneUtil
             ext->glGetActiveUniformsiv(handle, indices.size(), indices.data(), GL_UNIFORM_OFFSET, offsets.data());
 
             for (int i = 0; i < 2; ++i)
-            {
-                auto& buf = lightManager.getLightBuffer(i);
-                buf->configureLayout(offsets[0], offsets[1], offsets[2], totalBlockSize, stride);
-            }
+                mLightManager->getLightBuffer(i)->configureLayout(offsets[0], offsets[1], offsets[2], totalBlockSize, stride);
         }
 
         void apply(osg::State& state) const override
         {
-            osg::ref_ptr<LightManager> lightManager;
-            if (!mLightManager.lock(lightManager))
-                return;
-
             if (!mInitLayout)
             {
                 mDummyProgram->apply(state);
@@ -776,12 +787,12 @@ namespace SceneUtil
                 // wait until the UBO binding is created
                 if (activeUniformBlocks > 0)
                 {
-                    initSharedLayout(ext, handle, *lightManager);
+                    initSharedLayout(ext, handle);
                     mInitLayout = true;
                 }
             }
-            lightManager->getLightBuffer(state.getFrameStamp()->getFrameNumber())->uploadCachedSunPos(state.getInitialViewMatrix());
-            lightManager->getLightBuffer(state.getFrameStamp()->getFrameNumber())->dirty();
+            mLightManager->getLightBuffer(state.getFrameStamp()->getFrameNumber())->uploadCachedSunPos(state.getInitialViewMatrix());
+            mLightManager->getLightBuffer(state.getFrameStamp()->getFrameNumber())->dirty();
         }
 
     private:
@@ -811,7 +822,7 @@ namespace SceneUtil
             return shader;
         }
 
-        osg::observer_ptr<LightManager> mLightManager;
+        LightManager* mLightManager;
         osg::ref_ptr<osg::Program> mDummyProgram;
         mutable bool mInitLayout;
     };
@@ -841,6 +852,11 @@ namespace SceneUtil
         return "";
     }
 
+    LightManager::~LightManager()
+    {
+        getOrCreateStateSet()->removeAttribute(osg::StateAttribute::LIGHT);
+    }
+
     LightManager::LightManager(bool ffp)
         : mStartLight(0)
         , mLightingMask(~0u)
@@ -868,8 +884,6 @@ namespace SceneUtil
         std::string lightingMethodString = Settings::Manager::getString("lighting method", "Shaders");
         auto lightingMethod = LightManager::getLightingMethodFromString(lightingMethodString);
 
-        updateSettings();
-
         static bool hasLoggedWarnings = false;
 
         if (lightingMethod == LightingMethod::SingleUBO && !hasLoggedWarnings)
@@ -887,6 +901,8 @@ namespace SceneUtil
             initPerObjectUniform(targetLights);
         else
             initSingleUBO(targetLights);
+
+        updateSettings();
 
         getOrCreateStateSet()->addUniform(new osg::Uniform("PointLightCount", 0));
 

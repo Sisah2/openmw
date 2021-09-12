@@ -6,6 +6,7 @@
 #include <components/resource/bulletshape.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
 #include <components/misc/convert.hpp>
+#include <components/bullethelpers/collisionobject.hpp>
 
 #include <BulletCollision/CollisionShapes/btCompoundShape.h>
 #include <BulletCollision/CollisionDispatch/btCollisionObject.h>
@@ -14,23 +15,19 @@
 
 namespace MWPhysics
 {
-    Object::Object(const MWWorld::Ptr& ptr, osg::ref_ptr<Resource::BulletShapeInstance> shapeInstance, int collisionType, PhysicsTaskScheduler* scheduler)
-        : mShapeInstance(shapeInstance)
+    Object::Object(const MWWorld::Ptr& ptr, osg::ref_ptr<Resource::BulletShapeInstance> shapeInstance, osg::Quat rotation, int collisionType, PhysicsTaskScheduler* scheduler)
+        : mShapeInstance(std::move(shapeInstance))
         , mSolid(true)
+        , mScale(ptr.getCellRef().getScale(), ptr.getCellRef().getScale(), ptr.getCellRef().getScale())
+        , mPosition(Misc::Convert::makeOsgVec3f(ptr.getRefData().getPosition().pos))
+        , mRotation(rotation)
         , mTaskScheduler(scheduler)
     {
         mPtr = ptr;
-
-        mCollisionObject = std::make_unique<btCollisionObject>();
-        mCollisionObject->setCollisionShape(shapeInstance->getCollisionShape());
-
+        mCollisionObject = BulletHelpers::makeCollisionObject(mShapeInstance->getCollisionShape(),
+            ptr.getRefData().getPosition().pos, Misc::Convert::toBullet(rotation));
         mCollisionObject->setUserPointer(this);
-
-        setScale(ptr.getCellRef().getScale());
-        setRotation(Misc::Convert::toBullet(ptr.getRefData().getBaseNode()->getAttitude()));
-        setOrigin(Misc::Convert::toBullet(ptr.getRefData().getPosition().asVec3()));
-        commitPositionChange();
-
+        mShapeInstance->setLocalScaling(mScale);
         mTaskScheduler->addCollisionObject(mCollisionObject.get(), collisionType, CollisionType_Actor|CollisionType_HeightMap|CollisionType_Projectile);
     }
 
@@ -51,17 +48,17 @@ namespace MWPhysics
         mScaleUpdatePending = true;
     }
 
-    void Object::setRotation(const btQuaternion& quat)
+    void Object::setRotation(osg::Quat quat)
     {
         std::unique_lock<std::mutex> lock(mPositionMutex);
-        mLocalTransform.setRotation(quat);
+        mRotation = quat;
         mTransformUpdatePending = true;
     }
 
-    void Object::setOrigin(const btVector3& vec)
+    void Object::updatePosition()
     {
         std::unique_lock<std::mutex> lock(mPositionMutex);
-        mLocalTransform.setOrigin(vec);
+        mPosition = mPtr.getRefData().getPosition().asVec3();
         mTransformUpdatePending = true;
     }
 
@@ -75,25 +72,21 @@ namespace MWPhysics
         }
         if (mTransformUpdatePending)
         {
-            mCollisionObject->setWorldTransform(mLocalTransform);
+            btTransform trans;
+            trans.setOrigin(Misc::Convert::toBullet(mPosition));
+            trans.setRotation(Misc::Convert::toBullet(mRotation));
+            mCollisionObject->setWorldTransform(trans);
             mTransformUpdatePending = false;
         }
-    }
-
-    btCollisionObject* Object::getCollisionObject()
-    {
-        return mCollisionObject.get();
-    }
-
-    const btCollisionObject* Object::getCollisionObject() const
-    {
-        return mCollisionObject.get();
     }
 
     btTransform Object::getTransform() const
     {
         std::unique_lock<std::mutex> lock(mPositionMutex);
-        return mLocalTransform;
+        btTransform trans;
+        trans.setOrigin(Misc::Convert::toBullet(mPosition));
+        trans.setRotation(Misc::Convert::toBullet(mRotation));
+        return trans;
     }
 
     bool Object::isSolid() const
@@ -108,7 +101,7 @@ namespace MWPhysics
 
     bool Object::isAnimated() const
     {
-        return !mShapeInstance->mAnimatedShapes.empty();
+        return mShapeInstance->isAnimated();
     }
 
     bool Object::animateCollisionShapes()
@@ -119,11 +112,8 @@ namespace MWPhysics
         assert (mShapeInstance->getCollisionShape()->isCompound());
 
         btCompoundShape* compound = static_cast<btCompoundShape*>(mShapeInstance->getCollisionShape());
-        for (const auto& shape : mShapeInstance->mAnimatedShapes)
+        for (const auto& [recIndex, shapeIndex] : mShapeInstance->mAnimatedShapes)
         {
-            int recIndex = shape.first;
-            int shapeIndex = shape.second;
-
             auto nodePathFound = mRecIndexToNodePath.find(recIndex);
             if (nodePathFound == mRecIndexToNodePath.end())
             {

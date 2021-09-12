@@ -1,5 +1,6 @@
 #include "engine.hpp"
 
+#include <condition_variable>
 #include <iomanip>
 #include <fstream>
 #include <chrono>
@@ -40,9 +41,13 @@
 
 #include <components/misc/frameratelimiter.hpp>
 
+#include <components/sceneutil/screencapture.hpp>
+
 #include "mwinput/inputmanagerimp.hpp"
 
 #include "mwgui/windowmanagerimp.hpp"
+
+#include "mwlua/luamanagerimp.hpp"
 
 #include "mwscript/scriptmanagerimp.hpp"
 #include "mwscript/interpretercontext.hpp"
@@ -99,6 +104,7 @@ namespace
         PhysicsWorker,
         World,
         Gui,
+        Lua,
 
         Number,
     };
@@ -135,6 +141,9 @@ namespace
 
     template <>
     const UserStats UserStatsValue<UserStatsType::Gui>::sValue {"Gui", "gui"};
+
+    template <>
+    const UserStats UserStatsValue<UserStatsType::Lua>::sValue {"Lua", "lua"};
 
     template <UserStatsType type>
     struct ForEachUserStatsValue
@@ -216,6 +225,19 @@ namespace
         if (Settings::Manager::getInt("async num threads", "Physics") == 0)
             profiler.removeUserStatsLine(" -Async");
     }
+
+    struct ScheduleNonDialogMessageBox
+    {
+        void operator()(std::string message) const
+        {
+            MWBase::Environment::get().getWindowManager()->scheduleMessageBox(std::move(message), MWGui::ShowInDialogueMode_Never);
+        }
+    };
+
+    struct IgnoreString
+    {
+        void operator()(std::string) const {}
+    };
 }
 
 void OMW::Engine::executeLocalScripts()
@@ -385,6 +407,7 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
   , mExportFonts(false)
   , mRandomSeed(0)
   , mScriptContext (nullptr)
+  , mLuaManager (nullptr)
   , mFSStrict (false)
   , mScriptBlacklistUse (true)
   , mNewGame (false)
@@ -405,6 +428,9 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
 
 OMW::Engine::~Engine()
 {
+    if (mScreenCaptureOperation != nullptr)
+        mScreenCaptureOperation->stop();
+
     mEnvironment.cleanup();
 
     delete mScriptContext;
@@ -469,6 +495,11 @@ void OMW::Engine::addGroundcoverFile(const std::string& file)
     mGroundcoverFiles.emplace_back(file);
 }
 
+void OMW::Engine::addLuaScriptListFile(const std::string& file)
+{
+    mLuaScriptListFiles.push_back(file);
+}
+
 void OMW::Engine::setSkipMenu (bool skipMenu, bool newGame)
 {
     mSkipMenu = skipMenu;
@@ -478,8 +509,8 @@ void OMW::Engine::setSkipMenu (bool skipMenu, bool newGame)
 std::string OMW::Engine::loadSettings (Settings::Manager & settings)
 {
     // Create the settings manager and load default settings file
-    const std::string localdefault = (mCfgMgr.getLocalPath() / "settings-default.cfg").string();
-    const std::string globaldefault = (mCfgMgr.getGlobalPath() / "settings-default.cfg").string();
+    const std::string localdefault = (mCfgMgr.getLocalPath() / "defaults.bin").string();
+    const std::string globaldefault = (mCfgMgr.getGlobalPath() / "defaults.bin").string();
 
     // prefer local
     if (boost::filesystem::exists(localdefault))
@@ -487,10 +518,10 @@ std::string OMW::Engine::loadSettings (Settings::Manager & settings)
     else if (boost::filesystem::exists(globaldefault))
         settings.loadDefault(globaldefault);
     else
-        throw std::runtime_error ("No default settings file found! Make sure the file \"settings-default.cfg\" was properly installed.");
+        throw std::runtime_error ("No default settings file found! Make sure the file \"defaults.bin\" was properly installed.");
 
     // load user settings if they exist
-    const std::string settingspath = (mCfgMgr.getUserConfigPath() / "settings.cfg").string();
+    std::string settingspath = (mCfgMgr.getUserConfigPath() / "settings.cfg").string();
     if (boost::filesystem::exists(settingspath))
         settings.loadUser(settingspath);
 
@@ -668,6 +699,24 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
         throw std::runtime_error("Invalid setting: 'preload num threads' must be >0");
     mWorkQueue = new SceneUtil::WorkQueue(numThreads);
 
+    mScreenCaptureOperation = new SceneUtil::AsyncScreenCaptureOperation(
+        mWorkQueue,
+        new SceneUtil::WriteScreenshotToFileOperation(
+            mCfgMgr.getScreenshotPath().string(),
+            Settings::Manager::getString("screenshot format", "General"),
+            Settings::Manager::getBool("notify on saved screenshot", "General")
+                    ? std::function<void (std::string)>(ScheduleNonDialogMessageBox {})
+                    : std::function<void (std::string)>(IgnoreString {})
+        )
+    );
+
+    mScreenCaptureHandler = new osgViewer::ScreenCaptureHandler(mScreenCaptureOperation);
+
+    mViewer->addEventHandler(mScreenCaptureHandler);
+
+    mLuaManager = new MWLua::LuaManager(mVFS.get(), mLuaScriptListFiles);
+    mEnvironment.setLuaManager(mLuaManager);
+
     // Create input and UI first to set up a bootstrapping environment for
     // showing a loading screen and keeping the window responsive while doing so
 
@@ -704,6 +753,12 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
     else
         gameControllerdb = ""; //if it doesn't exist, pass in an empty string
 
+    // gui needs our shaders path before everything else
+    mResourceSystem->getSceneManager()->setShaderPath((mResDir / "shaders").string());
+
+    osg::ref_ptr<osg::GLExtensions> exts = osg::GLExtensions::Get(0, false);
+    bool shadersSupported = exts && (exts->glslLanguageVersion >= 1.2f);
+
     std::string myguiResources = (mResDir / "mygui").string();
     osg::ref_ptr<osg::Group> guiRoot = new osg::Group;
     guiRoot->setName("GUI Root");
@@ -712,7 +767,7 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
     MWGui::WindowManager* window = new MWGui::WindowManager(mWindow, mViewer, guiRoot, mResourceSystem.get(), mWorkQueue.get(),
                 mCfgMgr.getLogPath().string() + std::string("/"), myguiResources,
                 mScriptConsoleMode, mTranslationDataStorage, mEncoding, mExportFonts,
-                Version::getOpenmwVersionDescription(mResDir.string()), mCfgMgr.getUserConfigPath().string());
+                Version::getOpenmwVersionDescription(mResDir.string()), mCfgMgr.getUserConfigPath().string(), shadersSupported);
     mEnvironment.setWindowManager (window);
 
     MWInput::InputManager* input = new MWInput::InputManager (mWindow, mViewer, mScreenCaptureHandler, mScreenCaptureOperation, keybinderUser, keybinderUserExists, userGameControllerdb, gameControllerdb, mGrab);
@@ -779,54 +834,83 @@ void OMW::Engine::prepareEngine (Settings::Manager & settings)
                 << 100*static_cast<double> (result.second)/result.first
                 << "%)";
     }
+
+    mLuaManager->init();
 }
 
-class WriteScreenshotToFileOperation : public osgViewer::ScreenCaptureHandler::CaptureOperation
+class OMW::Engine::LuaWorker
 {
 public:
-    WriteScreenshotToFileOperation(const std::string& screenshotPath, const std::string& screenshotFormat)
-        : mScreenshotPath(screenshotPath)
-        , mScreenshotFormat(screenshotFormat)
+    explicit LuaWorker(Engine* engine) : mEngine(engine)
     {
+        if (Settings::Manager::getInt("lua num threads", "Lua") > 0)
+            mThread = std::thread([this]{ threadBody(); });
+    };
+
+    void allowUpdate(double dt)
+    {
+        mDt = dt;
+        mIsGuiMode = mEngine->mEnvironment.getWindowManager()->isGuiMode();
+        if (!mThread)
+            return;
+        {
+            std::lock_guard<std::mutex> lk(mMutex);
+            mUpdateRequest = true;
+        }
+        mCV.notify_one();
     }
 
-    void operator()(const osg::Image& image, const unsigned int context_id) override
+    void finishUpdate()
     {
-        // Count screenshots.
-        int shotCount = 0;
-
-        // Find the first unused filename with a do-while
-        std::ostringstream stream;
-        do
+        if (mThread)
         {
-            // Reset the stream
-            stream.str("");
-            stream.clear();
-
-            stream << mScreenshotPath << "/screenshot" << std::setw(3) << std::setfill('0') << shotCount++ << "." << mScreenshotFormat;
-
-        } while (boost::filesystem::exists(stream.str()));
-
-        boost::filesystem::ofstream outStream;
-        outStream.open(boost::filesystem::path(stream.str()), std::ios::binary);
-
-        osgDB::ReaderWriter* readerwriter = osgDB::Registry::instance()->getReaderWriterForExtension(mScreenshotFormat);
-        if (!readerwriter)
-        {
-            Log(Debug::Error) << "Error: Can't write screenshot, no '" << mScreenshotFormat << "' readerwriter found";
-            return;
+            std::unique_lock<std::mutex> lk(mMutex);
+            mCV.wait(lk, [&]{ return !mUpdateRequest; });
         }
+        else
+            update();
+        mEngine->mLuaManager->applyQueuedChanges();
+    };
 
-        osgDB::ReaderWriter::WriteResult result = readerwriter->writeImage(image, outStream);
-        if (!result.success())
-        {
-            Log(Debug::Error) << "Error: Can't write screenshot: " << result.message() << " code " << result.status();
-        }
+    void join()
+    {
+        if (mThread)
+            mThread->join();
     }
 
 private:
-    std::string mScreenshotPath;
-    std::string mScreenshotFormat;
+    void update()
+    {
+        const auto& viewer = mEngine->mViewer;
+        const osg::Timer_t frameStart = viewer->getStartTick();
+        const unsigned int frameNumber = viewer->getFrameStamp()->getFrameNumber();
+        ScopedProfile<UserStatsType::Lua> profile(frameStart, frameNumber, *osg::Timer::instance(), *viewer->getViewerStats());
+
+        mEngine->mLuaManager->update(mIsGuiMode, mDt);
+    }
+
+    void threadBody()
+    {
+        while (!mEngine->mViewer->done() && !mEngine->mEnvironment.getStateManager()->hasQuitRequest())
+        {
+            std::unique_lock<std::mutex> lk(mMutex);
+            mCV.wait(lk, [&]{ return mUpdateRequest; });
+
+            update();
+
+            mUpdateRequest = false;
+            lk.unlock();
+            mCV.notify_one();
+        }
+    }
+
+    Engine* mEngine;
+    std::mutex mMutex;
+    std::condition_variable mCV;
+    bool mUpdateRequest = false;
+    double mDt = 0;
+    bool mIsGuiMode = false;
+    std::optional<std::thread> mThread;
 };
 
 // Initialise and enter main loop.
@@ -859,14 +943,6 @@ void OMW::Engine::go()
     // Do not try to outsmart the OS thread scheduler (see bug #4785).
     mViewer->setUseConfigureAffinity(false);
 #endif
-
-    mScreenCaptureOperation = new WriteScreenshotToFileOperation(
-        mCfgMgr.getScreenshotPath().string(),
-        Settings::Manager::getString("screenshot format", "General"));
-
-    mScreenCaptureHandler = new osgViewer::ScreenCaptureHandler(mScreenCaptureOperation);
-
-    mViewer->addEventHandler(mScreenCaptureHandler);
 
     mEnvironment.setFrameRateLimit(Settings::Manager::getFloat("framerate limit", "Video"));
 
@@ -919,6 +995,8 @@ void OMW::Engine::go()
         mEnvironment.getWindowManager()->executeInConsole(mStartupScript);
     }
 
+    LuaWorker luaWorker(this);  // starts a separate lua thread if "lua num threads" > 0
+
     // Start the main rendering loop
     double simulationTime = 0.0;
     Misc::FrameRateLimiter frameRateLimiter = Misc::makeFrameRateLimiter(mEnvironment.getFrameRateLimit());
@@ -944,7 +1022,11 @@ void OMW::Engine::go()
 
             mEnvironment.getWorld()->updateWindowManager();
 
+            luaWorker.allowUpdate(dt);  // if there is a separate Lua thread, it starts the update now
+
             mViewer->renderingTraversals();
+
+            luaWorker.finishUpdate();
 
             bool guiActive = mEnvironment.getWindowManager()->isGuiMode();
             if (!guiActive)
@@ -967,8 +1049,12 @@ void OMW::Engine::go()
         frameRateLimiter.limit();
     }
 
+    luaWorker.join();
+
     // Save user settings
     settings.saveUser(settingspath);
+
+    mViewer->stopThreading();
 
     Log(Debug::Info) << "Quitting peacefully.";
 }

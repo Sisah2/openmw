@@ -22,9 +22,10 @@ namespace ESM
 
         void save (ESMWriter &esm, bool wide = false, const std::string& tag = "FRMR") const;
 
-        enum { RefNum_NoContentFile = -1 };
-        inline bool hasContentFile() const { return mContentFile != RefNum_NoContentFile; }
-        inline void unset() { mIndex = 0; mContentFile = RefNum_NoContentFile; }
+        inline bool hasContentFile() const { return mContentFile >= 0; }
+
+        inline bool isSet() const { return mIndex != 0 || mContentFile != -1; }
+        inline void unset() { *this = {0, -1}; }
     };
 
     /* Cell reference. This represents ONE object (of many) inside the

@@ -444,36 +444,6 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
-               <layout class="QHBoxLayout" name="lightingMethodLayout">
-                <item>
-                 <widget class="QLabel" name="lightingMethodLabel">
-                  <property name="text">
-                   <string>Lighting Method:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QComboBox" name="lightingMethodComboBox">
-                  <item>
-                   <property name="text">
-                    <string>legacy</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>shaders compatibility</string>
-                   </property>
-                  </item>
-                  <item>
-                   <property name="text">
-                    <string>shaders</string>
-                   </property>
-                  </item>
-                 </widget>
-                </item>
-               </layout>
-              </item>
              </layout>
             </widget>
            </item>
@@ -508,6 +478,36 @@
                </layout>
               </item>
               <item row="1" column="0">
+               <layout class="QHBoxLayout" name="objectPagingMinSizeLayout">
+                <item>
+                 <widget class="QLabel" name="objectPagingMinSizeLabel">
+                  <property name="toolTip">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Controls how large an object must be to be visible in the scene. The object’s size is divided by its distance to the camera and the result of the division is compared with this value. The smaller this value is, the more objects you will see in the scene.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                  <property name="text">
+                   <string>Object paging min size</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDoubleSpinBox" name="objectPagingMinSizeComboBox">
+                  <property name="decimals">
+                   <number>3</number>
+                  </property>
+                  <property name="minimum">
+                   <double>0.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>0.250000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.005000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="2" column="0">
                <widget class="QCheckBox" name="distantLandCheckBox">
                 <property name="toolTip">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If true, use paging and LOD algorithms to display the entire terrain. If false, only display terrain of the loaded cells.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -517,7 +517,7 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="0">
+              <item row="3" column="0">
                <layout class="QVBoxLayout" name="distantLandLayout">
                 <property name="leftMargin">
                  <number>20</number>
@@ -536,6 +536,19 @@
               </item>
              </layout>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -994,6 +1007,16 @@ True: In non-combat mode camera is positioned behind the character's shoulder. C
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="useZoomOnMapCheckBox">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable zooming on local and global maps.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>Can zoom on maps</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QCheckBox" name="graphicHerbalismCheckBox">
          <property name="toolTip">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If this setting is true, containers supporting graphic herbalism will do so instead of opening the menu.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1108,7 +1131,7 @@ True: In non-combat mode camera is positioned behind the character's shoulder. C
          <layout class="QVBoxLayout" name="otherGroupVerticalLayout">
           <item>
            <layout class="QHBoxLayout" name="screenshotFormatLayout">
-            <item alignment="Qt::AlignRight">
+            <item>
              <widget class="QLabel" name="screenshotFormatLabel">
               <property name="text">
                <string>Screenshot Format</string>
@@ -1135,6 +1158,13 @@ True: In non-combat mode camera is positioned behind the character's shoulder. C
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="notifyOnSavedScreenshotCheckBox">
+            <property name="text">
+             <string>Notify on saved screenshot</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>

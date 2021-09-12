@@ -45,14 +45,12 @@ if(fogValue != 1.0)
 
 
 #ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
+        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0 / (2.2 + @gamma - 1.0)));
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
 }
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
-#endif
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
 }

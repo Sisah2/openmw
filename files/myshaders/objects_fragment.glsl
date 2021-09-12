@@ -196,6 +196,12 @@ float shadowpara = 1.0;
 
     vec4 diffuseColor = getDiffuseColor();
     gl_FragData[0].a *= diffuseColor.a;
+
+#if @darkMap
+    gl_FragData[0] *= texture2D(darkMap, darkMapUV);
+    gl_FragData[0].a *= coveragePreservingAlphaScale(darkMap, darkMapUV);
+#endif
+
     alphaTest();
 
 if(gl_FragData[0].a != 0.0)
@@ -203,10 +209,6 @@ if(gl_FragData[0].a != 0.0)
 
 #if @detailMap
     gl_FragData[0].xyz *= texture2D(detailMap, detailMapUV).xyz * 2.0;
-#endif
-
-#if @darkMap
-    gl_FragData[0].xyz *= texture2D(darkMap, darkMapUV).xyz;
 #endif
 
 #if @decalMap
@@ -252,9 +254,7 @@ if(gl_FragData[0].a != 0.0)
 
 #endif
 
-#ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(2.2));
-#endif
+    gl_FragData[0].xyz = preLight(gl_FragData[0].xyz);
 
     vec3 lighting;
 #if !PER_PIXEL_LIGHTING
@@ -293,9 +293,9 @@ gl_FragData[0].xyz *= lighting;
     #endif
 #endif
 
+   gl_FragData[0].xyz = toneMap(gl_FragData[0].xyz);
+
 #ifdef LINEAR_LIGHTING
-        gl_FragData[0].xyz = Uncharted2ToneMapping(gl_FragData[0].xyz);
-        gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(2.2+(@gamma.0/1000.0)-1.0)));
         gl_FragData[0].xyz = SpecialContrast(gl_FragData[0].xyz, mix(connight, conday, lcalcDiffuse(0).x));
 #endif
 
@@ -324,7 +324,6 @@ if(simpleWater)
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if (@gamma != 1000) && !defined(LINEAR_LIGHTING)
-    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/(@gamma.0/1000.0)));
-#endif  
+    gl_FragData[0].xyz = pow(gl_FragData[0].xyz, vec3(1.0/@gamma));
+
 }

@@ -207,7 +207,7 @@ protected:
                       mLoopCount(0), mPriority(0), mBlendMask(0), mAutoDisable(true)
         {
         }
-        ~AnimState();
+        ~AnimState() = default;
 
         float getTime() const
         {
@@ -271,7 +271,7 @@ protected:
     float mLegsYawRadians;
     float mBodyPitchRadians;
 
-    RotateController* addRotateController(std::string bone);
+    RotateController* addRotateController(const std::string& bone);
 
     bool mHasMagicEffects;
 

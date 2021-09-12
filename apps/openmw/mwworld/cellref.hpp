@@ -25,6 +25,10 @@ namespace MWWorld
         // Note: Currently unused for items in containers
         const ESM::RefNum& getRefNum() const;
 
+        // Returns RefNum.
+        // If RefNum is not set, assigns a generated one and changes the "lastAssignedRefNum" counter.
+        const ESM::RefNum& getOrAssignRefNum(ESM::RefNum& lastAssignedRefNum);
+
         // Set RefNum to its default state.
         void unsetRefNum();
 
@@ -34,8 +38,8 @@ namespace MWWorld
         // Id of object being referenced
         std::string getRefId() const;
 
-        // Pointer to ID of the object being referenced
-        const std::string* getRefIdPtr() const;
+        // Reference to ID of the object being referenced
+        const std::string& getRefIdRef() const { return mCellRef.mRefID; }
 
         // For doors - true if this door teleports to somewhere else, false
         // if it should open through animation.
