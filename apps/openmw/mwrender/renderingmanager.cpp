@@ -423,7 +423,9 @@ namespace MWRender
         mTerrainStorage.reset(new TerrainStorage(mResourceSystem, normalMapPattern, heightMapPattern, useTerrainNormalMaps, specularMapPattern, useTerrainSpecularMaps));
         const float lodFactor = Settings::Manager::getFloat("lod factor", "Terrain");
 
-        if (Settings::Manager::getBool("distant terrain", "Terrain"))
+        bool groundcover = Settings::Manager::getBool("enabled", "Groundcover");
+        bool distantTerrain = Settings::Manager::getBool("distant terrain", "Terrain");
+        if (distantTerrain || groundcover)
         {
             const int vertexLodMod = Settings::Manager::getInt("vertex lod mod", "Terrain");
             const int compMapResolution = Settings::Manager::getInt("composite map resolution", "Terrain");
@@ -449,28 +451,11 @@ namespace MWRender
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
 
-        if (Settings::Manager::getBool("enabled", "Groundcover"))
+        if (groundcover)
         {
-            osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
-            groundcoverRoot->setNodeMask(Mask_Groundcover);
-            groundcoverRoot->setName("Groundcover Root");
-            sceneRoot->addChild(groundcoverRoot);
-
             mGroundcoverUpdater = new GroundcoverUpdater;
-            groundcoverRoot->addUpdateCallback(mGroundcoverUpdater);
-
-            float chunkSize = Settings::Manager::getFloat("min chunk size", "Groundcover");
-            if (chunkSize >= 1.0f)
-                chunkSize = 1.0f;
-            else if (chunkSize >= 0.5f)
-                chunkSize = 0.5f;
-            else if (chunkSize >= 0.25f)
-                chunkSize = 0.25f;
-            else if (chunkSize != 0.125f)
-                chunkSize = 0.125f;
-
-            mGroundcoverWorld.reset(new Terrain::QuadTreeWorld(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize));
-
+            composite->addController(mGroundcoverUpdater);
+/*
             if (resourceSystem->getSceneManager()->getLightingMethod() != SceneUtil::LightingMethod::FFP)
                 groundcoverRoot->setCullCallback(new SceneUtil::LightListCallback);
 
@@ -482,17 +467,16 @@ namespace MWRender
             stateset->removeMode(GL_BLEND);
             stateset->setRenderBinToInherit();
 
+*/
             mGroundcoverPaging.reset(new ObjectPaging(mResourceSystem->getSceneManager(), true));
-            static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
+            static_cast<Terrain::QuadTreeWorld*>(mTerrain.get())->addChunkManager(mGroundcoverPaging.get());
             mResourceSystem->addResourceManager(mGroundcoverPaging.get());
 
-            // Groundcover it is handled in the same way indifferently from if it is from active grid or from distant cell.
-            // Use a stub grid to avoid splitting between chunks for active grid and chunks for distant cells.
-            mGroundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
+            float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
+            mGroundcoverPaging->setViewDistance(groundcoverDistance);
         }
 
         mStateUpdater = new StateUpdater;
-        sceneRoot->addUpdateCallback(mStateUpdater);
 
         mSharedUniformStateUpdater = new SharedUniformStateUpdater;
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
@@ -756,8 +740,6 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
-            if (mGroundcoverWorld)
-                mGroundcoverWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore *store)
@@ -769,8 +751,6 @@ namespace MWRender
         if (store->getCell()->isExterior())
         {
             mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
-            if (mGroundcoverWorld)
-                mGroundcoverWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
 
         mWater->removeCell(store);
@@ -781,8 +761,6 @@ namespace MWRender
         if (!enable)
             mWater->setCullCallback(nullptr);
         mTerrain->enable(enable);
-        if (mGroundcoverWorld)
-            mGroundcoverWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -1247,12 +1225,6 @@ namespace MWRender
         fov = std::min(mFieldOfView, 140.f);
         float distanceMult = std::cos(osg::DegreesToRadians(fov)/2.f);
         mTerrain->setViewDistance(mViewDistance * (distanceMult ? 1.f/distanceMult : 1.f));
-
-        if (mGroundcoverWorld)
-        {
-            float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-            mGroundcoverWorld->setViewDistance(groundcoverDistance * (distanceMult ? 1.f/distanceMult : 1.f));
-        }
     }
 
     void RenderingManager::updateTextureFiltering()
