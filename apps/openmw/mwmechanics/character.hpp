@@ -7,6 +7,7 @@
 #include "../mwworld/containerstore.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 
 #include "weapontype.hpp"
 
@@ -159,6 +160,8 @@ class CharacterController : public MWRender::Animation::TextKeyListener
     bool mHasMovedInXY;
     bool mMovementAnimationControlled;
 
+    MWRender::BobbingInfo mBobbingInfo;
+
     CharacterState mDeathState;
     std::string mCurrentDeath;
     bool mFloatToSurface;
@@ -294,6 +297,8 @@ public:
     bool readyToStartAttack() const;
 
     float getAttackStrength() const;
+
+    MWRender::BobbingInfo& getBobbingInfo();
 
     /// @see Animation::setActive
     void setActive(int active);

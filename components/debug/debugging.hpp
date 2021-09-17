@@ -133,11 +133,18 @@ namespace Debug
         std::map<Level, int> mColors;
     };
 #endif
+
+    enum class ApplicationType
+    {
+        Graphic,
+        Console,
+    };
 }
 
 // Can be used to print messages without timestamps
 std::ostream& getRawStdout();
 
-int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, char *argv[], const std::string& appName);
+int wrapApplication(int (*innerApplication)(int argc, char *argv[]), int argc, char *argv[], const std::string& appName,
+        Debug::ApplicationType type = Debug::ApplicationType::Graphic);
 
 #endif

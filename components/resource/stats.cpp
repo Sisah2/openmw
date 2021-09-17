@@ -394,6 +394,8 @@ void StatsHandler::setUpScene(osgViewer::ViewerBase *viewer)
             "NavMesh Waiting",
             "NavMesh Pushed",
             "NavMesh Processing",
+            "NavMesh DbJobs",
+            "NavMesh DbCacheHitRate",
             "NavMesh CacheSize",
             "NavMesh UsedTiles",
             "NavMesh CachedTiles",

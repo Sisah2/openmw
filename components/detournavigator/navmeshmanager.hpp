@@ -22,7 +22,9 @@ namespace DetourNavigator
     class NavMeshManager
     {
     public:
-        NavMeshManager(const Settings& settings);
+        NavMeshManager(const Settings& settings, std::unique_ptr<NavMeshDb>&& db);
+
+        void setWorldspace(std::string_view worldspace);
 
         bool addObject(const ObjectId id, const CollisionShape& shape, const btTransform& transform,
                        const AreaType areaType);
@@ -63,6 +65,7 @@ namespace DetourNavigator
 
     private:
         const Settings& mSettings;
+        std::string mWorldspace;
         TileCachedRecastMeshManager mRecastMeshManager;
         OffMeshConnectionsManager mOffMeshConnectionsManager;
         AsyncNavMeshUpdater mAsyncNavMeshUpdater;

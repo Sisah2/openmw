@@ -23,6 +23,8 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/dialoguemanager.hpp"
 
+#include "../mwrender/bobbing.hpp"
+
 #include "aicombat.hpp"
 #include "aipursue.hpp"
 #include "spellutil.hpp"
@@ -392,6 +394,11 @@ namespace MWMechanics
         bool stanceOn = stats.getStance(MWMechanics::CreatureStats::Stance_Sneak);
         bool inair = !world->isOnGround(ptr) && !world->isSwimming(ptr) && !world->isFlying(ptr);
         return stanceOn && (animActive || inair);
+    }
+
+    void MechanicsManager::getBobbingInfo(const MWWorld::Ptr& ptr, MWRender::BobbingInfo& outBobbingInfo)
+    {
+        return mActors.getBobbingInfo(ptr, outBobbingInfo);
     }
 
     void MechanicsManager::rest(double hours, bool sleep)
@@ -804,7 +811,7 @@ namespace MWMechanics
         MWBase::World* world = MWBase::Environment::get().getWorld();
         world->getNavigator()->setUpdatesEnabled(mAI);
         if (mAI)
-           world->getNavigator()->update(world->getPlayerPtr().getRefData().getPosition().asVec3());
+            world->getNavigator()->update(world->getPlayerPtr().getRefData().getPosition().asVec3());
 
         return mAI;
     }

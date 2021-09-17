@@ -65,23 +65,12 @@ namespace
                 * osg::Quat(zr, osg::Vec3(0, 0, -1));
     }
 
-    osg::Quat makeObjectOsgQuat(const ESM::Position& position)
-    {
-        const float xr = position.rot[0];
-        const float yr = position.rot[1];
-        const float zr = position.rot[2];
-
-        return osg::Quat(zr, osg::Vec3(0, 0, -1))
-            * osg::Quat(yr, osg::Vec3(0, -1, 0))
-            * osg::Quat(xr, osg::Vec3(-1, 0, 0));
-    }
-
     osg::Quat makeNodeRotation(const MWWorld::Ptr& ptr, RotationOrder order)
     {
         const auto pos = ptr.getRefData().getPosition();
 
         const auto rot = ptr.getClass().isActor() ? makeActorOsgQuat(pos)
-            : (order == RotationOrder::inverse ? makeInversedOrderObjectOsgQuat(pos) : makeObjectOsgQuat(pos));
+            : (order == RotationOrder::inverse ? makeInversedOrderObjectOsgQuat(pos) : Misc::Convert::makeOsgQuat(pos));
 
         return rot;
     }
@@ -162,7 +151,7 @@ namespace
 
                 const auto transform = object->getTransform();
                 const btTransform closedDoorTransform(
-                    Misc::Convert::toBullet(makeObjectOsgQuat(ptr.getCellRef().getPosition())),
+                    Misc::Convert::makeBulletQuaternion(ptr.getCellRef().getPosition()),
                     transform.getOrigin()
                 );
 
@@ -395,8 +384,7 @@ namespace MWWorld
         if (const auto pathgrid = world->getStore().get<ESM::Pathgrid>().search(*cell->getCell()))
             mNavigator.removePathgrid(*pathgrid);
 
-        const auto player = world->getPlayerPtr();
-        mNavigator.update(player.getRefData().getPosition().asVec3());
+        mNavigator.update(world->getPlayerPtr().getRefData().getPosition().asVec3());
 
         MWBase::Environment::get().getMechanicsManager()->drop (cell);
 
@@ -426,6 +414,8 @@ namespace MWWorld
 
         const int cellX = cell->getCell()->getGridX();
         const int cellY = cell->getCell()->getGridY();
+
+        mNavigator.setWorldspace(cell->getCell()->mCellId.mWorldspace);
 
         if (!test && cell->getCell()->isExterior())
         {
@@ -530,8 +520,8 @@ namespace MWWorld
 
         if (!test && cell->getCell()->isExterior())
         {
-            float verts = ESM::Land::LAND_SIZE;
-            float worldsize = ESM::Land::REAL_SIZE;
+            const int verts = ESM::Land::LAND_SIZE;
+            const int worldsize = ESM::Land::REAL_SIZE;
 
             const int cellX = cell->getCell()->getGridX();
             const int cellY = cell->getCell()->getGridY();
@@ -540,13 +530,13 @@ namespace MWWorld
             const ESM::Land::LandData* data = land ? land->getData(ESM::Land::DATA_VHGT) : nullptr;
             if (data)
             {
-                mPhysics->addHeightField (data->mHeights, cellX, cellY, worldsize / (verts-1), verts, data->mMinHeight, data->mMaxHeight, land.get());
+                mPhysics->addHeightField(data->mHeights, cellX, cellY, worldsize, verts, data->mMinHeight, data->mMaxHeight, land.get());
             }
             else
             {
                 static std::vector<float> defaultHeight;
                 defaultHeight.resize(verts*verts, ESM::Land::DEFAULT_HEIGHT);
-                mPhysics->addHeightField (&defaultHeight[0], cellX, cellY, worldsize / (verts-1), verts, ESM::Land::DEFAULT_HEIGHT, ESM::Land::DEFAULT_HEIGHT, land.get());
+                mPhysics->addHeightField(defaultHeight.data(), cellX, cellY, worldsize, verts, ESM::Land::DEFAULT_HEIGHT, ESM::Land::DEFAULT_HEIGHT, land.get());
             }
         }
 
@@ -591,10 +581,13 @@ namespace MWWorld
 
     void Scene::playerMoved(const osg::Vec3f &pos)
     {
+        if (mCurrentCell == nullptr)
+            return;
+
         const auto player = MWBase::Environment::get().getWorld()->getPlayerPtr();
         mNavigator.updatePlayerPosition(player.getRefData().getPosition().asVec3());
 
-        if (!mCurrentCell || !mCurrentCell->isExterior())
+        if (!mCurrentCell->isExterior())
             return;
 
         osg::Vec2i newCell = getNewGridCenter(pos, &mCurrentGridCenter);
@@ -1007,8 +1000,11 @@ namespace MWWorld
             addObject(ptr, *mPhysics, mRendering, mPagedRefs, false);
             addObject(ptr, *mPhysics, mNavigator);
             MWBase::Environment::get().getWorld()->scaleObject(ptr, ptr.getCellRef().getScale());
-            const auto player = MWBase::Environment::get().getWorld()->getPlayerPtr();
-            mNavigator.update(player.getRefData().getPosition().asVec3());
+            if (mCurrentCell != nullptr)
+            {
+                const auto player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+                mNavigator.update(player.getRefData().getPosition().asVec3());
+            }
         }
         catch (std::exception& e)
         {
@@ -1024,8 +1020,11 @@ namespace MWWorld
         if (const auto object = mPhysics->getObject(ptr))
         {
             mNavigator.removeObject(DetourNavigator::ObjectId(object));
-            const auto player = MWBase::Environment::get().getWorld()->getPlayerPtr();
-            mNavigator.update(player.getRefData().getPosition().asVec3());
+            if (mCurrentCell != nullptr)
+            {
+                const auto player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+                mNavigator.update(player.getRefData().getPosition().asVec3());
+            }
         }
         else if (mPhysics->getActor(ptr))
         {

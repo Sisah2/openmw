@@ -425,6 +425,11 @@ namespace MWRender
         mAnimation->setFirstPersonOffset(osg::Vec3f(0,0,-offset));
     }
 
+    void Camera::setWeaponRotation(float pitch, float yaw)
+    {
+        mAnimation->setFirstPersonRotation(pitch, yaw);
+    }
+
     void Camera::setYaw(float angle)
     {
         mYaw = Misc::normalizeAngle(angle);

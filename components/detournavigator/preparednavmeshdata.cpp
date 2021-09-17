@@ -1,8 +1,11 @@
 #include "preparednavmeshdata.hpp"
 #include "preparednavmeshdatatuple.hpp"
+#include "recast.hpp"
 
 #include <Recast.h>
 #include <RecastAlloc.h>
+
+#include <cstring>
 
 namespace
 {
@@ -38,6 +41,15 @@ namespace DetourNavigator
     PreparedNavMeshData::PreparedNavMeshData() noexcept
     {
         initPolyMeshDetail(mPolyMeshDetail);
+    }
+
+    PreparedNavMeshData::PreparedNavMeshData(const PreparedNavMeshData& other)
+        : mUserId(other.mUserId)
+        , mCellSize(other.mCellSize)
+        , mCellHeight(other.mCellHeight)
+    {
+        copyPolyMesh(other.mPolyMesh, mPolyMesh);
+        copyPolyMeshDetail(other.mPolyMeshDetail, mPolyMeshDetail);
     }
 
     PreparedNavMeshData::~PreparedNavMeshData() noexcept

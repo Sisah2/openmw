@@ -30,6 +30,7 @@
 #include <components/detournavigator/navigatorimpl.hpp>
 #include <components/detournavigator/navigatorstub.hpp>
 #include <components/detournavigator/recastglobalallocator.hpp>
+#include <components/detournavigator/navmeshdb.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/soundmanager.hpp"
@@ -48,6 +49,7 @@
 #include "../mwmechanics/summoning.hpp"
 
 #include "../mwrender/animation.hpp"
+#include "../mwrender/bobbing.hpp"
 #include "../mwrender/npcanimation.hpp"
 #include "../mwrender/renderingmanager.hpp"
 #include "../mwrender/camera.hpp"
@@ -149,7 +151,9 @@ namespace MWWorld
     : mResourceSystem(resourceSystem), mLocalScripts (mStore),
       mCells (mStore, mEsm), mSky (true),
       mGodMode(false), mScriptsEnabled(true), mDiscardMovements(true), mContentFiles (contentFiles),
-      mUserDataPath(userDataPath), mShouldUpdateNavigator(false),
+      mUserDataPath(userDataPath),
+      mDefaultHalfExtents(Settings::Manager::getVector3("default actor pathfind half extents", "Game")),
+      mShouldUpdateNavigator(false),
       mActivationDistanceOverride (activationDistanceOverride),
       mStartCell(startCell), mDistanceToFacedObject(-1.f), mTeleportEnabled(true),
       mLevitationEnabled(true), mGoToJail(false), mDaysInPrison(0),
@@ -189,11 +193,16 @@ namespace MWWorld
 
         if (auto navigatorSettings = DetourNavigator::makeSettingsFromSettingsManager())
         {
-            navigatorSettings->mMaxClimb = MWPhysics::sStepSizeUp;
-            navigatorSettings->mMaxSlope = MWPhysics::sMaxSlope;
             navigatorSettings->mSwimHeightScale = mSwimHeightScale;
             DetourNavigator::RecastGlobalAllocator::init();
-            mNavigator.reset(new DetourNavigator::NavigatorImpl(*navigatorSettings));
+            using DetourNavigator::NavMeshDb;
+            using DetourNavigator::NavigatorImpl;
+
+            std::unique_ptr<NavMeshDb> db;
+            if (Settings::Manager::getBool("enable nav mesh disk cache", "Navigator"))
+                db = std::make_unique<NavMeshDb>(userDataPath + "/navmesh.db");
+
+            mNavigator.reset(new NavigatorImpl(*navigatorSettings, std::move(db)));
         }
         else
         {
@@ -1524,9 +1533,10 @@ namespace MWWorld
             if (const auto object = mPhysics->getObject(door.first))
                 updateNavigatorObject(*object);
 
-        if (mShouldUpdateNavigator)
+        auto player = getPlayerPtr();
+        if (mShouldUpdateNavigator && player.getCell() != nullptr)
         {
-            mNavigator->update(getPlayerPtr().getRefData().getPosition().asVec3());
+            mNavigator->update(player.getRefData().getPosition().asVec3());
             mShouldUpdateNavigator = false;
         }
     }
@@ -1870,15 +1880,31 @@ namespace MWWorld
         }
 
         // Sink the camera while sneaking
-        bool sneaking = player.getClass().getCreatureStats(getPlayerPtr()).getStance(MWMechanics::CreatureStats::Stance_Sneak);
-        bool swimming = isSwimming(player);
-        bool flying = isFlying(player);
+        static MWRender::BobbingInfo bobbingInfo = {};
+        MWBase::Environment::get().getMechanicsManager()->getBobbingInfo(player, bobbingInfo);
 
-        static const float i1stPersonSneakDelta = mStore.get<ESM::GameSetting>().find("i1stPersonSneakDelta")->mValue.getFloat();
-        if (sneaking && !swimming && !flying)
-            mRendering->getCamera()->setSneakOffset(i1stPersonSneakDelta);
-        else
-            mRendering->getCamera()->setSneakOffset(0.f);
+        static const bool headbobEnabled = Settings::Manager::getBool("head bobbing", "Camera");
+        static const bool exteriorsInertia = Settings::Manager::getBool("exteriors inertia", "Camera");
+
+        float fpOffset = bobbingInfo.mSneakOffset;
+        if (headbobEnabled)
+             fpOffset += bobbingInfo.mLandingOffset;
+
+        if (isFirstPerson && bobbingInfo.mHandBobEnabled)
+        {
+
+            if (exteriorsInertia || (!exteriorsInertia && !player.getCell()->isExterior()))
+            {
+                static const float handInertia = std::min(3.f, std::max(-3.f, Settings::Manager::getFloat("hand inertia", "Camera")));
+
+                float wpnPitch = bobbingInfo.mInertiaPitch * handInertia * 0.08f - (bobbingInfo.mLandingOffset * 0.001f);
+                float wpnYaw = bobbingInfo.mInertiaYaw * handInertia * 0.08f;
+
+                mRendering->getCamera()->setWeaponRotation(wpnPitch, wpnYaw);
+            }
+        }
+
+        mRendering->getCamera()->setSneakOffset(fpOffset);
 
         int blind = 0;
         auto& magicEffects = player.getClass().getCreatureStats(player).getMagicEffects();
@@ -2490,7 +2516,6 @@ namespace MWWorld
 
         applyLoopingParticles(player);
 
-        mDefaultHalfExtents = mPhysics->getOriginalHalfExtents(getPlayerPtr());
         mNavigator->addAgent(getPathfindingHalfExtents(getPlayerConstPtr()));
     }
 
