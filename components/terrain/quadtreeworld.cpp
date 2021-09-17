@@ -516,7 +516,6 @@ void QuadTreeWorld::accept(osg::NodeVisitor &nv)
     for (unsigned int i=0; i<vd->getNumEntries(); ++i)
     {
         ViewData::Entry& entry = vd->getEntry(i);
-<<<<<<< HEAD
         loadRenderingNode(entry, vd, mVertexLodMod, cellWorldSize, mActiveGrid, mChunkManagers, false);
     }
 
