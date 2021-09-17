@@ -367,9 +367,9 @@ public:
         else
         {
             cullingMode |= osg::CullStack::SMALL_FEATURE_CULLING;
-            camera-setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
+            camera->setSmallFeatureCullingPixelSize(Settings::Manager::getInt("small feature culling pixel size", "Water"));
         }
-        camera-setCullingMode(cullingMode);
+        camera->setCullingMode(cullingMode);
 
         // XXX: should really flip the FrontFace on each renderable instead of forcing clockwise.
         osg::ref_ptr<osg::FrontFace> frontFace(new osg::FrontFace);
