@@ -375,6 +375,7 @@ public:
         osg::ref_ptr<osg::FrontFace> frontFace(new osg::FrontFace);
         frontFace->setMode(osg::FrontFace::CLOCKWISE);
         camera->getOrCreateStateSet()->setAttributeAndModes(frontFace, osg::StateAttribute::ON);
+        camera->getOrCreateStateSet()->addUniform(new osg::Uniform("skip", true));
 
         camera->addChild(mClipCullNode);
         camera->setNodeMask(Mask_RenderToTexture);
