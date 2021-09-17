@@ -451,6 +451,8 @@ namespace MWRender
         mTerrain->setTargetFrameRate(Settings::Manager::getFloat("target framerate", "Cells"));
         mTerrain->setWorkQueue(mWorkQueue.get());
 
+        osg::ref_ptr<SceneUtil::CompositeStateSetUpdater> composite = new SceneUtil::CompositeStateSetUpdater;
+
         if (groundcover)
         {
             mGroundcoverUpdater = new GroundcoverUpdater;
@@ -1482,14 +1484,9 @@ namespace MWRender
     bool RenderingManager::pagingUnlockCache()
     {
         bool result = false;
-        if (mObjectPaging && mObjectPaging->unlockCache())
+        if ((mObjectPaging && mObjectPaging->unlockCache()) || (mGroundcoverPaging && mGroundcoverPaging->unlockCache()))
         {
             mTerrain->rebuildViews();
-            result = true;
-        }
-        if (mGroundcoverPaging && mGroundcoverPaging->unlockCache())
-        {
-            mGroundcoverWorld->rebuildViews();
             result = true;
         }
         return result;
