@@ -769,8 +769,20 @@ namespace MWRender
         if (mGroundcover)
         {
             mSceneManager->reinstateRemovedState(group);
+
+            if (mSceneManager->getLightingMethod() != SceneUtil::LightingMethod::FFP)
+                group->setCullCallback(new SceneUtil::LightListCallback);
+
+            osg::StateSet* stateset = group->getOrCreateStateSet();
+            stateset->removeAttribute(osg::StateAttribute::MATERIAL);
+            stateset->removeAttribute(osg::StateAttribute::ALPHAFUNC);
+            stateset->removeMode(GL_ALPHA_TEST);
+            stateset->removeAttribute(osg::StateAttribute::BLENDFUNC);
+            stateset->removeMode(GL_BLEND);
+            stateset->setRenderBinToInherit();
+
             osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
-            group->getOrCreateStateSet()->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
+            stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
             mSceneManager->recreateShaders(group, "groundcover", false, true);
         }
 
