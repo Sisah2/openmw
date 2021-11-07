@@ -28,11 +28,6 @@ namespace MWClass
         }
     }
 
-    void Lockpick::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
-    {
-        // TODO: add option somewhere to enable collision for placeable objects
-    }
-
     std::string Lockpick::getModel(const MWWorld::ConstPtr &ptr) const
     {
         const MWWorld::LiveCellRef<ESM::Lockpick> *ref = ptr.get<ESM::Lockpick>();
@@ -85,7 +80,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Lockpick);
 
-        registerClass (typeid (ESM::Lockpick).name(), instance);
+        registerClass (ESM::Lockpick::sRecordId, instance);
     }
 
     std::string Lockpick::getUpSoundId (const MWWorld::ConstPtr& ptr) const

@@ -13,7 +13,7 @@ struct Repair
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Repair"; }
+    static std::string_view getRecordType() { return "Repair"; }
 
     struct Data
     {
@@ -25,6 +25,7 @@ struct Repair
     }; // Size = 16
 
     Data mData;
+    unsigned int mRecordFlags;
     std::string mId, mName, mModel, mIcon, mScript;
 
     void load(ESMReader &esm, bool &isDeleted);

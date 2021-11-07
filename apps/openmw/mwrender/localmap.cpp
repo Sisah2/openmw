@@ -20,6 +20,7 @@
 #include <components/sceneutil/shadow.hpp>
 #include <components/sceneutil/util.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/sceneutil/nodecallback.hpp>
 #include <components/files/memorystream.hpp>
 #include <components/resource/scenemanager.hpp>
 
@@ -30,11 +31,12 @@
 #include "../mwworld/cellstore.hpp"
 
 #include "vismask.hpp"
+#include "util.hpp"
 
 namespace
 {
 
-    class CameraLocalUpdateCallback : public osg::NodeCallback
+    class CameraLocalUpdateCallback : public SceneUtil::NodeCallback<CameraLocalUpdateCallback, osg::Camera*>
     {
     public:
         CameraLocalUpdateCallback(MWRender::LocalMap* parent)
@@ -43,7 +45,7 @@ namespace
         {
         }
 
-        void operator()(osg::Node* node, osg::NodeVisitor*) override
+        void operator()(osg::Camera* node, osg::NodeVisitor*)
         {
             if (mRendered)
                 node->setNodeMask(0);
@@ -51,12 +53,11 @@ namespace
             if (!mRendered)
             {
                 mRendered = true;
-                mParent->markForRemoval(static_cast<osg::Camera*>(node));
+                mParent->markForRemoval(node);
             }
 
             // Note, we intentionally do not traverse children here. The map camera's scene data is the same as the master camera's,
             // so it has been updated already.
-            //traverse(node, nv);
         }
 
     private:
@@ -118,14 +119,15 @@ const osg::Vec2f LocalMap::rotatePoint(const osg::Vec2f& point, const osg::Vec2f
 
 void LocalMap::clear()
 {
-    mSegments.clear();
+    mExteriorSegments.clear();
+    mInteriorSegments.clear();
 }
 
 void LocalMap::saveFogOfWar(MWWorld::CellStore* cell)
 {
     if (!mInterior)
     {
-        const MapSegment& segment = mSegments[std::make_pair(cell->getCell()->getGridX(), cell->getCell()->getGridY())];
+        const MapSegment& segment = mExteriorSegments[std::make_pair(cell->getCell()->getGridX(), cell->getCell()->getGridY())];
 
         if (segment.mFogOfWarImage && segment.mHasFogState)
         {
@@ -155,7 +157,7 @@ void LocalMap::saveFogOfWar(MWWorld::CellStore* cell)
         {
             for (int y = 0; y < segments.second; ++y)
             {
-                const MapSegment& segment = mSegments[std::make_pair(x,y)];
+                const MapSegment& segment = mInteriorSegments[std::make_pair(x,y)];
 
                 fog->mFogTextures.emplace_back();
 
@@ -175,7 +177,12 @@ void LocalMap::saveFogOfWar(MWWorld::CellStore* cell)
 osg::ref_ptr<osg::Camera> LocalMap::createOrthographicCamera(float x, float y, float width, float height, const osg::Vec3d& upVector, float zmin, float zmax)
 {
     osg::ref_ptr<osg::Camera> camera (new osg::Camera);
-    camera->setProjectionMatrixAsOrtho(-width/2, width/2, -height/2, height/2, 5, (zmax-zmin) + 10);
+
+    if (SceneUtil::getReverseZ())
+        camera->setProjectionMatrix(SceneUtil::getReversedZProjectionMatrixAsOrtho(-width/2, width/2, -height/2, height/2, 5, (zmax-zmin) + 10));
+    else
+        camera->setProjectionMatrixAsOrtho(-width/2, width/2, -height/2, height/2, 5, (zmax-zmin) + 10);
+
     camera->setComputeNearFarMode(osg::Camera::DO_NOT_COMPUTE_NEAR_FAR);
     camera->setViewMatrixAsLookAt(osg::Vec3d(x, y, zmax + 5), osg::Vec3d(x, y, zmin), upVector);
     camera->setReferenceFrame(osg::Camera::ABSOLUTE_RF_INHERIT_VIEWPOINT);
@@ -189,11 +196,18 @@ osg::ref_ptr<osg::Camera> LocalMap::createOrthographicCamera(float x, float y, f
     camera->setNodeMask(Mask_RenderToTexture);
 
     // Disable small feature culling, it's not going to be reliable for this camera
-    osg::Camera::CullingMode cullingMode = (osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING) & ~(osg::CullStack::SMALL_FEATURE_CULLING);
+    osg::Camera::CullingMode cullingMode = (osg::Camera::DEFAULT_CULLING|osg::Camera::FAR_PLANE_CULLING) & ~(osg::Camera::SMALL_FEATURE_CULLING);
     camera->setCullingMode(cullingMode);
 
     osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
     stateset->setAttribute(new osg::PolygonMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::FILL), osg::StateAttribute::OVERRIDE);
+
+    if (SceneUtil::getReverseZ())
+        stateset->setAttributeAndModes(SceneUtil::createDepth(), osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
+
+    SceneUtil::setCameraClearDepth(camera);
+
+    stateset->addUniform(new osg::Uniform("projectionMatrix", static_cast<osg::Matrixf>(camera->getProjectionMatrix())), osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
 
     // assign large value to effectively turn off fog
     // shaders don't respect glDisable(GL_FOG)
@@ -251,24 +265,8 @@ void LocalMap::setupRenderToTexture(osg::ref_ptr<osg::Camera> camera, int x, int
     mRoot->addChild(camera);
     mActiveCameras.push_back(camera);
 
-    MapSegment& segment = mSegments[std::make_pair(x, y)];
+    MapSegment& segment = mInterior? mInteriorSegments[std::make_pair(x, y)] : mExteriorSegments[std::make_pair(x, y)];
     segment.mMapTexture = texture;
-}
-
-bool needUpdate(std::set<std::pair<int, int> >& renderedGrid, std::set<std::pair<int, int> >& currentGrid, int cellX, int cellY)
-{
-    // if all the cells of the current grid are contained in the rendered grid then we can keep the old render
-    for (int dx=-1;dx<2;dx+=1)
-    {
-        for (int dy=-1;dy<2;dy+=1)
-        {
-            bool haveInRenderedGrid = renderedGrid.find(std::make_pair(cellX+dx,cellY+dy)) != renderedGrid.end();
-            bool haveInCurrentGrid = currentGrid.find(std::make_pair(cellX+dx,cellY+dy)) != currentGrid.end();
-            if (haveInCurrentGrid && !haveInRenderedGrid)
-                return true;
-        }
-    }
-    return false;
 }
 
 void LocalMap::requestMap(const MWWorld::CellStore* cell)
@@ -278,13 +276,13 @@ void LocalMap::requestMap(const MWWorld::CellStore* cell)
         int cellX = cell->getCell()->getGridX();
         int cellY = cell->getCell()->getGridY();
 
-        MapSegment& segment = mSegments[std::make_pair(cellX, cellY)];
-        if (!needUpdate(segment.mGrid, mCurrentGrid, cellX, cellY))
+        MapSegment& segment = mExteriorSegments[std::make_pair(cellX, cellY)];
+        if (!segment.needUpdate)
             return;
         else
         {
-            segment.mGrid = mCurrentGrid;
             requestExteriorMap(cell);
+            segment.needUpdate = false;
         }
     }
     else
@@ -294,27 +292,27 @@ void LocalMap::requestMap(const MWWorld::CellStore* cell)
 void LocalMap::addCell(MWWorld::CellStore *cell)
 {
     if (cell->isExterior())
-        mCurrentGrid.emplace(cell->getCell()->getGridX(), cell->getCell()->getGridY());
+        mExteriorSegments[std::make_pair(cell->getCell()->getGridX(), cell->getCell()->getGridY())].needUpdate = true;
+}
+
+void LocalMap::removeExteriorCell(int x, int y)
+{
+    mExteriorSegments.erase({ x, y });
 }
 
 void LocalMap::removeCell(MWWorld::CellStore *cell)
 {
     saveFogOfWar(cell);
 
-    if (cell->isExterior())
-    {
-        std::pair<int, int> coords = std::make_pair(cell->getCell()->getGridX(), cell->getCell()->getGridY());
-        mSegments.erase(coords);
-        mCurrentGrid.erase(coords);
-    }
-    else
-        mSegments.clear();
+    if (!cell->isExterior())
+        mInteriorSegments.clear();
 }
 
 osg::ref_ptr<osg::Texture2D> LocalMap::getMapTexture(int x, int y)
 {
-    SegmentMap::iterator found = mSegments.find(std::make_pair(x, y));
-    if (found == mSegments.end())
+    auto& segments(mInterior ? mInteriorSegments : mExteriorSegments);
+    SegmentMap::iterator found = segments.find(std::make_pair(x, y));
+    if (found == segments.end())
         return osg::ref_ptr<osg::Texture2D>();
     else
         return found->second.mMapTexture;
@@ -322,8 +320,9 @@ osg::ref_ptr<osg::Texture2D> LocalMap::getMapTexture(int x, int y)
 
 osg::ref_ptr<osg::Texture2D> LocalMap::getFogOfWarTexture(int x, int y)
 {
-    SegmentMap::iterator found = mSegments.find(std::make_pair(x, y));
-    if (found == mSegments.end())
+    auto& segments(mInterior ? mInteriorSegments : mExteriorSegments);
+    SegmentMap::iterator found = segments.find(std::make_pair(x, y));
+    if (found == segments.end())
         return osg::ref_ptr<osg::Texture2D>();
     else
         return found->second.mFogOfWarTexture;
@@ -373,7 +372,7 @@ void LocalMap::requestExteriorMap(const MWWorld::CellStore* cell)
                                                                 osg::Vec3d(0,1,0), zmin, zmax);
     setupRenderToTexture(camera, cell->getCell()->getGridX(), cell->getCell()->getGridY());
 
-    MapSegment& segment = mSegments[std::make_pair(cell->getCell()->getGridX(), cell->getCell()->getGridY())];
+    MapSegment& segment = mExteriorSegments[std::make_pair(cell->getCell()->getGridX(), cell->getCell()->getGridY())];
     if (!segment.mFogOfWarImage)
     {
         if (cell->getFog())
@@ -514,7 +513,7 @@ void LocalMap::requestInteriorMap(const MWWorld::CellStore* cell)
             setupRenderToTexture(camera, x, y);
 
             auto coords = std::make_pair(x,y);
-            MapSegment& segment = mSegments[coords];
+            MapSegment& segment = mInteriorSegments[coords];
             if (!segment.mFogOfWarImage)
             {
                 bool loaded = false;
@@ -560,12 +559,13 @@ osg::Vec2f LocalMap::interiorMapToWorldPosition (float nX, float nY, int x, int 
 
 bool LocalMap::isPositionExplored (float nX, float nY, int x, int y)
 {
-    const MapSegment& segment = mSegments[std::make_pair(x, y)];
+    auto& segments(mInterior ? mInteriorSegments : mExteriorSegments);
+    const MapSegment& segment = segments[std::make_pair(x, y)];
     if (!segment.mFogOfWarImage)
         return false;
 
-    nX = std::max(0.f, std::min(1.f, nX));
-    nY = std::max(0.f, std::min(1.f, nY));
+    nX = std::clamp(nX, 0.f, 1.f);
+    nY = std::clamp(nY, 0.f, 1.f);
 
     int texU = static_cast<int>((sFogOfWarResolution - 1) * nX);
     int texV = static_cast<int>((sFogOfWarResolution - 1) * nY);
@@ -632,7 +632,8 @@ void LocalMap::updatePlayer (const osg::Vec3f& position, const osg::Quat& orient
             int texX = x + mx;
             int texY = y + my*-1;
 
-            MapSegment& segment = mSegments[std::make_pair(texX, texY)];
+            auto& segments(mInterior ? mInteriorSegments : mExteriorSegments);
+            MapSegment& segment = segments[std::make_pair(texX, texY)];
 
             if (!segment.mFogOfWarImage || !segment.mMapTexture)
                 continue;
@@ -649,7 +650,7 @@ void LocalMap::updatePlayer (const osg::Vec3f& position, const osg::Quat& orient
                     uint32_t clr = *(uint32_t*)data;
                     uint8_t alpha = (clr >> 24);
 
-                    alpha = std::min( alpha, (uint8_t) (std::max(0.f, std::min(1.f, (sqrDist/sqrExploreRadius)))*255) );
+                    alpha = std::min( alpha, (uint8_t) (std::clamp((sqrDist/sqrExploreRadius)*255, 0.f, 1.f)));
                     uint32_t val = (uint32_t) (alpha << 24);
                     if ( *data != val)
                     {
@@ -673,11 +674,6 @@ void LocalMap::updatePlayer (const osg::Vec3f& position, const osg::Quat& orient
 LocalMap::MapSegment::MapSegment()
     : mHasFogState(false)
 {
-}
-
-LocalMap::MapSegment::~MapSegment()
-{
-
 }
 
 void LocalMap::MapSegment::createFogOfWarTexture()

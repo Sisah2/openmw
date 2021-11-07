@@ -22,6 +22,7 @@ namespace Compiler
         {
             mStrictKeywords = false;
             mTolerantNames = false;
+            mExpectName = false;
             mLoc.mColumn = 0;
             ++mLoc.mLine;
             mLoc.mLiteral.clear();
@@ -129,7 +130,8 @@ namespace Compiler
         {
             bool cont = false;
 
-            if (scanInt (c, parser, cont))
+            bool scanned = mExpectName ? scanName(c, parser, cont) : scanInt(c, parser, cont);
+            if (scanned)
             {
                 mLoc.mLiteral.clear();
                 return cont;
@@ -163,8 +165,6 @@ namespace Compiler
         std::string value;
         c.appendTo(value);
 
-        bool error = false;
-
         while (get (c))
         {
             if (c.isDigit())
@@ -173,16 +173,11 @@ namespace Compiler
             }
             else if (!c.isMinusSign() && isStringCharacter (c))
             {
-                error = true;
-                c.appendTo(value);
+                /// workaround that allows names to begin with digits
+                return scanName(c, parser, cont, value);
             }
             else if (c=='.')
             {
-                if (error)
-                {
-                    putback (c);
-                    break;
-                }
                 return scanFloat (value, parser, cont);
             }
             else
@@ -190,17 +185,6 @@ namespace Compiler
                 putback (c);
                 break;
             }
-        }
-
-        if (error)
-        {
-            /// workaround that allows names to begin with digits
-            /// \todo disable
-            TokenLoc loc (mLoc);
-            mLoc.mLiteral.clear();
-            cont = parser.parseName (value, loc, *this);
-            return true;
-//            return false;
         }
 
         TokenLoc loc (mLoc);
@@ -264,13 +248,11 @@ namespace Compiler
         "return",
         "messagebox",
         "set", "to",
-        "getsquareroot",
         nullptr
     };
 
-    bool Scanner::scanName (MultiChar& c, Parser& parser, bool& cont)
+    bool Scanner::scanName (MultiChar& c, Parser& parser, bool& cont, std::string name)
     {
-        std::string name;
         c.appendTo(name);
 
         if (!scanName (name))
@@ -406,6 +388,8 @@ namespace Compiler
 
     bool Scanner::scanSpecial (MultiChar& c, Parser& parser, bool& cont)
     {
+        bool expectName = mExpectName;
+        mExpectName = false;
         int special = -1;
 
         if (c=='\n')
@@ -416,12 +400,13 @@ namespace Compiler
             special = S_close;
         else if (c=='.')
         {
+            MultiChar next;
             // check, if this starts a float literal
-            if (get (c))
+            if (get (next))
             {
-                putback (c);
+                putback (next);
 
-                if (c.isDigit())
+                if (next.isDigit())
                     return scanFloat ("", parser, cont);
             }
 
@@ -476,13 +461,14 @@ namespace Compiler
         }
         else if (c.isMinusSign())
         {
-            if (get (c))
+            MultiChar next;
+            if (get (next))
             {
-                if (c=='>')
+                if (next=='>')
                     special = S_ref;
                 else
                 {
-                    putback (c);
+                    putback (next);
                     special = S_minus;
                 }
             }
@@ -558,6 +544,16 @@ namespace Compiler
 
         if (special==S_newline)
             mLoc.mLiteral = "<newline>";
+        else if (expectName && (special == S_member || special == S_minus))
+        {
+            bool tolerant = mTolerantNames;
+            mTolerantNames = true;
+            bool out = scanName(c, parser, cont);
+            mTolerantNames = tolerant;
+            return out;
+        }
+        else if (expectName && special == S_comma)
+            mExpectName = true;
 
         TokenLoc loc (mLoc);
         mLoc.mLiteral.clear();
@@ -590,13 +586,14 @@ namespace Compiler
         const Extensions *extensions)
     : mErrorHandler (errorHandler), mStream (inputStream), mExtensions (extensions),
       mPutback (Putback_None), mPutbackCode(0), mPutbackInteger(0), mPutbackFloat(0),
-      mStrictKeywords (false), mTolerantNames (false), mIgnoreNewline(false)
+      mStrictKeywords (false), mTolerantNames (false), mIgnoreNewline(false), mExpectName(false)
     {
     }
 
     void Scanner::scan (Parser& parser)
     {
         while (scanToken (parser));
+        mExpectName = false;
     }
 
     void Scanner::putbackSpecial (int code, const TokenLoc& loc)
@@ -656,5 +653,10 @@ namespace Compiler
     void Scanner::enableTolerantNames()
     {
         mTolerantNames = true;
+    }
+
+    void Scanner::enableExpectName()
+    {
+        mExpectName = true;
     }
 }

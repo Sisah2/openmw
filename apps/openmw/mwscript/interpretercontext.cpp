@@ -129,6 +129,15 @@ namespace MWScript
             mGlobalScriptDesc = globalScriptDesc;
     }
 
+    std::string InterpreterContext::getTarget() const
+    {
+        if(!mReference.isEmpty())
+            return mReference.mRef->mRef.getRefId();
+        else if(mGlobalScriptDesc)
+            return mGlobalScriptDesc->getId();
+        return {};
+    }
+
     int InterpreterContext::getLocalShort (int index) const
     {
         if (!mLocals)
@@ -406,7 +415,7 @@ namespace MWScript
         return  MWBase::Environment::get().getWorld()->getCellName();
     }
 
-    void InterpreterContext::executeActivation(MWWorld::Ptr ptr, MWWorld::Ptr actor)
+    void InterpreterContext::executeActivation(const MWWorld::Ptr& ptr, const MWWorld::Ptr& actor)
     {
         std::shared_ptr<MWWorld::Action> action = (ptr.getClass().activate(ptr, actor));
         action->execute (actor);
@@ -474,7 +483,7 @@ namespace MWScript
         locals.mFloats[findLocalVariableIndex (scriptId, name, 'f')] = value;
     }
 
-    MWWorld::Ptr InterpreterContext::getReference(bool required)
+    MWWorld::Ptr InterpreterContext::getReference(bool required) const
     {
         return getReferenceImp ("", true, required);
     }

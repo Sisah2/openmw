@@ -6,7 +6,6 @@
 #include <QDate>
 #include <QMessageBox>
 #include <QFontDatabase>
-#include <QInputDialog>
 #include <QFileDialog>
 #include <QCloseEvent>
 #include <QTextCodec>
@@ -52,8 +51,8 @@ Launcher::MainDialog::MainDialog(QWidget *parent)
     iconWidget->setCurrentRow(0);
     iconWidget->setFlow(QListView::LeftToRight);
 
-    QPushButton *helpButton = new QPushButton(tr("Help"));
-    QPushButton *playButton = new QPushButton(tr("Play"));
+    auto *helpButton = new QPushButton(tr("Help"));
+    auto *playButton = new QPushButton(tr("Play"));
     buttonBox->button(QDialogButtonBox::Close)->setText(tr("Close"));
     buttonBox->addButton(helpButton, QDialogButtonBox::HelpRole);
     buttonBox->addButton(playButton, QDialogButtonBox::AcceptRole);
@@ -79,31 +78,31 @@ void Launcher::MainDialog::createIcons()
     if (!QIcon::hasThemeIcon("document-new"))
         QIcon::setThemeName("tango");
 
-    QListWidgetItem *playButton = new QListWidgetItem(iconWidget);
+    auto *playButton = new QListWidgetItem(iconWidget);
     playButton->setIcon(QIcon(":/images/openmw.png"));
     playButton->setText(tr("Play"));
     playButton->setTextAlignment(Qt::AlignCenter);
     playButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    QListWidgetItem *dataFilesButton = new QListWidgetItem(iconWidget);
+    auto *dataFilesButton = new QListWidgetItem(iconWidget);
     dataFilesButton->setIcon(QIcon(":/images/openmw-plugin.png"));
     dataFilesButton->setText(tr("Data Files"));
     dataFilesButton->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
     dataFilesButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    QListWidgetItem *graphicsButton = new QListWidgetItem(iconWidget);
+    auto *graphicsButton = new QListWidgetItem(iconWidget);
     graphicsButton->setIcon(QIcon(":/images/preferences-video.png"));
     graphicsButton->setText(tr("Graphics"));
     graphicsButton->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom | Qt::AlignAbsolute);
     graphicsButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    QListWidgetItem *settingsButton = new QListWidgetItem(iconWidget);
+    auto *settingsButton = new QListWidgetItem(iconWidget);
     settingsButton->setIcon(QIcon(":/images/preferences.png"));
     settingsButton->setText(tr("Settings"));
     settingsButton->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
     settingsButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    QListWidgetItem *advancedButton = new QListWidgetItem(iconWidget);
+    auto *advancedButton = new QListWidgetItem(iconWidget);
     advancedButton->setIcon(QIcon(":/images/preferences-advanced.png"));
     advancedButton->setText(tr("Advanced"));
     advancedButton->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
@@ -424,11 +423,11 @@ bool Launcher::MainDialog::setupGraphicsSettings()
     mEngineSettings.clear();
 
     // Create the settings manager and load default settings file
-    const std::string localDefault = (mCfgMgr.getLocalPath() / "settings-default.cfg").string();
-    const std::string globalDefault = (mCfgMgr.getGlobalPath() / "settings-default.cfg").string();
+    const std::string localDefault = (mCfgMgr.getLocalPath() / "defaults.bin").string();
+    const std::string globalDefault = (mCfgMgr.getGlobalPath() / "defaults.bin").string();
     std::string defaultPath;
 
-    // Prefer the settings-default.cfg in the current directory.
+    // Prefer the defaults.bin in the current directory.
     if (boost::filesystem::exists(localDefault))
         defaultPath = localDefault;
     else if (boost::filesystem::exists(globalDefault))
@@ -436,7 +435,7 @@ bool Launcher::MainDialog::setupGraphicsSettings()
     // Something's very wrong if we can't find the file at all.
     else {
         cfgError(tr("Error reading OpenMW configuration file"),
-                 tr("<br><b>Could not find settings-default.cfg</b><br><br> \
+                 tr("<br><b>Could not find defaults.bin</b><br><br> \
                      The problem may be due to an incomplete installation of OpenMW.<br> \
                      Reinstalling OpenMW may resolve the problem."));
         return false;
@@ -447,7 +446,7 @@ bool Launcher::MainDialog::setupGraphicsSettings()
         mEngineSettings.loadDefault(defaultPath);
     }
     catch (std::exception& e) {
-        std::string msg = std::string("<br><b>Error reading settings-default.cfg</b><br><br>") + e.what();
+        std::string msg = std::string("<br><b>Error reading defaults.bin</b><br><br>") + e.what();
         cfgError(tr("Error reading OpenMW configuration file"), tr(msg.c_str()));
         return false;
     }

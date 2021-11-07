@@ -15,7 +15,6 @@ namespace ESM
         : mFlags(0)
         , mX(0)
         , mY(0)
-        , mPlugin(0)
         , mDataTypes(0)
         , mLandData(nullptr)
     {
@@ -40,17 +39,17 @@ namespace ESM
     {
         isDeleted = false;
 
-        mPlugin = esm.getIndex();
-
         bool hasLocation = false;
         bool isLoaded = false;
         while (!isLoaded && esm.hasMoreSubs())
         {
             esm.getSubName();
-            switch (esm.retSubName().intval)
+            switch (esm.retSubName().toInt())
             {
                 case ESM::FourCC<'I','N','T','V'>::value:
-                    esm.getSubHeaderIs(8);
+                    esm.getSubHeader();
+                    if (esm.getSubSize() != 8)
+                        esm.fail("Subrecord size is not equal to 8");
                     esm.getT<int>(mX);
                     esm.getT<int>(mY);
                     hasLocation = true;
@@ -81,7 +80,7 @@ namespace ESM
         while (esm.hasMoreSubs())
         {
             esm.getSubName();
-            switch (esm.retSubName().intval)
+            switch (esm.retSubName().toInt())
             {
                 case ESM::FourCC<'V','N','M','L'>::value:
                     esm.skipHSub();
@@ -121,7 +120,7 @@ namespace ESM
 
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
             return;
         }
 
@@ -170,7 +169,7 @@ namespace ESM
                     {
                         float height = mLandData->mHeights[int(row * vertMult) * ESM::Land::LAND_SIZE + int(col * vertMult)];
                         height /= height > 0 ? 128.f : 16.f;
-                        height = std::min(max, std::max(min, height));
+                        height = std::clamp(height, min, max);
                         wnam[row * LAND_GLOBAL_MAP_LOD_SIZE_SQRT + col] = static_cast<signed char>(height);
                     }
                 }
@@ -190,7 +189,7 @@ namespace ESM
 
     void Land::blank()
     {
-        mPlugin = 0;
+        setPlugin(0);
 
         std::fill(std::begin(mWnam), std::end(mWnam), 0);
 
@@ -324,7 +323,7 @@ namespace ESM
     }
 
     Land::Land (const Land& land)
-    : mFlags (land.mFlags), mX (land.mX), mY (land.mY), mPlugin (land.mPlugin),
+    : mFlags (land.mFlags), mX (land.mX), mY (land.mY),
       mContext (land.mContext), mDataTypes (land.mDataTypes),
       mLandData (land.mLandData ? new LandData (*land.mLandData) : nullptr)
     {
@@ -343,7 +342,6 @@ namespace ESM
         std::swap (mFlags, land.mFlags);
         std::swap (mX, land.mX);
         std::swap (mY, land.mY);
-        std::swap (mPlugin, land.mPlugin);
         std::swap (mContext, land.mContext);
         std::swap (mDataTypes, land.mDataTypes);
         std::swap (mLandData, land.mLandData);

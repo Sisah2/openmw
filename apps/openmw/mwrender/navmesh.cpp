@@ -2,14 +2,22 @@
 #include "vismask.hpp"
 
 #include <components/sceneutil/navmesh.hpp>
+#include <components/resource/resourcesystem.hpp>
+#include <components/resource/scenemanager.hpp>
 
 #include <osg/PositionAttitudeTransform>
+
+#include "../mwbase/world.hpp"
+#include "../mwbase/environment.hpp"
+
+#include <limits>
 
 namespace MWRender
 {
     NavMesh::NavMesh(const osg::ref_ptr<osg::Group>& root, bool enabled)
         : mRootNode(root)
         , mEnabled(enabled)
+        , mId(std::numeric_limits<std::size_t>::max())
         , mGeneration(0)
         , mRevision(0)
     {
@@ -45,6 +53,7 @@ namespace MWRender
         mGroup = SceneUtil::createNavMeshGroup(navMesh, settings);
         if (mGroup)
         {
+            MWBase::Environment::get().getResourceSystem()->getSceneManager()->recreateShaders(mGroup, "debug");
             mGroup->setNodeMask(Mask_Debug);
             mRootNode->addChild(mGroup);
         }

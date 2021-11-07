@@ -118,7 +118,7 @@ namespace CSMWorld
             const ESM::Dialogue *mDialogue; // last loaded dialogue
             bool mBase;
             bool mProject;
-            std::map<std::string, std::map<ESM::RefNum, std::string> > mRefLoadCache;
+            std::map<std::string, std::map<unsigned int, unsigned int> > mRefLoadCache;
             int mReaderIndex;
 
             bool mFsStrict;
@@ -152,7 +152,7 @@ namespace CSMWorld
             Data (ToUTF8::FromType encoding, bool fsStrict, const Files::PathContainer& dataPaths,
                 const std::vector<std::string>& archives, const boost::filesystem::path& resDir);
 
-            virtual ~Data();
+            ~Data() override;
 
             const VFS::Manager* getVFS() const;
 
@@ -291,6 +291,8 @@ namespace CSMWorld
 
             void merge();
             ///< Merge modified into base.
+
+            int getTotalRecords (const std::vector<boost::filesystem::path>& files); // for better loading bar
 
             int startLoading (const boost::filesystem::path& path, bool base, bool project);
             ///< Begin merging content of a file into base or modified.

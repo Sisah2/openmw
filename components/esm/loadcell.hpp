@@ -65,7 +65,7 @@ struct Cell
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Cell"; }
+    static std::string_view getRecordType() { return "Cell"; }
 
   enum Flags
     {
@@ -133,6 +133,7 @@ struct Cell
   void loadCell(ESMReader &esm, bool saveContext = true); // Load everything, except NAME, DATAstruct and references
 
   void save(ESMWriter &esm, bool isDeleted = false) const;
+  void saveTempMarker(ESMWriter &esm, int tempCount) const;
 
   bool isExterior() const
   {
@@ -180,12 +181,9 @@ struct Cell
      All fields of the CellRef struct are overwritten. You can safely
      reuse one memory location without blanking it between calls.
   */
-  /// \param ignoreMoves ignore MVRF record and read reference like a regular CellRef.
-  static bool getNextRef(ESMReader &esm, 
-                         CellRef &ref, 
-                         bool &isDeleted, 
-                         bool ignoreMoves = false, 
-                         MovedCellRef *mref = nullptr);
+    static bool getNextRef(ESMReader& esm, CellRef& ref, bool& deleted);
+
+    static bool getNextRef(ESMReader& esm, CellRef& cellRef, bool& deleted, MovedCellRef& movedCellRef, bool& moved);
 
   /* This fetches an MVRF record, which is used to track moved references.
    * Since they are comparably rare, we use a separate method for this.

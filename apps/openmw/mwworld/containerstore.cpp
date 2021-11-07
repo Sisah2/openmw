@@ -1,7 +1,6 @@
 #include "containerstore.hpp"
 
 #include <cassert>
-#include <typeinfo>
 #include <stdexcept>
 
 #include <components/debug/debuglog.hpp>
@@ -184,7 +183,7 @@ int MWWorld::ContainerStore::count(const std::string &id) const
 {
     int total=0;
     for (const auto&& iter : *this)
-        if (Misc::StringUtils::ciEqual(iter.getCellRef().getRefId(), id))
+        if (Misc::StringUtils::ciEqual(iter.getCellRef().getRefIdRef(), id))
             total += iter.getRefData().getCount();
     return total;
 }
@@ -249,7 +248,7 @@ bool MWWorld::ContainerStore::stacks(const ConstPtr& ptr1, const ConstPtr& ptr2)
     const MWWorld::Class& cls1 = ptr1.getClass();
     const MWWorld::Class& cls2 = ptr2.getClass();
 
-    if (!Misc::StringUtils::ciEqual(ptr1.getCellRef().getRefId(), ptr2.getCellRef().getRefId()))
+    if (!Misc::StringUtils::ciEqual(ptr1.getCellRef().getRefIdRef(), ptr2.getCellRef().getRefIdRef()))
         return false;
 
     // If it has an enchantment, don't stack when some of the charge is already used
@@ -364,7 +363,7 @@ MWWorld::ContainerStoreIterator MWWorld::ContainerStore::addImp (const Ptr& ptr,
 
         for (MWWorld::ContainerStoreIterator iter (begin(type)); iter!=end(); ++iter)
         {
-            if (Misc::StringUtils::ciEqual((*iter).getCellRef().getRefId(), MWWorld::ContainerStore::sGoldId))
+            if (Misc::StringUtils::ciEqual(iter->getCellRef().getRefIdRef(), MWWorld::ContainerStore::sGoldId))
             {
                 iter->getRefData().setCount(addItems(iter->getRefData().getCount(false), realCount));
                 flagAsModified();
@@ -465,7 +464,7 @@ int MWWorld::ContainerStore::remove(const std::string& itemId, int count, const 
     int toRemove = count;
 
     for (ContainerStoreIterator iter(begin()); iter != end() && toRemove > 0; ++iter)
-        if (Misc::StringUtils::ciEqual(iter->getCellRef().getRefId(), itemId))
+        if (Misc::StringUtils::ciEqual(iter->getCellRef().getRefIdRef(), itemId))
             toRemove -= remove(*iter, toRemove, actor, equipReplacement, resolveFirst);
 
     flagAsModified();
@@ -567,7 +566,7 @@ void MWWorld::ContainerStore::addInitialItem (const std::string& id, const std::
 void MWWorld::ContainerStore::addInitialItemImp(const MWWorld::Ptr& ptr, const std::string& owner, int count,
                                                Misc::Rng::Seed* seed, bool topLevel)
 {
-    if (ptr.getTypeName()==typeid (ESM::ItemLevList).name())
+    if (ptr.getType()==ESM::ItemLevList::sRecordId)
     {
         if(!seed)
             return;
@@ -693,44 +692,44 @@ int MWWorld::ContainerStore::getType (const ConstPtr& ptr)
     if (ptr.isEmpty())
         throw std::runtime_error ("can't put a non-existent object into a container");
 
-    if (ptr.getTypeName()==typeid (ESM::Potion).name())
+    if (ptr.getType()==ESM::Potion::sRecordId)
         return Type_Potion;
 
-    if (ptr.getTypeName()==typeid (ESM::Apparatus).name())
+    if (ptr.getType()==ESM::Apparatus::sRecordId)
         return Type_Apparatus;
 
-    if (ptr.getTypeName()==typeid (ESM::Armor).name())
+    if (ptr.getType()==ESM::Armor::sRecordId)
         return Type_Armor;
 
-    if (ptr.getTypeName()==typeid (ESM::Book).name())
+    if (ptr.getType()==ESM::Book::sRecordId)
         return Type_Book;
 
-    if (ptr.getTypeName()==typeid (ESM::Clothing).name())
+    if (ptr.getType()==ESM::Clothing::sRecordId)
         return Type_Clothing;
 
-    if (ptr.getTypeName()==typeid (ESM::Ingredient).name())
+    if (ptr.getType()==ESM::Ingredient::sRecordId)
         return Type_Ingredient;
 
-    if (ptr.getTypeName()==typeid (ESM::Light).name())
+    if (ptr.getType()==ESM::Light::sRecordId)
         return Type_Light;
 
-    if (ptr.getTypeName()==typeid (ESM::Lockpick).name())
+    if (ptr.getType()==ESM::Lockpick::sRecordId)
         return Type_Lockpick;
 
-    if (ptr.getTypeName()==typeid (ESM::Miscellaneous).name())
+    if (ptr.getType()==ESM::Miscellaneous::sRecordId)
         return Type_Miscellaneous;
 
-    if (ptr.getTypeName()==typeid (ESM::Probe).name())
+    if (ptr.getType()==ESM::Probe::sRecordId)
         return Type_Probe;
 
-    if (ptr.getTypeName()==typeid (ESM::Repair).name())
+    if (ptr.getType()==ESM::Repair::sRecordId)
         return Type_Repair;
 
-    if (ptr.getTypeName()==typeid (ESM::Weapon).name())
+    if (ptr.getType()==ESM::Weapon::sRecordId)
         return Type_Weapon;
 
-    throw std::runtime_error (
-        "Object '" + ptr.getCellRef().getRefId() + "' of type " + ptr.getTypeName() + " can not be placed into a container");
+    throw std::runtime_error("Object '" + ptr.getCellRef().getRefId() + "' of type " +
+                             std::string(ptr.getTypeDescription()) + " can not be placed into a container");
 }
 
 MWWorld::Ptr MWWorld::ContainerStore::findReplacement(const std::string& id)
@@ -740,7 +739,7 @@ MWWorld::Ptr MWWorld::ContainerStore::findReplacement(const std::string& id)
     for (auto&& iter : *this)
     {
         int iterHealth = iter.getClass().hasItemHealth(iter) ? iter.getClass().getItemHealth(iter) : 1;
-        if (Misc::StringUtils::ciEqual(iter.getCellRef().getRefId(), id))
+        if (Misc::StringUtils::ciEqual(iter.getCellRef().getRefIdRef(), id))
         {
             // Prefer the stack with the lowest remaining uses
             // Try to get item with zero durability only if there are no other items found

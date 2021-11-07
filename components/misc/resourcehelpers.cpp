@@ -1,6 +1,7 @@
 #include "resourcehelpers.hpp"
 
 #include <sstream>
+#include <string_view>
 
 #include <components/misc/stringops.hpp>
 #include <components/settings/settings.hpp>
@@ -41,10 +42,8 @@ bool Misc::ResourceHelpers::changeExtensionToDds(std::string &path)
     return false;
 }
 
-bool Misc::ResourceHelpers::DensityCalculator::isInstanceEnabled()
+bool Misc::ResourceHelpers::DensityCalculator::isInstanceEnabled(float density)
 {
-    static const float density = Settings::Manager::getFloat("density", "Groundcover");
-
     mCurrentGroundcover += density;
     if (mCurrentGroundcover < 1.f) return false;
 
@@ -150,4 +149,9 @@ std::string Misc::ResourceHelpers::correctActorModelPath(const std::string &resP
         return resPath;
     }
     return mdlname;
+}
+
+bool Misc::ResourceHelpers::isHiddenMarker(std::string_view id)
+{
+    return Misc::StringUtils::ciEqual(id, "prisonmarker") || Misc::StringUtils::ciEqual(id, "divinemarker") || Misc::StringUtils::ciEqual(id, "templemarker") || Misc::StringUtils::ciEqual(id, "northmarker");
 }

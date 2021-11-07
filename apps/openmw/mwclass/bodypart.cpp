@@ -22,10 +22,6 @@ namespace MWClass
         }
     }
 
-    void BodyPart::insertObject(const MWWorld::Ptr &ptr, const std::string &model, MWPhysics::PhysicsSystem &physics) const
-    {
-    }
-
     std::string BodyPart::getName(const MWWorld::ConstPtr &ptr) const
     {
         return std::string();
@@ -40,7 +36,7 @@ namespace MWClass
     {
         std::shared_ptr<MWWorld::Class> instance (new BodyPart);
 
-        registerClass (typeid (ESM::BodyPart).name(), instance);
+        registerClass (ESM::BodyPart::sRecordId, instance);
     }
 
     std::string BodyPart::getModel(const MWWorld::ConstPtr &ptr) const

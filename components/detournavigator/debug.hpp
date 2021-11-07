@@ -34,6 +34,7 @@ namespace DetourNavigator
         switch (value)
         {
             OPENMW_COMPONENTS_DETOURNAVIGATOR_DEBUG_STATUS_MESSAGE(Success)
+            OPENMW_COMPONENTS_DETOURNAVIGATOR_DEBUG_STATUS_MESSAGE(PartialPath)
             OPENMW_COMPONENTS_DETOURNAVIGATOR_DEBUG_STATUS_MESSAGE(NavMeshNotFound)
             OPENMW_COMPONENTS_DETOURNAVIGATOR_DEBUG_STATUS_MESSAGE(StartPolygonNotFound)
             OPENMW_COMPONENTS_DETOURNAVIGATOR_DEBUG_STATUS_MESSAGE(EndPolygonNotFound)
@@ -47,8 +48,9 @@ namespace DetourNavigator
     }
 
     class RecastMesh;
+    struct Settings;
 
-    void writeToFile(const RecastMesh& recastMesh, const std::string& pathPrefix, const std::string& revision);
+    void writeToFile(const RecastMesh& recastMesh, const std::string& pathPrefix, const std::string& revision, const Settings& settings);
     void writeToFile(const dtNavMesh& navMesh, const std::string& pathPrefix, const std::string& revision);
 }
 

@@ -3,9 +3,13 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include <map>
+#include <unordered_map>
+#include <set>
 
-#include "recordcmp.hpp"
+#include <components/esm/records.hpp>
+#include <components/misc/stringops.hpp>
 
 namespace ESM
 {
@@ -74,10 +78,10 @@ namespace MWWorld
         const T *find(int index) const;
     };
 
-    template <class T>
+    template <class T, class Container=std::vector<T*>>
     class SharedIterator
     {
-        typedef typename std::vector<T *>::const_iterator Iter;
+        typedef typename Container::const_iterator Iter;
 
         Iter mIter;
 
@@ -145,14 +149,15 @@ namespace MWWorld
     template <class T>
     class Store : public StoreBase
     {
-        std::map<std::string, T>      mStatic;
-        std::vector<T *>    mShared; // Preserves the record order as it came from the content files (this
-                                     // is relevant for the spell autocalc code and selection order
-                                     // for heads/hairs in the character creation)
-        std::map<std::string, T> mDynamic;
-
-        typedef std::map<std::string, T> Dynamic;
-        typedef std::map<std::string, T> Static;
+        typedef std::unordered_map<std::string, T, Misc::StringUtils::CiHash, Misc::StringUtils::CiEqual> Static;
+        Static mStatic;
+        /// @par mShared usually preserves the record order as it came from the content files (this
+        /// is relevant for the spell autocalc code and selection order
+        /// for heads/hairs in the character creation)
+        /// @warning ESM::Dialogue Store currently implements a sorted order for unknown reasons.
+        std::vector<T*> mShared;
+        typedef std::unordered_map<std::string, T, Misc::StringUtils::CiHash, Misc::StringUtils::CiEqual> Dynamic;
+        Dynamic mDynamic;
 
         friend class ESMStore;
 
@@ -217,13 +222,12 @@ namespace MWWorld
         const ESM::LandTexture *search(size_t index, size_t plugin) const;
         const ESM::LandTexture *find(size_t index, size_t plugin) const;
 
-        /// Resize the internal store to hold at least \a num plugins.
-        void resize(size_t num);
+        /// Resize the internal store to hold another plugin.
+        void addPlugin() { mStatic.emplace_back(); }
 
         size_t getSize() const override;
         size_t getSize(size_t plugin) const;
 
-        RecordId load(ESM::ESMReader &esm, size_t plugin);
         RecordId load(ESM::ESMReader &esm) override;
 
         iterator begin(size_t plugin) const;
@@ -233,10 +237,28 @@ namespace MWWorld
     template <>
     class Store<ESM::Land> : public StoreBase
     {
-        std::vector<ESM::Land *> mStatic;
+        struct SpatialComparator
+        {
+            using is_transparent = void;
+
+            bool operator()(const ESM::Land& x, const ESM::Land& y) const
+            {
+                return std::tie(x.mX, x.mY) < std::tie(y.mX, y.mY);
+            }
+            bool operator()(const ESM::Land& x, const std::pair<int, int>& y) const
+            {
+                return std::tie(x.mX, x.mY) < std::tie(y.first, y.second);
+            }
+            bool operator()(const std::pair<int, int>& x, const ESM::Land& y) const
+            {
+                return std::tie(x.first, x.second) < std::tie(y.mX, y.mY);
+            }
+        };
+        using Statics = std::set<ESM::Land, SpatialComparator>;
+        Statics mStatic;
 
     public:
-        typedef SharedIterator<ESM::Land> iterator;
+        typedef typename Statics::iterator iterator;
 
         virtual ~Store();
 
@@ -274,7 +296,7 @@ namespace MWWorld
             }
         };
 
-        typedef std::map<std::string, ESM::Cell>                           DynamicInt;
+        typedef std::unordered_map<std::string, ESM::Cell, Misc::StringUtils::CiHash, Misc::StringUtils::CiEqual> DynamicInt;
         typedef std::map<std::pair<int, int>, ESM::Cell, DynamicExtCmp>    DynamicExt;
 
         DynamicInt      mInt;
@@ -334,7 +356,7 @@ namespace MWWorld
     class Store<ESM::Pathgrid> : public StoreBase
     {
     private:
-        typedef std::map<std::string, ESM::Pathgrid> Interior;
+        typedef std::unordered_map<std::string, ESM::Pathgrid, Misc::StringUtils::CiHash, Misc::StringUtils::CiEqual> Interior;
         typedef std::map<std::pair<int, int>, ESM::Pathgrid> Exterior;
 
         Interior mInt;
@@ -408,7 +430,7 @@ namespace MWWorld
         const ESM::WeaponType *search(const int id) const;
         const ESM::WeaponType *find(const int id) const;
 
-        RecordId load(ESM::ESMReader &esm) override { return RecordId(nullptr, false); }
+        RecordId load(ESM::ESMReader &esm) override { return RecordId({}, false); }
 
         ESM::WeaponType* insert(const ESM::WeaponType &weaponType);
 

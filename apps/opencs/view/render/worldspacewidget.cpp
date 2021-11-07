@@ -452,6 +452,11 @@ CSVRender::WorldspaceHitResult CSVRender::WorldspaceWidget::mousePick (const QPo
     return hit;
 }
 
+CSVRender::EditMode *CSVRender::WorldspaceWidget::getEditMode()
+{
+    return dynamic_cast<CSVRender::EditMode *> (mEditMode->getCurrent());
+}
+
 void CSVRender::WorldspaceWidget::abortDrag()
 {
     if (mDragging)
@@ -459,7 +464,6 @@ void CSVRender::WorldspaceWidget::abortDrag()
         EditMode& editMode = dynamic_cast<CSVRender::EditMode&> (*mEditMode->getCurrent());
 
         editMode.dragAborted();
-        mDragging = false;
         mDragMode = InteractionType_None;
     }
 }
@@ -592,7 +596,7 @@ void CSVRender::WorldspaceWidget::showToolTip()
         if (hit.tag)
         {
             bool hideBasics = CSMPrefs::get()["Tooltips"]["scene-hide-basic"].isTrue();
-            QToolTip::showText (pos, hit.tag->getToolTip (hideBasics), this);
+            QToolTip::showText(pos, hit.tag->getToolTip(hideBasics, hit), this);
         }
     }
 }
@@ -695,11 +699,6 @@ void CSVRender::WorldspaceWidget::handleInteractionPress (const WorldspaceHitRes
         editMode.secondarySelectPressed (hit);
     else if (type == InteractionType_PrimaryOpen)
         editMode.primaryOpenPressed (hit);
-}
-
-CSVRender::EditMode *CSVRender::WorldspaceWidget::getEditMode()
-{
-    return dynamic_cast<CSVRender::EditMode *> (mEditMode->getCurrent());
 }
 
 void CSVRender::WorldspaceWidget::primaryOpen(bool activate)

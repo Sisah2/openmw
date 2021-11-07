@@ -294,7 +294,6 @@ namespace CSMWorld
             { ColumnId_NpcReputation, "Reputation" },
             { ColumnId_NpcRank, "NPC Rank" },
             { ColumnId_Gold, "Gold" },
-            { ColumnId_NpcPersistence, "Persistent" },
 
             { ColumnId_RaceAttributes, "Race Attributes" },
             { ColumnId_Male, "Male" },
@@ -371,6 +370,9 @@ namespace CSMWorld
             { ColumnId_Skill6, "Skill 6" },
             { ColumnId_Skill7, "Skill 7" },
 
+            { ColumnId_Persistent, "Persistent" },
+            { ColumnId_Blocked, "Blocked" },
+
             { -1, 0 } // end marker
         };
     }
@@ -390,7 +392,7 @@ int CSMWorld::Columns::getId (const std::string& name)
     std::string name2 = Misc::StringUtils::lowerCase (name);
 
     for (int i=0; sNames[i].mName; ++i)
-        if (Misc::StringUtils::ciEqual(sNames[i].mName, name2))
+        if (Misc::StringUtils::ciEqual(std::string_view(sNames[i].mName), name2))
             return sNames[i].mId;
 
     return -1;

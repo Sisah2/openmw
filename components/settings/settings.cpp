@@ -22,7 +22,7 @@ void Manager::clear()
 void Manager::loadDefault(const std::string &file)
 {
     SettingsFileParser parser;
-    parser.loadSettingsFile(file, mDefaultSettings);
+    parser.loadSettingsFile(file, mDefaultSettings, true);
 }
 
 void Manager::loadUser(const std::string &file)
@@ -49,7 +49,7 @@ std::string Manager::getString(const std::string &setting, const std::string &ca
         return it->second;
 
     throw std::runtime_error(std::string("Trying to retrieve a non-existing setting: ") + setting
-                             + ".\nMake sure the settings-default.cfg file was properly installed.");
+                             + ".\nMake sure the defaults.bin file was properly installed.");
 }
 
 float Manager::getFloat (const std::string& setting, const std::string& category)
@@ -57,6 +57,15 @@ float Manager::getFloat (const std::string& setting, const std::string& category
     const std::string& value = getString(setting, category);
     std::stringstream stream(value);
     float number = 0.f;
+    stream >> number;
+    return number;
+}
+
+double Manager::getDouble (const std::string& setting, const std::string& category)
+{
+    const std::string& value = getString(setting, category);
+    std::stringstream stream(value);
+    double number = 0.0;
     stream >> number;
     return number;
 }
@@ -122,6 +131,13 @@ void Manager::setInt (const std::string& setting, const std::string& category, c
 }
 
 void Manager::setFloat (const std::string &setting, const std::string &category, const float value)
+{
+    std::ostringstream stream;
+    stream << value;
+    setString(setting, category, stream.str());
+}
+
+void Manager::setDouble (const std::string &setting, const std::string &category, const double value)
 {
     std::ostringstream stream;
     stream << value;

@@ -5,7 +5,7 @@
 #include <components/debug/debuglog.hpp>
 #include <components/misc/rng.hpp>
 #include <components/esm/aisequence.hpp>
-#include <components/detournavigator/navigator.hpp>
+#include <components/detournavigator/navigatorutils.hpp>
 #include <components/misc/coordinateconverter.hpp>
 
 #include "../mwbase/world.hpp"
@@ -83,14 +83,6 @@ namespace MWMechanics
                 | MWPhysics::CollisionType_Door
                 | MWPhysics::CollisionType_Actor;
             return MWBase::Environment::get().getWorld()->castRay(position, visibleDestination, mask, actor);
-        }
-
-        bool isAreaOccupiedByOtherActor(const MWWorld::ConstPtr &actor, const osg::Vec3f& destination)
-        {
-            const auto world = MWBase::Environment::get().getWorld();
-            const osg::Vec3f halfExtents = world->getPathfindingHalfExtents(actor);
-            const auto maxHalfExtent = std::max(halfExtents.x(), std::max(halfExtents.y(), halfExtents.z()));
-            return world->isAreaOccupiedByOtherActor(destination, 2 * maxHalfExtent, actor);
         }
 
         void stopMovement(const MWWorld::Ptr& actor)
@@ -201,8 +193,10 @@ namespace MWMechanics
             else
             {
                 const osg::Vec3f halfExtents = MWBase::Environment::get().getWorld()->getPathfindingHalfExtents(actor);
+                constexpr float endTolerance = 0;
                 mPathFinder.buildPath(actor, pos.asVec3(), mDestination, actor.getCell(),
-                    getPathGridGraph(actor.getCell()), halfExtents, getNavigatorFlags(actor), getAreaCosts(actor));
+                    getPathGridGraph(actor.getCell()), halfExtents, getNavigatorFlags(actor), getAreaCosts(actor),
+                    endTolerance, PathType::Full);
             }
 
             if (mPathFinder.isPathConstructed())
@@ -343,7 +337,8 @@ namespace MWMechanics
             if (!isWaterCreature && !isFlyingCreature)
             {
                 // findRandomPointAroundCircle uses wanderDistance as limit for random and not as exact distance
-                if (const auto destination = navigator->findRandomPointAroundCircle(halfExtents, mInitialActorPosition, wanderDistance, navigatorFlags))
+                if (const auto destination = DetourNavigator::findRandomPointAroundCircle(*navigator, halfExtents,
+                        mInitialActorPosition, wanderDistance, navigatorFlags))
                     mDestination = *destination;
                 else
                     mDestination = getRandomPointAround(mInitialActorPosition, wanderRadius);
@@ -361,11 +356,13 @@ namespace MWMechanics
             if (isAreaOccupiedByOtherActor(actor, mDestination))
                 continue;
 
+            constexpr float endTolerance = 0;
+
             if (isWaterCreature || isFlyingCreature)
                 mPathFinder.buildStraightPath(mDestination);
             else
                 mPathFinder.buildPathByNavMesh(actor, currentPosition, mDestination, halfExtents, navigatorFlags,
-                                               areaCosts);
+                                               areaCosts, endTolerance, PathType::Full);
 
             if (mPathFinder.isPathConstructed())
             {
@@ -744,8 +741,8 @@ namespace MWMechanics
 
         state.moveIn(new AiWanderStorage());
 
-        MWBase::Environment::get().getWorld()->moveObject(actor, static_cast<float>(dest.mX),
-            static_cast<float>(dest.mY), static_cast<float>(dest.mZ));
+        osg::Vec3f pos(static_cast<float>(dest.mX), static_cast<float>(dest.mY), static_cast<float>(dest.mZ));
+        MWBase::Environment::get().getWorld()->moveObject(actor, pos);
         actor.getClass().adjustPosition(actor, false);
     }
 
@@ -753,6 +750,9 @@ namespace MWMechanics
     {
         const ESM::Pathgrid *pathgrid =
             MWBase::Environment::get().getWorld()->getStore().get<ESM::Pathgrid>().search(*currentCell->getCell());
+
+        if (pathgrid == nullptr || pathgrid->mPoints.empty())
+            return;
 
         int index = PathFinder::getClosestPoint(pathgrid, PathFinder::makeOsgVec3(dest));
 

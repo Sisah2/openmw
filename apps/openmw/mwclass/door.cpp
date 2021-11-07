@@ -55,10 +55,9 @@ namespace MWClass
         }
     }
 
-    void Door::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
+    void Door::insertObject(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
-        if(!model.empty())
-            physics.addObject(ptr, model, MWPhysics::CollisionType_Door);
+        insertObjectPhysics(ptr, model, rotation, physics);
 
         // Resume the door's opening/closing animation if it wasn't finished
         if (ptr.getRefData().getCustomData())
@@ -69,6 +68,12 @@ namespace MWClass
                 MWBase::Environment::get().getWorld()->activateDoor(ptr, customData.mDoorState);
             }
         }
+    }
+
+    void Door::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
+    {
+        if(!model.empty())
+            physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_Door);
     }
 
     bool Door::isDoor() const
@@ -132,12 +137,14 @@ namespace MWClass
             MWBase::Environment::get().getWorld()->getMaxActivationDistance())
         {
             MWRender::Animation* animation = MWBase::Environment::get().getWorld()->getAnimation(ptr);
+            if(animation)
+            {
+                const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
+                int index = ESM::MagicEffect::effectStringToId("sEffectTelekinesis");
+                const ESM::MagicEffect *effect = store.get<ESM::MagicEffect>().find(index);
 
-            const MWWorld::ESMStore& store = MWBase::Environment::get().getWorld()->getStore();
-            int index = ESM::MagicEffect::effectStringToId("sEffectTelekinesis");
-            const ESM::MagicEffect *effect = store.get<ESM::MagicEffect>().find(index);
-
-            animation->addSpellCastGlow(effect, 1); // 1 second glow to match the time taken for a door opening or closing
+                animation->addSpellCastGlow(effect, 1); // 1 second glow to match the time taken for a door opening or closing
+            }
         }
 
         const std::string keyId = ptr.getCellRef().getKey();
@@ -257,7 +264,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Door);
 
-        registerClass (typeid (ESM::Door).name(), instance);
+        registerClass (ESM::Door::sRecordId, instance);
     }
 
     MWGui::ToolTipInfo Door::getToolTipInfo (const MWWorld::ConstPtr& ptr, int count) const

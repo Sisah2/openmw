@@ -19,7 +19,7 @@ struct Race
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Race"; }
+    static std::string_view getRecordType() { return "Race"; }
 
     struct SkillBonus
     {
@@ -38,7 +38,7 @@ struct Race
     {
         float mMale, mFemale;
 
-        int getValue (bool male) const;
+        float getValue (bool male) const;
     };
 
     enum Flags
@@ -65,6 +65,7 @@ struct Race
 
     RADTstruct mData;
 
+    unsigned int mRecordFlags;
     std::string mId, mName, mDescription;
     SpellList mPowers;
 

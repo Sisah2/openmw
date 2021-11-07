@@ -61,7 +61,7 @@ CSVRender::ObjectTag::ObjectTag (Object* object)
 : TagBase (Mask_Reference), mObject (object)
 {}
 
-QString CSVRender::ObjectTag::getToolTip (bool hideBasics) const
+QString CSVRender::ObjectTag::getToolTip(bool /*hideBasics*/, const WorldspaceHitResult& /*hit*/) const
 {
     return QString::fromUtf8 (mObject->getReferenceableId().c_str());
 }
@@ -308,7 +308,7 @@ osg::ref_ptr<osg::Node> CSVRender::Object::makeRotateMarker (int axis)
     const float OuterRadius = InnerRadius + MarkerShaftWidth;
 
     const float SegmentDistance = 100.f;
-    const size_t SegmentCount = std::min(64, std::max(24, (int)(OuterRadius * 2 * osg::PI / SegmentDistance)));
+    const size_t SegmentCount = std::clamp<int>(OuterRadius * 2 * osg::PI / SegmentDistance, 24, 64);
     const size_t VerticesPerSegment = 4;
     const size_t IndicesPerSegment = 24;
 
@@ -682,18 +682,20 @@ void CSVRender::Object::apply (CSMWorld::CommandMacro& commands)
 
             int cellColumn = collection.findColumnIndex (static_cast<CSMWorld::Columns::ColumnId> (
                 CSMWorld::Columns::ColumnId_Cell));
-            int refNumColumn = collection.findColumnIndex (static_cast<CSMWorld::Columns::ColumnId> (
-                CSMWorld::Columns::ColumnId_RefNum));
+            int origCellColumn = collection.findColumnIndex(static_cast<CSMWorld::Columns::ColumnId> (
+                CSMWorld::Columns::ColumnId_OriginalCell));
 
             if (cellIndex != originalIndex)
             {
                 /// \todo figure out worldspace (not important until multiple worldspaces are supported)
+                std::string origCellId = CSMWorld::CellCoordinates(originalIndex).getId("");
                 std::string cellId = CSMWorld::CellCoordinates (cellIndex).getId ("");
 
                 commands.push (new CSMWorld::ModifyCommand (*model,
-                    model->index (recordIndex, cellColumn), QString::fromUtf8 (cellId.c_str())));
-                commands.push (new CSMWorld::ModifyCommand( *model,
-                    model->index (recordIndex, refNumColumn), 0));
+                    model->index (recordIndex, origCellColumn), QString::fromUtf8 (origCellId.c_str())));
+                commands.push(new CSMWorld::ModifyCommand(*model,
+                    model->index(recordIndex, cellColumn), QString::fromUtf8(cellId.c_str())));
+                // NOTE: refnum is not modified for moving a reference to another cell
             }
         }
 

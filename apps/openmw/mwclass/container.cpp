@@ -106,10 +106,15 @@ namespace MWClass
         }
     }
 
-    void Container::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
+    void Container::insertObject(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
+    {
+        insertObjectPhysics(ptr, model, rotation, physics);
+    }
+
+    void Container::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
         if(!model.empty())
-            physics.addObject(ptr, model);
+            physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
     }
 
     std::string Container::getModel(const MWWorld::ConstPtr &ptr) const
@@ -237,7 +242,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Container);
 
-        registerClass (typeid (ESM::Container).name(), instance);
+        registerClass (ESM::Container::sRecordId, instance);
     }
 
     bool Container::hasToolTip (const MWWorld::ConstPtr& ptr) const

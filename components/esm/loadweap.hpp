@@ -19,7 +19,7 @@ struct Weapon
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Weapon"; }
+    static std::string_view getRecordType() { return "Weapon"; }
 
     enum Type
     {
@@ -73,6 +73,7 @@ struct Weapon
 
     WPDTstruct mData;
 
+    unsigned int mRecordFlags;
     std::string mId, mName, mModel, mIcon, mEnchant, mScript;
 
     void load(ESMReader &esm, bool &isDeleted);

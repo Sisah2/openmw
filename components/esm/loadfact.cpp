@@ -29,6 +29,7 @@ namespace ESM
     void Faction::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
+        mRecordFlags = esm.getRecordFlags();
 
         mReactions.clear();
         for (int i=0;i<10;++i)
@@ -40,7 +41,7 @@ namespace ESM
         while (esm.hasMoreSubs())
         {
             esm.getSubName();
-            switch (esm.retSubName().intval)
+            switch (esm.retSubName().toInt())
             {
                 case ESM::SREC_NAME:
                     mId = esm.getHString();
@@ -90,7 +91,7 @@ namespace ESM
 
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
             return;
         }
 

@@ -4,7 +4,7 @@
 
 namespace MWMechanics
 {
-    MWWorld::ContainerStoreIterator getActiveWeapon(MWWorld::Ptr actor, int *weaptype)
+    MWWorld::ContainerStoreIterator getActiveWeapon(const MWWorld::Ptr& actor, int *weaptype)
     {
         MWWorld::InventoryStore &inv = actor.getClass().getInventoryStore(actor);
         CreatureStats &stats = actor.getClass().getCreatureStats(actor);
@@ -21,13 +21,13 @@ namespace MWMechanics
                 *weaptype = ESM::Weapon::HandToHand;
             else
             {
-                const std::string &type = weapon->getTypeName();
-                if(type == typeid(ESM::Weapon).name())
+                auto type = weapon->getType();
+                if(type == ESM::Weapon::sRecordId)
                 {
                     const MWWorld::LiveCellRef<ESM::Weapon> *ref = weapon->get<ESM::Weapon>();
                     *weaptype = ref->mBase->mData.mType;
                 }
-                else if (type == typeid(ESM::Lockpick).name() || type == typeid(ESM::Probe).name())
+                else if (type == ESM::Lockpick::sRecordId || type == ESM::Probe::sRecordId)
                     *weaptype = ESM::Weapon::PickProbe;
             }
 

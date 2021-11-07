@@ -25,11 +25,6 @@ namespace MWClass
         }
     }
 
-    void Repair::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
-    {
-        // TODO: add option somewhere to enable collision for placeable objects
-    }
-
     std::string Repair::getModel(const MWWorld::ConstPtr &ptr) const
     {
         const MWWorld::LiveCellRef<ESM::Repair> *ref = ptr.get<ESM::Repair>();
@@ -74,7 +69,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Repair);
 
-        registerClass (typeid (ESM::Repair).name(), instance);
+        registerClass (ESM::Repair::sRecordId, instance);
     }
 
     std::string Repair::getUpSoundId (const MWWorld::ConstPtr& ptr) const

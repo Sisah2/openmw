@@ -6,7 +6,7 @@
 
 #include <osg/ref_ptr>
 #include <osg/Vec3f>
-#include <osg/Camera>
+#include <osg/Vec3d>
 
 #include <components/settings/settings.hpp>
 
@@ -16,6 +16,7 @@ namespace osg
     class PositionAttitudeTransform;
     class Geometry;
     class Node;
+    class Callback;
 }
 
 namespace osgUtil
@@ -70,8 +71,10 @@ namespace MWRender
         bool mToggled;
         float mTop;
         bool mInterior;
+        bool mShowWorld;
 
         osg::Callback* mCullCallback;
+        osg::ref_ptr<osg::Callback> mShaderWaterStateSetUpdater;
 
         osg::Vec3f getSceneNodeCoordinates(int gridX, int gridY);
         void updateVisible();
@@ -116,10 +119,14 @@ namespace MWRender
 
         void update(float dt);
 
-        osg::Camera *getReflectionCamera();
-        osg::Camera *getRefractionCamera();
+        osg::Node* getReflectionNode();
+        osg::Node* getRefractionNode();
+
+        osg::Vec3d getPosition() const;
 
         void processChangedSettings(const Settings::CategorySettingVector& settings);
+
+        void showWorld(bool show);
     };
 
 }

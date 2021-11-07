@@ -2,6 +2,7 @@
 
 #include <components/vfs/manager.hpp>
 
+#include <osg/Stats>
 #include <osgAnimation/Animation>
 #include <osgAnimation/BasicAnimationManager>
 #include <osgAnimation/Channel>
@@ -9,6 +10,7 @@
 #include <components/nifosg/nifloader.hpp>
 #include <components/sceneutil/keyframe.hpp>
 #include <components/sceneutil/osgacontroller.hpp>
+#include <components/misc/pathhelpers.hpp>
 #include <components/misc/stringops.hpp>
 
 #include "animation.hpp"
@@ -30,7 +32,7 @@ namespace Resource
 
                 std::vector<SceneUtil::EmulatedAnimation> emulatedAnimations;
 
-                for (auto animation : mAnimationManager->getAnimationList())
+                for (const auto& animation : mAnimationManager->getAnimationList())
                 {
                     if (animation)
                     {
@@ -40,7 +42,7 @@ namespace Resource
                         }
 
                         osg::ref_ptr<Resource::Animation> mergedAnimationTrack = new Resource::Animation;
-                        std::string animationName = animation->getName();
+                        const std::string animationName = animation->getName();
                         mergedAnimationTrack->setName(animationName);
 
                         const osgAnimation::ChannelList& channels = animation->getChannels();
@@ -106,7 +108,7 @@ namespace Resource
         return time;
     }
 
-    std::string RetrieveAnimationsVisitor::changeFileExtension(const std::string file, const std::string ext)
+    std::string RetrieveAnimationsVisitor::changeFileExtension(const std::string& file, const std::string& ext)
     {
         size_t extPos = file.find_last_of('.');
         if (extPos != std::string::npos && extPos+1 < file.size())
@@ -133,8 +135,7 @@ namespace Resource
 
     osg::ref_ptr<const SceneUtil::KeyframeHolder> KeyframeManager::get(const std::string &name)
     {
-        std::string normalized = name;
-        mVFS->normalizeFilename(normalized);
+        const std::string normalized = mVFS->normalizeFilename(name);
 
         osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(normalized);
         if (obj)
@@ -142,8 +143,7 @@ namespace Resource
         else
         {
             osg::ref_ptr<SceneUtil::KeyframeHolder> loaded (new SceneUtil::KeyframeHolder);
-            std::string ext = Resource::getFileExtension(normalized);
-            if (ext == "kf")
+            if (Misc::getFileExtension(normalized) == "kf")
             {
                 NifOsg::Loader::loadKf(Nif::NIFFilePtr(new Nif::NIFFile(mVFS->getNormalized(normalized), normalized)), *loaded.get());
             }

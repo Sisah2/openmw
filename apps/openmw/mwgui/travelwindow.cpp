@@ -44,7 +44,7 @@ namespace MWGui
                           mSelect->getHeight());
     }
 
-    void TravelWindow::addDestination(const std::string& name, ESM::Position pos, bool interior)
+    void TravelWindow::addDestination(const std::string& name, const ESM::Position &pos, bool interior)
     {
         int price;
 
@@ -74,7 +74,7 @@ namespace MWGui
 
         // Add price for the travelling followers
         std::set<MWWorld::Ptr> followers;
-        MWWorld::ActionTeleport::getFollowers(player, followers);
+        MWWorld::ActionTeleport::getFollowers(player, followers, !interior);
 
         // Apply followers cost, unlike vanilla the first follower doesn't travel for free
         price *= 1 + static_cast<int>(followers.size());
@@ -115,7 +115,7 @@ namespace MWGui
         std::vector<ESM::Transport::Dest> transport;
         if (mPtr.getClass().isNpc())
             transport = mPtr.get<ESM::NPC>()->mBase->getTransport();
-        else if (mPtr.getTypeName() == typeid(ESM::Creature).name())
+        else if (mPtr.getType() == ESM::Creature::sRecordId)
             transport = mPtr.get<ESM::Creature>()->mBase->getTransport();
 
         for(unsigned int i = 0;i<transport.size();i++)

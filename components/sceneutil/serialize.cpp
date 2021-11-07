@@ -80,7 +80,7 @@ class MatrixTransformSerializer : public osgDB::ObjectWrapper
 {
 public:
     MatrixTransformSerializer()
-        : osgDB::ObjectWrapper(createInstanceFunc<NifOsg::MatrixTransform>, "NifOsg::MatrixTransform", "osg::Object osg::Node osg::Transform osg::MatrixTransform NifOsg::MatrixTransform")
+        : osgDB::ObjectWrapper(createInstanceFunc<NifOsg::MatrixTransform>, "NifOsg::MatrixTransform", "osg::Object osg::Node osg::Group osg::Transform osg::MatrixTransform NifOsg::MatrixTransform")
     {
     }
 };
@@ -128,10 +128,10 @@ void registerSerializers()
             "SceneUtil::UpdateRigBounds",
             "SceneUtil::UpdateRigGeometry",
             "SceneUtil::LightSource",
-            "SceneUtil::StateSetUpdater",
             "SceneUtil::DisableLight",
             "SceneUtil::MWShadowTechnique",
             "SceneUtil::TextKeyMapHolder",
+            "Shader::AddedState",
             "Shader::RemovedAlphaFunc",
             "NifOsg::LightManagerStateAttribute",
             "NifOsg::FlipController",

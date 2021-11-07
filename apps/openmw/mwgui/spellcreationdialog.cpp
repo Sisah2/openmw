@@ -456,7 +456,7 @@ namespace MWGui
 
         for (const ESM::ENAMstruct& effect : mEffects)
         {
-            y += std::max(1.f, MWMechanics::calcEffectCost(effect));
+            y += std::max(1.f, MWMechanics::calcEffectCost(effect, nullptr, MWMechanics::EffectCostMethod::PlayerSpell));
 
             if (effect.mRange == ESM::RT_Target)
                 y *= 1.5;
@@ -520,10 +520,8 @@ namespace MWGui
 
         std::vector<short> knownEffects;
 
-        for (MWMechanics::Spells::TIterator it = spells.begin(); it != spells.end(); ++it)
+        for (const ESM::Spell* spell : spells)
         {
-            const ESM::Spell* spell = it->first;
-
             // only normal spells count
             if (spell->mData.mType != ESM::Spell::ST_Spell)
                 continue;

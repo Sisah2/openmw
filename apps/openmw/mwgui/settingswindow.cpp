@@ -171,7 +171,7 @@ namespace MWGui
                     else
                         valueStr = MyGUI::utility::toString(int(value));
 
-                    value = std::max(min, std::min(value, max));
+                    value = std::clamp(value, min, max);
                     value = (value-min)/(max-min);
 
                     scroll->setScrollPosition(static_cast<size_t>(value * (scroll->getScrollRange() - 1)));
@@ -232,6 +232,8 @@ namespace MWGui
         getWidget(mControllerSwitch, "ControllerButton");
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
+        getWidget(mTonemaperSwitch, "TonemaperSwitch");
+//        getWidget(mShowOwnedSwitch, "ShowOwnedSwitch");
         getWidget(mLightingMethodButton, "LightingMethodButton");
         getWidget(mLightsResetButton, "LightsResetButton");
         getWidget(mMaxLights, "MaxLights");
@@ -250,6 +252,80 @@ namespace MWGui
         textBox->setVisible(false);
 #endif
 
+        if (!Settings::Manager::getBool("enabled", "Groundcover"))
+        {
+            MyGUI::TextBox *grassDistanceLabel;
+            getWidget(grassDistanceLabel, "GrassDistanceLabel");
+            grassDistanceLabel->setVisible(false);
+            MyGUI::TextBox *grassDensityLabel;
+            getWidget(grassDensityLabel, "GrassDensityLabel");
+            grassDensityLabel->setVisible(false);
+
+            MyGUI::ScrollBar *grassDistanceSlider;
+            getWidget(grassDistanceSlider, "GrassDistanceSlider");
+            grassDistanceSlider->setVisible(false);
+            MyGUI::ScrollBar *grassDensitySlider;
+            getWidget(grassDensitySlider, "GrassDensitySlider");
+            grassDensitySlider->setVisible(false);
+        }
+
+        MyGUI::Button *PPLButton;
+        getWidget(PPLButton, "PPLLightingButton");
+        PPLButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+
+        MyGUI::Button *linearLightingButton;
+        getWidget(linearLightingButton, "LinearLightingButton");
+        linearLightingButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onPPLButtonClicked);
+
+	const char *shaderPreset = getenv("OPENMW_SHADERS");
+        if(!shaderPreset || strcmp(shaderPreset, "experimental") != 0/* || !MWBase::Environment::get().getResourceSystem()->getSceneManager()->getForceShaders()*/)
+	{
+            MyGUI::ScrollBar *gammaSlider;
+            MyGUI::TextBox *textBox;
+            MyGUI::Button *button;
+
+            getWidget(gammaSlider, "ShaderGammaSlider");
+            gammaSlider->setVisible(false);
+            getWidget(textBox, "ShaderGammaText");
+            textBox->setVisible(false);
+            getWidget(textBox, "ShaderGammaTextDark");
+            textBox->setVisible(false);
+            getWidget(textBox, "ShaderGammaTextLight");
+            textBox->setVisible(false);
+
+            getWidget(textBox, "RadialFogLabel");
+            textBox->setVisible(false);
+            getWidget(button, "RadialFogButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "ParallaxShadowsLabel");
+            textBox->setVisible(false);
+            getWidget(button, "ParallaxShadowsButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "ClampLightingLabel");
+            textBox->setVisible(false);
+            getWidget(button, "ClampLightingButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "PPLLightingLabel");
+            textBox->setVisible(false);
+            PPLButton->setVisible(false);
+
+            getWidget(textBox, "LinearLightingLabel");
+            textBox->setVisible(false);
+            linearLightingButton->setVisible(false);
+
+            getWidget(textBox, "UnderwaterFogLabel");
+            textBox->setVisible(false);
+            getWidget(button, "UnderwaterFogButton");
+            button->setVisible(false);
+
+            getWidget(textBox, "TonemaperLabel");
+            textBox->setVisible(false);
+            mTonemaperSwitch->setVisible(false);
+	}
+
         mMainWidget->castType<MyGUI::Window>()->eventWindowChangeCoord += MyGUI::newDelegate(this, &SettingsWindow::onWindowResize);
 
         mSettingsTab->eventTabChangeSelect += MyGUI::newDelegate(this, &SettingsWindow::onTabChanged);
@@ -259,6 +335,9 @@ namespace MWGui
 
         mWaterTextureSize->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterTextureSizeChanged);
         mWaterReflectionDetail->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onWaterReflectionDetailChanged);
+
+        mTonemaperSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTonemaperSwitchChanged);
+ //       mShowOwnedSwitch->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onShowOwnedSwitchChanged);
 
         mLightingMethodButton->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onLightingMethodButtonChanged);
         mLightsResetButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onLightsResetButtonClicked);
@@ -298,17 +377,27 @@ namespace MWGui
         mTextureFilteringButton->setCaption(textureMipmappingToStr(tmip));
 
         int waterTextureSize = Settings::Manager::getInt("rtt size", "Water");
-        if (waterTextureSize >= 512)
+        if (waterTextureSize >= 256)
             mWaterTextureSize->setIndexSelected(0);
-        if (waterTextureSize >= 1024)
+        if (waterTextureSize >= 512)
             mWaterTextureSize->setIndexSelected(1);
-        if (waterTextureSize >= 2048)
+        if (waterTextureSize >= 1024)
             mWaterTextureSize->setIndexSelected(2);
+        if (waterTextureSize >= 2048)
+            mWaterTextureSize->setIndexSelected(3);
 
         int waterReflectionDetail = Settings::Manager::getInt("reflection detail", "Water");
-        waterReflectionDetail = std::min(5, std::max(0, waterReflectionDetail));
+        waterReflectionDetail = std::clamp(waterReflectionDetail, 0, 5);
         mWaterReflectionDetail->setIndexSelected(waterReflectionDetail);
 
+        int tonemaperSwitch = Settings::Manager::getInt("tonemaper", "Shaders");
+        tonemaperSwitch = std::min(9, std::max(0, tonemaperSwitch));
+        mTonemaperSwitch->setIndexSelected(tonemaperSwitch);
+/*
+        int showOwnedSwitch = Settings::Manager::getInt("show owned", "Game");
+        showOwnedSwitch = std::min(3, std::max(0, showOwnedSwitch));
+        mShowOwnedSwitch->setIndexSelected(showOwnedSwitch);
+*/
         updateMaxLightsComboBox(mMaxLights);
 
         mWindowBorderButton->setEnabled(!Settings::Manager::getBool("fullscreen", "Video"));
@@ -325,6 +414,12 @@ namespace MWGui
     void SettingsWindow::onOkButtonClicked(MyGUI::Widget* _sender)
     {
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Settings);
+    }
+
+    void SettingsWindow::onPPLButtonClicked(MyGUI::Widget* _sender)
+    {
+        std::string message = "This change requires a restart to take effect.";
+        MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, {"#{sOK}"}, true);
     }
 
     void SettingsWindow::onResolutionSelected(MyGUI::ListBox* _sender, size_t index)
@@ -381,10 +476,12 @@ namespace MWGui
     {
         int size = 0;
         if (pos == 0)
-            size = 512;
+            size = 256;
         else if (pos == 1)
-            size = 1024;
+            size = 512;
         else if (pos == 2)
+            size = 1024;
+        else if (pos == 3)
             size = 2048;
         Settings::Manager::setInt("rtt size", "Water", size);
         apply();
@@ -397,6 +494,20 @@ namespace MWGui
         apply();
     }
 
+    void SettingsWindow::onTonemaperSwitchChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = std::min((unsigned int)9, (unsigned int)pos);
+        Settings::Manager::setInt("tonemaper", "Shaders", level);
+        apply();
+    }
+/*
+    void SettingsWindow::onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos)
+    {
+        unsigned int level = std::min((unsigned int)3, (unsigned int)pos);
+        Settings::Manager::setInt("show owned", "Game", level);
+        apply();
+    }
+*/
     void SettingsWindow::onLightingMethodButtonChanged(MyGUI::ComboBox* _sender, size_t pos)
     {
         if (pos == MyGUI::ITEM_NONE)

@@ -4,6 +4,7 @@
 #include <osg/Camera>
 
 #include <components/resource/resourcesystem.hpp>
+#include <components/resource/scenemanager.hpp>
 
 #include "storage.hpp"
 #include "texturemanager.hpp"
@@ -44,7 +45,7 @@ World::World(osg::Group* parent, osg::Group* compileRoot, Resource::ResourceSyst
     mTextureManager.reset(new TextureManager(mResourceSystem->getSceneManager()));
     mChunkManager.reset(new ChunkManager(mStorage, mResourceSystem->getSceneManager(), mTextureManager.get(), mCompositeMapRenderer));
     mChunkManager->setNodeMask(nodeMask);
-    mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask));
+    mCellBorder.reset(new CellBorder(this,mTerrainRoot.get(),borderMask,mResourceSystem->getSceneManager()));
 
     mResourceSystem->addResourceManager(mChunkManager.get());
     mResourceSystem->addResourceManager(mTextureManager.get());
@@ -75,11 +76,6 @@ World::~World()
         mCompositeMapCamera->removeChild(mCompositeMapRenderer);
         mCompositeMapCamera->getParent(0)->removeChild(mCompositeMapCamera);
     }
-}
-
-void World::setWorkQueue(SceneUtil::WorkQueue* workQueue)
-{
-    mCompositeMapRenderer->setWorkQueue(workQueue);
 }
 
 void World::setBordersVisible(bool visible)

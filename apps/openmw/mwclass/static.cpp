@@ -23,10 +23,15 @@ namespace MWClass
         }
     }
 
-    void Static::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
+    void Static::insertObject(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
+    {
+        insertObjectPhysics(ptr, model, rotation, physics);
+    }
+
+    void Static::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
         if(!model.empty())
-            physics.addObject(ptr, model);
+            physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
     }
 
     std::string Static::getModel(const MWWorld::ConstPtr &ptr) const
@@ -54,7 +59,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Static);
 
-        registerClass (typeid (ESM::Static).name(), instance);
+        registerClass (ESM::Static::sRecordId, instance);
     }
 
     MWWorld::Ptr Static::copyToCellImpl(const MWWorld::ConstPtr &ptr, MWWorld::CellStore &cell) const

@@ -18,7 +18,7 @@ struct Light
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Light"; }
+    static std::string_view getRecordType() { return "Light"; }
 
     enum Flags
     {
@@ -45,6 +45,7 @@ struct Light
 
     LHDTstruct mData;
 
+    unsigned int mRecordFlags;
     std::string mSound, mScript, mModel, mIcon, mName, mId;
 
     void load(ESMReader &esm, bool &isDeleted);

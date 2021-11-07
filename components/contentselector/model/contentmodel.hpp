@@ -23,7 +23,7 @@ namespace ContentSelectorModel
     {
         Q_OBJECT
     public:
-        explicit ContentModel(QObject *parent, QIcon warningIcon);
+        explicit ContentModel(QObject *parent, QIcon warningIcon, bool showOMWScripts);
         ~ContentModel();
 
         void setEncoding(const QString &encoding);
@@ -52,7 +52,7 @@ namespace ContentSelectorModel
         EsmFile *item(int row);
         QStringList gameFiles() const;
 
-        bool isEnabled (QModelIndex index) const;
+        bool isEnabled (const QModelIndex& index) const;
         bool isChecked(const QString &filepath) const;
         bool setCheckState(const QString &filepath, bool isChecked);
         void setContentList(const QStringList &fileList);
@@ -84,6 +84,7 @@ namespace ContentSelectorModel
         QSet<QString> mPluginsWithLoadOrderError;
         QString mEncoding;
         QIcon mWarningIcon;
+        bool mShowOMWScripts;
 
     public:
 

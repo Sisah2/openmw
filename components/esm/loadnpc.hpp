@@ -24,7 +24,7 @@ struct NPC
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "NPC"; }
+    static std::string_view getRecordType() { return "NPC"; }
 
   // Services
   enum Services
@@ -116,8 +116,6 @@ struct NPC
     int mBloodType;
     unsigned char mFlags;
 
-    bool mPersistent;
-
     InventoryList mInventory;
     SpellList mSpells;
 
@@ -129,6 +127,7 @@ struct NPC
 
     AIPackageList     mAiPackage;
 
+    unsigned int mRecordFlags;
     std::string mId, mName, mModel, mRace, mClass, mFaction, mScript;
 
     // body parts

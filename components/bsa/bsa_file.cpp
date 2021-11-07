@@ -33,7 +33,7 @@ using namespace Bsa;
 
 
 /// Error handling
-void BSAFile::fail(const std::string &msg)
+[[noreturn]] void BSAFile::fail(const std::string &msg)
 {
     throw std::runtime_error("BSA Error: " + msg + "\nArchive: " + mFilename);
 }
@@ -182,8 +182,6 @@ void BSAFile::readHeader()
         if(fs.offset + fs.fileSize > fsize)
             fail("Archive contains offsets outside itself");
 
-        // Add the file name to the lookup
-        mLookup[fs.name()] = i;
     }
     mStringBuf.resize(endOfNameBuffer);
 
@@ -232,21 +230,12 @@ void Bsa::BSAFile::writeHeader()
     output.write(reinterpret_cast<char*>(hashes.data()), sizeof(Hash)*hashes.size());
 }
 
-/// Get the index of a given file name, or -1 if not found
-int BSAFile::getIndex(const char *str) const
-{
-    auto it = mLookup.find(str);
-    if(it == mLookup.end())
-        return -1;
-
-    size_t res = it->second;
-    assert(res < mFiles.size());
-    return static_cast<int>(res);
-}
-
 /// Open an archive file.
 void BSAFile::open(const std::string &file)
 {
+    if (mIsLoaded)
+        close();
+
     mFilename = file;
     if(boost::filesystem::exists(file))
         readHeader();
@@ -254,37 +243,25 @@ void BSAFile::open(const std::string &file)
     {
         { boost::filesystem::fstream(mFilename, std::ios::binary | std::ios::out); }
         writeHeader();
+        mIsLoaded = true;
     }
 }
 
 /// Close the archive, write the updated headers to the file
 void Bsa::BSAFile::close()
 {
-    if (!mHasChanged)
-        return;
+    if (mHasChanged)
+        writeHeader();
 
-    writeHeader();
-}
-
-Files::IStreamPtr BSAFile::getFile(const char *file)
-{
-    assert(file);
-    int i = getIndex(file);
-    if(i == -1)
-        fail("File not found: " + std::string(file));
-
-    const FileStruct &fs = mFiles[i];
-
-    return Files::openConstrainedFileStream (mFilename.c_str (), fs.offset, fs.fileSize);
-}
-
-Files::IStreamPtr BSAFile::getFile(const FileStruct *file)
-{
-    return Files::openConstrainedFileStream (mFilename.c_str (), file->offset, file->fileSize);
+    mFiles.clear();
+    mStringBuf.clear();
+    mIsLoaded = false;
 }
 
 void Bsa::BSAFile::addFile(const std::string& filename, std::istream& file)
 {
+    if (!mIsLoaded)
+        fail("Unable to add file " + filename + " the archive is not opened");
     namespace bfs = boost::filesystem;
 
     auto newStartOfDataBuffer = 12 + (12 + 8) * (mFiles.size() + 1) + mStringBuf.size() + filename.size() + 1;
@@ -328,8 +305,6 @@ void Bsa::BSAFile::addFile(const std::string& filename, std::istream& file)
     mFiles.push_back(newFile);
 
     mHasChanged = true;
-
-    mLookup[filename.c_str()] = mFiles.size() - 1;
 
     stream.seekp(0, std::ios::end);
     file.seekg(0, std::ios::beg);

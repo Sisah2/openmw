@@ -23,8 +23,12 @@
 #include <osg/Geometry>
 #include <osg/io_utils>
 #include <osg/Depth>
+#include <osg/ClipControl>
 
 #include <sstream>
+
+#include <components/sceneutil/util.hpp>
+
 #include "shadowsbin.hpp"
 
 namespace {
@@ -349,16 +353,16 @@ void VDSMCameraCullCallback::operator()(osg::Node* node, osg::NodeVisitor* nv)
 
 } // namespace
 
-MWShadowTechnique::ComputeLightSpaceBounds::ComputeLightSpaceBounds(osg::Viewport* viewport, const osg::Matrixd& projectionMatrix, osg::Matrixd& viewMatrix) :
+MWShadowTechnique::ComputeLightSpaceBounds::ComputeLightSpaceBounds() :
     osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ACTIVE_CHILDREN)
 {
     setCullingMode(osg::CullSettings::VIEW_FRUSTUM_CULLING);
+}
 
-    pushViewport(viewport);
-    pushProjectionMatrix(new osg::RefMatrix(projectionMatrix));
-    pushModelViewMatrix(new osg::RefMatrix(viewMatrix), osg::Transform::ABSOLUTE_RF);
-
-    setName("SceneUtil::MWShadowTechnique::ComputeLightSpaceBounds,AcceptedByComponentsTerrainQuadTreeWorld");
+void MWShadowTechnique::ComputeLightSpaceBounds::reset()
+{
+    osg::CullStack::reset();
+    _bb = osg::BoundingBox();
 }
 
 void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Node& node)
@@ -374,6 +378,11 @@ void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Node& node)
     popCurrentMask();
 }
 
+void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Group& node)
+{
+    apply(static_cast<osg::Node&>(node));
+}
+
 void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Drawable& drawable)
 {
     if (isCulled(drawable)) return;
@@ -387,12 +396,9 @@ void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Drawable& drawable)
     popCurrentMask();
 }
 
-void MWShadowTechnique::ComputeLightSpaceBounds::apply(Terrain::QuadTreeWorld & quadTreeWorld)
+void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Geometry& drawable)
 {
-    // For now, just expand the bounds fully as terrain will fill them up and possible ways to detect which terrain definitely won't cast shadows aren't implemented.
-
-    update(osg::Vec3(-1.0, -1.0, 0.0));
-    update(osg::Vec3(1.0, 1.0, 0.0));
+    apply(static_cast<osg::Drawable&>(drawable));
 }
 
 void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Billboard&)
@@ -417,9 +423,9 @@ void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Transform& transform
     // absolute transforms won't affect a shadow map so their subgraphs should be ignored.
     if (transform.getReferenceFrame() == osg::Transform::RELATIVE_RF)
     {
-        osg::ref_ptr<osg::RefMatrix> matrix = new osg::RefMatrix(*getModelViewMatrix());
+        osg::RefMatrix* matrix = createOrReuseMatrix(*getModelViewMatrix());
         transform.computeLocalToWorldMatrix(*matrix, this);
-        pushModelViewMatrix(matrix.get(), transform.getReferenceFrame());
+        pushModelViewMatrix(matrix, transform.getReferenceFrame());
 
         traverse(transform);
 
@@ -428,7 +434,11 @@ void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Transform& transform
 
     // pop the culling mode.
     popCurrentMask();
+}
 
+void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::MatrixTransform& transform)
+{
+    apply(static_cast<osg::Transform&>(transform));
 }
 
 void MWShadowTechnique::ComputeLightSpaceBounds::apply(osg::Camera&)
@@ -566,8 +576,9 @@ MWShadowTechnique::ShadowData::ShadowData(MWShadowTechnique::ViewDependentData* 
     _camera = new osg::Camera;
     _camera->setName("ShadowCamera");
     _camera->setReferenceFrame(osg::Camera::ABSOLUTE_RF_INHERIT_VIEWPOINT);
+#ifndef __APPLE__ // workaround shadow issue on macOS, https://gitlab.com/OpenMW/openmw/-/issues/6057
     _camera->setImplicitBufferAttachmentMask(0, 0);
-
+#endif
     //_camera->setClearColor(osg::Vec4(1.0f,1.0f,1.0f,1.0f));
     _camera->setClearColor(osg::Vec4(0.0f,0.0f,0.0f,0.0f));
 
@@ -904,6 +915,7 @@ void SceneUtil::MWShadowTechnique::setupCastingShader(Shader::ShaderManager & sh
         program->addShader(castingVertexShader);
         program->addShader(shaderManager.getShader("shadowcasting_fragment.glsl", { {"alphaFunc", std::to_string(alphaFunc)},
                                                                                     {"alphaToCoverage", "0"},
+                                                                                    {"adjustCoverage", "1"},
                                                                                     {"useGPUShader4", useGPUShader4}
                                                                                   }, osg::Shader::FRAGMENT));
     }
@@ -1115,12 +1127,17 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
 
         // if we are using multiple shadow maps and CastShadowTraversalMask is being used
         // traverse the scene to compute the extents of the objects
-        if (/*numShadowMapsPerLight>1 &&*/ _shadowedScene->getCastsShadowTraversalMask()!=0xffffffff)
+        if (/*numShadowMapsPerLight>1 &&*/ (_shadowedScene->getCastsShadowTraversalMask() & _worldMask) == 0)
         {
             // osg::ElapsedTime timer;
 
             osg::ref_ptr<osg::Viewport> viewport = new osg::Viewport(0,0,2048,2048);
-            ComputeLightSpaceBounds clsb(viewport.get(), projectionMatrix, viewMatrix);
+            if (!_clsb) _clsb = new ComputeLightSpaceBounds;
+            ComputeLightSpaceBounds& clsb = *_clsb;
+            clsb.reset();
+            clsb.pushViewport(viewport);
+            clsb.pushProjectionMatrix(new osg::RefMatrix(projectionMatrix));
+            clsb.pushModelViewMatrix(new osg::RefMatrix(viewMatrix), osg::Transform::ABSOLUTE_RF);
             clsb.setTraversalMask(_shadowedScene->getCastsShadowTraversalMask());
 
             osg::Matrixd invertModelView;
@@ -1133,6 +1150,12 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
             clsb.pushCullingSet();
 
             _shadowedScene->accept(clsb);
+
+            clsb.popCullingSet();
+
+            clsb.popModelViewMatrix();
+            clsb.popProjectionMatrix();
+            clsb.popViewport();
 
             // OSG_NOTICE<<"Extents of LightSpace "<<clsb._bb.xMin()<<", "<<clsb._bb.xMax()<<", "<<clsb._bb.yMin()<<", "<<clsb._bb.yMax()<<", "<<clsb._bb.zMin()<<", "<<clsb._bb.zMax()<<std::endl;
             // OSG_NOTICE<<"  time "<<timer.elapsedTime_m()<<"ms, mask = "<<std::hex<<_shadowedScene->getCastsShadowTraversalMask()<<std::endl;
@@ -1418,6 +1441,69 @@ void MWShadowTechnique::cull(osgUtil::CullVisitor& cv)
             //
             assignTexGenSettings(&cv, camera.get(), textureUnit, sd->_texgen.get());
 
+//dont forget to remove this
+//===================================================================================================================================
+
+                {
+
+                    osg::Matrix shadowProjectionMatrix = camera->getProjectionMatrix() *
+                                 osg::Matrix::translate(1.0,1.0,1.0) *
+                                 osg::Matrix::scale(0.5,0.5,0.5);
+
+                    shadowProjectionMatrix = osg::Matrix
+                    (shadowProjectionMatrix(0,0),shadowProjectionMatrix(1,0),shadowProjectionMatrix(2,0),shadowProjectionMatrix(3,0), 
+                    shadowProjectionMatrix(0,1),shadowProjectionMatrix(1,1),shadowProjectionMatrix(2,1),shadowProjectionMatrix(3,1),
+                    shadowProjectionMatrix(0,2),shadowProjectionMatrix(1,2),shadowProjectionMatrix(2,2),shadowProjectionMatrix(3,2),
+                    shadowProjectionMatrix(0,3),shadowProjectionMatrix(1,3),shadowProjectionMatrix(2,3),shadowProjectionMatrix(3,3));
+
+
+                    std::string shadowProjectionMatrixUniformName = "shadowProjectionMatrix" + std::to_string(sm_i);
+                    osg::ref_ptr<osg::Uniform> shadowProjectionMatrixUniform;
+
+                    for (auto uniform : _uniforms[cv.getTraversalNumber() % 2])
+                    {
+                        if (uniform->getName() == shadowProjectionMatrixUniformName)
+                            shadowProjectionMatrixUniform = uniform;
+                    }
+
+                    if (!shadowProjectionMatrixUniform)
+                    {
+                        shadowProjectionMatrixUniform = new osg::Uniform(osg::Uniform::FLOAT_MAT4, shadowProjectionMatrixUniformName);
+                        _uniforms[cv.getTraversalNumber() % 2].push_back(shadowProjectionMatrixUniform);
+                    }
+
+                    shadowProjectionMatrixUniform->set(shadowProjectionMatrix);
+                }
+
+
+
+
+                {
+                    osg::Matrix shadowModelViewMatrix = (camera->getInverseViewMatrix() * (*(cv.getModelViewMatrix())));
+
+                    std::string shadowModelViewMatrixUniformName = "shadowModelViewMatrix" + std::to_string(sm_i);
+                    osg::ref_ptr<osg::Uniform> shadowModelViewMatrixUniform;
+
+                    for (auto uniform : _uniforms[cv.getTraversalNumber() % 2])
+                    {
+                        if (uniform->getName() == shadowModelViewMatrixUniformName)
+                            shadowModelViewMatrixUniform = uniform;
+                    }
+
+                    if (!shadowModelViewMatrixUniform)
+                    {
+                        shadowModelViewMatrixUniform = new osg::Uniform(osg::Uniform::FLOAT_MAT4, shadowModelViewMatrixUniformName);
+                        _uniforms[cv.getTraversalNumber() % 2].push_back(shadowModelViewMatrixUniform);
+                    }
+
+                    shadowModelViewMatrixUniform->set(shadowModelViewMatrix);
+                }
+
+
+//=========================================================================================================================================
+
+
+
             // mark the light as one that has active shadows and requires shaders
             pl.textureUnits.push_back(textureUnit);
 
@@ -1635,6 +1721,11 @@ void MWShadowTechnique::createShaders()
     _shadowCastingStateSet->addUniform(new osg::Uniform("alphaTestShadows", false));
     osg::ref_ptr<osg::Depth> depth = new osg::Depth;
     depth->setWriteMask(true);
+    if (SceneUtil::getReverseZ())
+    {
+        osg::ref_ptr<osg::ClipControl> clipcontrol = new osg::ClipControl(osg::ClipControl::LOWER_LEFT, osg::ClipControl::NEGATIVE_ONE_TO_ONE);
+        _shadowCastingStateSet->setAttribute(clipcontrol, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
+    }
     _shadowCastingStateSet->setAttribute(depth, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
     _shadowCastingStateSet->setMode(GL_DEPTH_CLAMP, osg::StateAttribute::ON);
 
@@ -1996,7 +2087,7 @@ struct ConvexHull
         }
     };
 
-    Vertices findInternalEdges(osg::Vec3d mainVertex, Vertices connectedVertices)
+    Vertices findInternalEdges(const osg::Vec3d& mainVertex, const Vertices& connectedVertices)
     {
         Vertices internalEdgeVertices;
         for (const auto& vertex : connectedVertices)
@@ -2131,7 +2222,7 @@ struct ConvexHull
                 finalEdges.push_back(edge);
         }
 
-        _edges = finalEdges;
+        _edges = std::move(finalEdges);
     }
 
     void transform(const osg::Matrixd& m)

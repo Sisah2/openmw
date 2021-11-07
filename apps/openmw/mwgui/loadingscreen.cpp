@@ -13,6 +13,7 @@
 #include <MyGUI_Gui.h>
 #include <MyGUI_TextBox.h>
 
+#include <components/misc/pathhelpers.hpp>
 #include <components/misc/rng.hpp>
 #include <components/debug/debuglog.hpp>
 #include <components/myguiplatform/myguitexture.hpp>
@@ -66,41 +67,21 @@ namespace MWGui
 
     void LoadingScreen::findSplashScreens()
     {
-        const std::map<std::string, VFS::File*>& index = mResourceSystem->getVFS()->getIndex();
-        std::string pattern = "Splash/";
-        mResourceSystem->getVFS()->normalizeFilename(pattern);
+        auto isSupportedExtension = [](const std::string_view& ext) {
+            static const std::array<std::string, 7> supported_extensions{ {"tga", "dds", "ktx", "png", "bmp", "jpeg", "jpg"} };
+            return !ext.empty() && std::find(supported_extensions.begin(), supported_extensions.end(), ext) != supported_extensions.end();
+        };
 
-        /* priority given to the left */
-        const std::array<std::string, 7> supported_extensions {{".tga", ".dds", ".ktx", ".png", ".bmp", ".jpeg", ".jpg"}};
-
-        auto found = index.lower_bound(pattern);
-        while (found != index.end())
+        for (const auto& name : mResourceSystem->getVFS()->getRecursiveDirectoryIterator("Splash/"))
         {
-            const std::string& name = found->first;
-            if (name.size() >= pattern.size() && name.substr(0, pattern.size()) == pattern)
-            {
-                size_t pos = name.find_last_of('.');
-                if (pos != std::string::npos)
-                {
-                    for(auto const& extension: supported_extensions)
-                    {
-                        if (name.compare(pos, name.size() - pos, extension) == 0)
-                        {
-                            mSplashScreens.push_back(found->first);
-                            break;  /* based on priority */
-                        }
-                    }
-                }
-            }
-            else
-                break;
-            ++found;
+            if (isSupportedExtension(Misc::getFileExtension(name)))
+                mSplashScreens.push_back(name);
         }
         if (mSplashScreens.empty())
             Log(Debug::Warning) << "Warning: no splash screens found!";
     }
 
-    void LoadingScreen::setLabel(const std::string &label, bool important, bool center)
+    void LoadingScreen::setLabel(const std::string &label, bool important)
     {
         mImportantLabel = important;
 
@@ -110,7 +91,7 @@ namespace MWGui
         size.width = std::max(300, size.width);
         mLoadingBox->setSize(size);
 
-        if (center)
+        if (MWBase::Environment::get().getWindowManager()->getMessagesCount() > 0)
             mLoadingBox->setPosition(mMainWidget->getWidth()/2 - mLoadingBox->getWidth()/2, mMainWidget->getHeight()/2 - mLoadingBox->getHeight()/2);
         else
             mLoadingBox->setPosition(mMainWidget->getWidth()/2 - mLoadingBox->getWidth()/2, mMainWidget->getHeight() - mLoadingBox->getHeight() - 8);

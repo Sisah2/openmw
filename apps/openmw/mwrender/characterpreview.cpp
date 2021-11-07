@@ -22,6 +22,7 @@
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/shadow.hpp>
 #include <components/settings/settings.hpp>
+#include <components/sceneutil/nodecallback.hpp>
 
 #include "../mwbase/world.hpp"
 #include "../mwworld/class.hpp"
@@ -36,7 +37,7 @@
 namespace MWRender
 {
 
-    class DrawOnceCallback : public osg::NodeCallback
+    class DrawOnceCallback : public SceneUtil::NodeCallback<DrawOnceCallback>
     {
     public:
         DrawOnceCallback ()
@@ -45,7 +46,7 @@ namespace MWRender
         {
         }
 
-        void operator () (osg::Node* node, osg::NodeVisitor* nv) override
+        void operator () (osg::Node* node, osg::NodeVisitor* nv)
         {
             if (!mRendered)
             {
@@ -90,7 +91,7 @@ namespace MWRender
     class SetUpBlendVisitor : public osg::NodeVisitor
     {
     public:
-        SetUpBlendVisitor(): osg::NodeVisitor(TRAVERSE_ALL_CHILDREN), mNoAlphaUniform(new osg::Uniform("noAlpha", false))
+        SetUpBlendVisitor(): osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
         {
         }
 
@@ -129,13 +130,48 @@ namespace MWRender
                     }
                     // Disable noBlendAlphaEnv
                     newStateSet->setTextureMode(7, GL_TEXTURE_2D, osg::StateAttribute::OFF);
-                    newStateSet->addUniform(mNoAlphaUniform);
+                    newStateSet->setDefine("FORCE_OPAQUE", "0", osg::StateAttribute::ON);
+                }
+                if (SceneUtil::getReverseZ() && stateset->getAttribute(osg::StateAttribute::DEPTH))
+                {
+                    bool depthModified = false;
+                    osg::Depth* depth = static_cast<osg::Depth*>(stateset->getAttribute(osg::StateAttribute::DEPTH));
+                    depth->getUserValue("depthModified", depthModified);
+
+                    if (!depthModified)
+                    {
+                        if (!newStateSet)
+                        {
+                            newStateSet = new osg::StateSet(*stateset, osg::CopyOp::SHALLOW_COPY);
+                            node.setStateSet(newStateSet);
+                        }
+                        // Setup standard depth ranges
+                        osg::ref_ptr<osg::Depth> newDepth = new osg::Depth(*depth);
+
+                        switch (newDepth->getFunction())
+                        {
+                            case osg::Depth::LESS:
+                                newDepth->setFunction(osg::Depth::GREATER);
+                                break;
+                            case osg::Depth::LEQUAL:
+                                newDepth->setFunction(osg::Depth::GEQUAL);
+                                break;
+                            case osg::Depth::GREATER:
+                                newDepth->setFunction(osg::Depth::LESS);
+                                break;
+                            case osg::Depth::GEQUAL:
+                                newDepth->setFunction(osg::Depth::LEQUAL);
+                                break;
+                            default:
+                                break;
+                        }
+                        newStateSet->setAttribute(newDepth, osg::StateAttribute::ON);
+                        newDepth->setUserValue("depthModified", true);
+                    }
                 }
             }
             traverse(node);
         }
-    private:
-        osg::ref_ptr<osg::Uniform> mNoAlphaUniform;
     };
 
     CharacterPreview::CharacterPreview(osg::Group* parent, Resource::ResourceSystem* resourceSystem,
@@ -154,7 +190,9 @@ namespace MWRender
         mTexture->setInternalFormat(GL_RGBA);
         mTexture->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
         mTexture->setFilter(osg::Texture::MAG_FILTER, osg::Texture::LINEAR);
-        mTexture->setUserValue("premultiplied alpha", true);
+
+        mTextureStateSet = new osg::StateSet;
+        mTextureStateSet->setAttribute(new osg::BlendFunc(osg::BlendFunc::ONE, osg::BlendFunc::ONE_MINUS_SRC_ALPHA));
 
         mCamera = new osg::Camera;
         // hints that the camera is not relative to the master camera
@@ -178,6 +216,7 @@ namespace MWRender
         osg::ref_ptr<SceneUtil::LightManager> lightManager = new SceneUtil::LightManager(ffp);
         lightManager->setStartLight(1);
         osg::ref_ptr<osg::StateSet> stateset = lightManager->getOrCreateStateSet();
+        stateset->setDefine("FORCE_OPAQUE", "1", osg::StateAttribute::ON);
         stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON);
         stateset->setMode(GL_NORMALIZE, osg::StateAttribute::ON);
         stateset->setMode(GL_CULL_FACE, osg::StateAttribute::ON);
@@ -187,6 +226,9 @@ namespace MWRender
         defaultMat->setDiffuse(osg::Material::FRONT_AND_BACK, osg::Vec4f(1,1,1,1));
         defaultMat->setSpecular(osg::Material::FRONT_AND_BACK, osg::Vec4f(0.f, 0.f, 0.f, 0.f));
         stateset->setAttribute(defaultMat);
+        stateset->addUniform(new osg::Uniform("projectionMatrix", static_cast<osg::Matrixf>(mCamera->getProjectionMatrix())));
+
+        stateset->setAttributeAndModes(new osg::Depth, osg::StateAttribute::ON);
 
         SceneUtil::ShadowManager::disableShadowsForStateSet(stateset);
 
@@ -212,7 +254,6 @@ namespace MWRender
         dummyTexture->setShadowCompareFunc(osg::Texture::ShadowCompareFunc::ALWAYS);
         stateset->setTextureAttributeAndModes(7, dummyTexture, osg::StateAttribute::ON);
         stateset->setTextureAttribute(7, noBlendAlphaEnv, osg::StateAttribute::ON);
-        stateset->addUniform(new osg::Uniform("noAlpha", true));
 
         osg::ref_ptr<osg::LightModel> lightmodel = new osg::LightModel;
         lightmodel->setAmbientIntensity(osg::Vec4(0.0, 0.0, 0.0, 1.0));
@@ -287,7 +328,6 @@ namespace MWRender
 
     void CharacterPreview::setBlendMode()
     {
-        mResourceSystem->getSceneManager()->recreateShaders(mNode, "objects", true);
         SetUpBlendVisitor visitor;
         mNode->accept(visitor);
     }
@@ -357,7 +397,7 @@ namespace MWRender
         if(iter != inv.end())
         {
             groupname = "inventoryweapononehand";
-            if(iter->getTypeName() == typeid(ESM::Weapon).name())
+            if(iter->getType() == ESM::Weapon::sRecordId)
             {
                 MWWorld::LiveCellRef<ESM::Weapon> *ref = iter->get<ESM::Weapon>();
                 int type = ref->mBase->mData.mType;
@@ -390,7 +430,7 @@ namespace MWRender
         mAnimation->play(mCurrentAnimGroup, 1, Animation::BlendMask_All, false, 1.0f, "start", "stop", 0.0f, 0);
 
         MWWorld::ConstContainerStoreIterator torch = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedLeft);
-        if(torch != inv.end() && torch->getTypeName() == typeid(ESM::Light).name() && showCarriedLeft)
+        if(torch != inv.end() && torch->getType() == ESM::Light::sRecordId && showCarriedLeft)
         {
             if(!mAnimation->getInfo("torch"))
                 mAnimation->play("torch", 2, Animation::BlendMask_LeftArm, false,
@@ -483,7 +523,7 @@ namespace MWRender
         rebuild();
     }
 
-    class UpdateCameraCallback : public osg::NodeCallback
+    class UpdateCameraCallback : public SceneUtil::NodeCallback<UpdateCameraCallback, osg::Camera*>
     {
     public:
         UpdateCameraCallback(osg::ref_ptr<const osg::Node> nodeToFollow, const osg::Vec3& posOffset, const osg::Vec3& lookAtOffset)
@@ -493,12 +533,10 @@ namespace MWRender
         {
         }
 
-        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
+        void operator()(osg::Camera* cam, osg::NodeVisitor* nv)
         {
-            osg::Camera* cam = static_cast<osg::Camera*>(node);
-
             // Update keyframe controllers in the scene graph first...
-            traverse(node, nv);
+            traverse(cam, nv);
 
             // Now update camera utilizing the updated head position
             osg::NodePathList nodepaths = mNodeToFollow->getParentalNodePaths();

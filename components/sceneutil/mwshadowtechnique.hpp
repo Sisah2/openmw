@@ -31,7 +31,6 @@
 #include <osgShadow/ShadowTechnique>
 
 #include <components/shader/shadermanager.hpp>
-#include <components/terrain/quadtreeworld.hpp>
 
 namespace SceneUtil {
 
@@ -90,27 +89,28 @@ namespace SceneUtil {
         class ComputeLightSpaceBounds : public osg::NodeVisitor, public osg::CullStack
         {
         public:
-            ComputeLightSpaceBounds(osg::Viewport* viewport, const osg::Matrixd& projectionMatrix, osg::Matrixd& viewMatrix);
+            ComputeLightSpaceBounds();
 
-            void apply(osg::Node& node) override;
+            void apply(osg::Node& node) override final;
+            void apply(osg::Group& node) override;
 
-            void apply(osg::Drawable& drawable) override;
-
-            void apply(Terrain::QuadTreeWorld& quadTreeWorld);
+            void apply(osg::Drawable& drawable) override final;
+            void apply(osg::Geometry& drawable) override;
 
             void apply(osg::Billboard&) override;
 
             void apply(osg::Projection&) override;
 
-            void apply(osg::Transform& transform) override;
+            void apply(osg::Transform& transform) override final;
+            void apply(osg::MatrixTransform& transform) override;
 
             void apply(osg::Camera&) override;
-
-            using osg::NodeVisitor::apply;
 
             void updateBound(const osg::BoundingBox& bb);
 
             void update(const osg::Vec3& v);
+
+            void reset() override;
 
             osg::BoundingBox _bb;
         };
@@ -235,8 +235,12 @@ namespace SceneUtil {
 
         virtual osg::StateSet* prepareStateSetForRenderingShadow(ViewDependentData& vdd, unsigned int traversalNumber) const;
 
+        void setWorldMask(unsigned int worldMask) { _worldMask = worldMask; }
+
     protected:
         virtual ~MWShadowTechnique();
+
+        osg::ref_ptr<ComputeLightSpaceBounds>   _clsb;
 
         typedef std::map< osgUtil::CullVisitor*, osg::ref_ptr<ViewDependentData> >  ViewDependentDataMap;
         mutable std::mutex                      _viewDependentDataMapMutex;
@@ -265,6 +269,8 @@ namespace SceneUtil {
         bool                                    _useFrontFaceCulling = true;
 
         float                                   _shadowFadeStart = 0.0;
+
+        unsigned int                            _worldMask = ~0u;
 
         class DebugHUD final : public osg::Referenced
         {

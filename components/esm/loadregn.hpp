@@ -20,7 +20,7 @@ struct Region
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Region"; }
+    static std::string_view getRecordType() { return "Region"; }
 
 #pragma pack(push)
 #pragma pack(1)
@@ -45,6 +45,7 @@ struct Region
     WEATstruct mData;
     int mMapColor; // RGBA
 
+    unsigned int mRecordFlags;
     // sleepList refers to a leveled list of creatures you can meet if
     // you sleep outside in this region.
     std::string mId, mName, mSleepList;

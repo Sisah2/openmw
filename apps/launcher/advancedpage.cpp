@@ -136,13 +136,7 @@ bool Launcher::AdvancedPage::loadSettings()
 
         loadSettingBool(activeGridObjectPagingCheckBox, "object paging active grid", "Terrain");
         viewingDistanceComboBox->setValue(convertToCells(Settings::Manager::getInt("viewing distance", "Camera")));
-
-        int lightingMethod = 1;
-        if (Settings::Manager::getString("lighting method", "Shaders") == "legacy")
-            lightingMethod = 0;
-        else if (Settings::Manager::getString("lighting method", "Shaders") == "shaders")
-            lightingMethod = 2;
-        lightingMethodComboBox->setCurrentIndex(lightingMethod);
+        objectPagingMinSizeComboBox->setValue(Settings::Manager::getDouble("object paging min size", "Terrain"));
     }
 
     // Audio
@@ -198,6 +192,7 @@ bool Launcher::AdvancedPage::loadSettings()
         if (showOwnedIndex >= 0 && showOwnedIndex <= 3)
             showOwnedComboBox->setCurrentIndex(showOwnedIndex);
         loadSettingBool(stretchBackgroundCheckBox, "stretch menu background", "GUI");
+        loadSettingBool(useZoomOnMapCheckBox, "allow zooming", "Map");
         loadSettingBool(graphicHerbalismCheckBox, "graphic herbalism", "Game");
         scalingSpinBox->setValue(Settings::Manager::getFloat("scaling factor", "GUI"));
     }
@@ -219,6 +214,8 @@ bool Launcher::AdvancedPage::loadSettings()
         if (screenshotFormatComboBox->findText(screenshotFormatString) == -1)
             screenshotFormatComboBox->addItem(screenshotFormatString);
         screenshotFormatComboBox->setCurrentIndex(screenshotFormatComboBox->findText(screenshotFormatString));
+
+        loadSettingBool(notifyOnSavedScreenshotCheckBox, "notify on saved screenshot", "General");
     }
 
     // Testing
@@ -294,9 +291,9 @@ void Launcher::AdvancedPage::saveSettings()
         {
             Settings::Manager::setInt("viewing distance", "Camera", convertToUnits(viewingDistance));
         }
-
-        static std::array<std::string, 3> lightingMethodMap = {"legacy", "shaders compatibility", "shaders"};
-        Settings::Manager::setString("lighting method", "Shaders", lightingMethodMap[lightingMethodComboBox->currentIndex()]);
+        double objectPagingMinSize = objectPagingMinSizeComboBox->value();
+        if (objectPagingMinSize != Settings::Manager::getDouble("object paging min size", "Terrain"))
+            Settings::Manager::setDouble("object paging min size", "Terrain", objectPagingMinSize);
     }
     
     // Audio
@@ -356,6 +353,7 @@ void Launcher::AdvancedPage::saveSettings()
         if (showOwnedCurrentIndex != Settings::Manager::getInt("show owned", "Game"))
             Settings::Manager::setInt("show owned", "Game", showOwnedCurrentIndex);
         saveSettingBool(stretchBackgroundCheckBox, "stretch menu background", "GUI");
+        saveSettingBool(useZoomOnMapCheckBox, "allow zooming", "Map");
         saveSettingBool(graphicHerbalismCheckBox, "graphic herbalism", "Game");
         float uiScalingFactor = scalingSpinBox->value();
         if (uiScalingFactor != Settings::Manager::getFloat("scaling factor", "GUI"))
@@ -382,6 +380,8 @@ void Launcher::AdvancedPage::saveSettings()
         std::string screenshotFormatString = screenshotFormatComboBox->currentText().toLower().toStdString();
         if (screenshotFormatString != Settings::Manager::getString("screenshot format", "General"))
             Settings::Manager::setString("screenshot format", "General", screenshotFormatString);
+
+        saveSettingBool(notifyOnSavedScreenshotCheckBox, "notify on saved screenshot", "General");
     }
 
     // Testing

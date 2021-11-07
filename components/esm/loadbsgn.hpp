@@ -15,8 +15,9 @@ struct BirthSign
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "BirthSign"; }
+    static std::string_view getRecordType() { return "BirthSign"; }
 
+    unsigned int mRecordFlags;
     std::string mId, mName, mDescription, mTexture;
 
     // List of powers and abilities that come with this birth sign.

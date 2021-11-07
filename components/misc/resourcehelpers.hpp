@@ -2,6 +2,7 @@
 #define MISC_RESOURCEHELPERS_H
 
 #include <string>
+#include <string_view>
 
 namespace VFS
 {
@@ -27,12 +28,16 @@ namespace Misc
         class DensityCalculator
         {
         public:
-            bool isInstanceEnabled();
+            bool isInstanceEnabled(float density);
             void reset() { mCurrentGroundcover = 0.f; }
 
         private:
             float mCurrentGroundcover = 0.f;
         };
+
+        /// marker objects that have a hardcoded function in the game logic, should be hidden from the player
+        bool isHiddenMarker(std::string_view id);
+
     }
 }
 

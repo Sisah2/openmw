@@ -47,6 +47,7 @@
 
 #include <boost/iostreams/device/array.hpp>
 #include <components/bsa/memorystream.hpp>
+#include <components/misc/stringops.hpp>
 
 namespace Bsa
 {
@@ -286,7 +287,6 @@ void CompressedBSAFile::readHeader()
 
         mFiles[fileIndex].setNameInfos(mStringBuffOffset, &mStringBuf);
 
-        mLookup[reinterpret_cast<char*>(mStringBuf.data() + mStringBuffOffset)] = fileIndex;
         mStringBuffOffset += stringLength + 1u;
     }
 
@@ -406,7 +406,7 @@ Files::IStreamPtr CompressedBSAFile::getFile(const FileRecord& fileRecord)
     return std::shared_ptr<std::istream>(memoryStreamPtr, (std::istream*)memoryStreamPtr.get());
 }
 
-BsaVersion CompressedBSAFile::detectVersion(std::string filePath)
+BsaVersion CompressedBSAFile::detectVersion(const std::string& filePath)
 {
     namespace bfs = boost::filesystem;
     bfs::ifstream input(bfs::path(filePath), std::ios_base::binary);

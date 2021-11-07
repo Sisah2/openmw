@@ -1,11 +1,13 @@
 #include "creaturestats.hpp"
 
 #include <algorithm>
+#include <climits>
 
 #include <components/esm/creaturestats.hpp>
 #include <components/esm/esmreader.hpp>
 #include <components/esm/esmwriter.hpp>
 
+#include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
 #include "../mwworld/player.hpp"
 
@@ -21,7 +23,7 @@ namespace MWMechanics
           mTalkedTo (false), mAlarmed (false), mAttacked (false),
           mKnockdown(false), mKnockdownOneFrame(false), mKnockdownOverOneFrame(false),
           mHitRecovery(false), mBlock(false), mMovementFlags(0),
-          mFallHeight(0), mRecalcMagicka(false), mLastRestock(0,0), mGoldPool(0), mActorId(-1), mHitAttemptActorId(-1),
+          mFallHeight(0), mLastRestock(0,0), mGoldPool(0), mActorId(-1), mHitAttemptActorId(-1),
           mDeathAnimation(-1), mTimeOfDeath(), mSideMovementAngle(0), mLevel (0)
     {
         for (int i=0; i<4; ++i)
@@ -145,7 +147,7 @@ namespace MWMechanics
             mAttributes[index] = value;
 
             if (index == ESM::Attribute::Intelligence)
-                mRecalcMagicka = true;
+                recalculateMagicka();
             else if (index == ESM::Attribute::Strength ||
                      index == ESM::Attribute::Willpower ||
                      index == ESM::Attribute::Agility ||
@@ -159,7 +161,7 @@ namespace MWMechanics
                 float diff = (strength+willpower+agility+endurance) - fatigue.getBase();
                 float currentToBaseRatio = fatigue.getBase() > 0 ? (fatigue.getCurrent() / fatigue.getBase()) : 0;
                 fatigue.setModified(fatigue.getModified() + diff, 0);
-                fatigue.setCurrent(fatigue.getBase() * currentToBaseRatio);
+                fatigue.setCurrent(fatigue.getBase() * currentToBaseRatio, false, true);
                 setFatigue(fatigue);
             }
         }
@@ -207,11 +209,10 @@ namespace MWMechanics
 
     void CreatureStats::modifyMagicEffects(const MagicEffects &effects)
     {
-        if (effects.get(ESM::MagicEffect::FortifyMaximumMagicka).getModifier()
-                != mMagicEffects.get(ESM::MagicEffect::FortifyMaximumMagicka).getModifier())
-            mRecalcMagicka = true;
-
+        bool recalc = effects.get(ESM::MagicEffect::FortifyMaximumMagicka).getModifier() != mMagicEffects.get(ESM::MagicEffect::FortifyMaximumMagicka).getModifier();
         mMagicEffects.setModifiers(effects);
+        if(recalc)
+            recalculateMagicka();
     }
 
     void CreatureStats::setAiSetting (AiSetting index, Stat<int> value)
@@ -399,19 +400,26 @@ namespace MWMechanics
         return height;
     }
 
-    bool CreatureStats::needToRecalcDynamicStats()
+    void CreatureStats::recalculateMagicka()
     {
-         if (mRecalcMagicka)
-         {
-             mRecalcMagicka = false;
-             return true;
-         }
-         return false;
-    }
+        auto world = MWBase::Environment::get().getWorld();
+        float intelligence = getAttribute(ESM::Attribute::Intelligence).getModified();
 
-    void CreatureStats::setNeedRecalcDynamicStats(bool val)
-    {
-        mRecalcMagicka = val;
+        float base = 1.f;
+        const auto& player = world->getPlayerPtr();
+        if (this == &player.getClass().getCreatureStats(player))
+            base = world->getStore().get<ESM::GameSetting>().find("fPCbaseMagickaMult")->mValue.getFloat();
+        else
+            base = world->getStore().get<ESM::GameSetting>().find("fNPCbaseMagickaMult")->mValue.getFloat();
+
+        double magickaFactor = base + mMagicEffects.get(EffectKey(ESM::MagicEffect::FortifyMaximumMagicka)).getMagnitude() * 0.1;
+
+        DynamicStat<float> magicka = getMagicka();
+        float diff = (static_cast<int>(magickaFactor*intelligence)) - magicka.getBase();
+        float currentToBaseRatio = magicka.getBase() > 0 ? magicka.getCurrent() / magicka.getBase() : 0;
+        magicka.setModified(magicka.getModified() + diff, 0);
+        magicka.setCurrent(magicka.getBase() * currentToBaseRatio, false, true);
+        setMagicka(magicka);
     }
 
     void CreatureStats::setKnockedDown(bool value)
@@ -531,7 +539,7 @@ namespace MWMechanics
         state.mFallHeight = mFallHeight; // TODO: vertical velocity (move from PhysicActor to CreatureStats?)
         state.mLastHitObject = mLastHitObject;
         state.mLastHitAttemptObject = mLastHitAttemptObject;
-        state.mRecalcDynamicStats = mRecalcMagicka;
+        state.mRecalcDynamicStats = false;
         state.mDrawState = mDrawState;
         state.mLevel = mLevel;
         state.mActorId = mActorId;
@@ -544,40 +552,37 @@ namespace MWMechanics
         mAiSequence.writeState(state.mAiSequence);
         mMagicEffects.writeState(state.mMagicEffects);
 
-        state.mSummonedCreatureMap = mSummonedCreatures;
+        state.mSummonedCreatures = mSummonedCreatures;
         state.mSummonGraveyard = mSummonGraveyard;
 
         state.mHasAiSettings = true;
         for (int i=0; i<4; ++i)
             mAiSettings[i].writeState (state.mAiSettings[i]);
-
-        for (auto it = mCorprusSpells.begin(); it != mCorprusSpells.end(); ++it)
-        {
-            for (int i=0; i<ESM::Attribute::Length; ++i)
-                state.mCorprusSpells[it->first].mWorsenings[i] = mCorprusSpells.at(it->first).mWorsenings[i];
-
-            state.mCorprusSpells[it->first].mNextWorsening = mCorprusSpells.at(it->first).mNextWorsening.toEsm();
-        }
     }
 
     void CreatureStats::readState (const ESM::CreatureStats& state)
     {
-        for (int i=0; i<ESM::Attribute::Length; ++i)
-            mAttributes[i].readState (state.mAttributes[i]);
+        // HACK: using mGoldPool as an indicator for lack of ACDT during .ess import
+        if (state.mGoldPool != INT_MIN)
+        {
+            for (int i=0; i<ESM::Attribute::Length; ++i)
+                mAttributes[i].readState (state.mAttributes[i]);
 
-        for (int i=0; i<3; ++i)
-            mDynamic[i].readState (state.mDynamic[i]);
+            for (int i=0; i<3; ++i)
+                mDynamic[i].readState (state.mDynamic[i]);
+
+            mGoldPool = state.mGoldPool;
+            mTalkedTo = state.mTalkedTo;
+            mAttacked = state.mAttacked;
+        }
 
         mLastRestock = MWWorld::TimeStamp(state.mTradeTime);
-        mGoldPool = state.mGoldPool;
 
         mDead = state.mDead;
         mDeathAnimationFinished = state.mDeathAnimationFinished;
         mDied = state.mDied;
         mMurdered = state.mMurdered;
-        mTalkedTo = state.mTalkedTo;
         mAlarmed = state.mAlarmed;
-        mAttacked = state.mAttacked;
         // TODO: rewrite. does this really need 3 separate bools?
         mKnockdown = state.mKnockdown;
         mKnockdownOneFrame = state.mKnockdownOneFrame;
@@ -588,7 +593,6 @@ namespace MWMechanics
         mFallHeight = state.mFallHeight;
         mLastHitObject = state.mLastHitObject;
         mLastHitAttemptObject = state.mLastHitAttemptObject;
-        mRecalcMagicka = state.mRecalcDynamicStats;
         mDrawState = DrawState_(state.mDrawState);
         mLevel = state.mLevel;
         mActorId = state.mActorId;
@@ -601,21 +605,36 @@ namespace MWMechanics
         mAiSequence.readState(state.mAiSequence);
         mMagicEffects.readState(state.mMagicEffects);
 
-        mSummonedCreatures = state.mSummonedCreatureMap;
+        // Rebuild the bound item cache
+        for(int effectId = ESM::MagicEffect::BoundDagger; effectId <= ESM::MagicEffect::BoundGloves; effectId++)
+        {
+            if(mMagicEffects.get(effectId).getMagnitude() > 0)
+                mBoundItems.insert(effectId);
+            else
+            {
+                // Check active spell effects
+                // We can't use mActiveSpells::getMagicEffects here because it doesn't include expired effects
+                auto spell = std::find_if(mActiveSpells.begin(), mActiveSpells.end(), [&] (const auto& spell)
+                {
+                    const auto& effects = spell.getEffects();
+                    return std::find_if(effects.begin(), effects.end(), [&] (const auto& effect)
+                    {
+                        return effect.mEffectId == effectId;
+                    }) != effects.end();
+                });
+                if(spell != mActiveSpells.end())
+                    mBoundItems.insert(effectId);
+            }
+        }
+
+        mSummonedCreatures = state.mSummonedCreatures;
         mSummonGraveyard = state.mSummonGraveyard;
 
         if (state.mHasAiSettings)
             for (int i=0; i<4; ++i)
                 mAiSettings[i].readState(state.mAiSettings[i]);
-
-        mCorprusSpells.clear();
-        for (auto it = state.mCorprusSpells.begin(); it != state.mCorprusSpells.end(); ++it)
-        {
-            for (int i=0; i<ESM::Attribute::Length; ++i)
-                mCorprusSpells[it->first].mWorsenings[i] = state.mCorprusSpells.at(it->first).mWorsenings[i];
-
-            mCorprusSpells[it->first].mNextWorsening = MWWorld::TimeStamp(state.mCorprusSpells.at(it->first).mNextWorsening);
-        }
+        if(state.mRecalcDynamicStats)
+            recalculateMagicka();
     }
 
     void CreatureStats::setLastRestockTime(MWWorld::TimeStamp tradeTime)
@@ -682,7 +701,7 @@ namespace MWMechanics
         return mTimeOfDeath;
     }
 
-    std::map<ESM::SummonKey, int>& CreatureStats::getSummonedCreatureMap()
+    std::multimap<int, int>& CreatureStats::getSummonedCreatureMap()
     {
         return mSummonedCreatures;
     }
@@ -690,24 +709,5 @@ namespace MWMechanics
     std::vector<int>& CreatureStats::getSummonedCreatureGraveyard()
     {
         return mSummonGraveyard;
-    }
-
-    std::map<std::string, CorprusStats> &CreatureStats::getCorprusSpells()
-    {
-        return mCorprusSpells;
-    }
-
-    void CreatureStats::addCorprusSpell(const std::string& sourceId, CorprusStats& stats)
-    {
-        mCorprusSpells[sourceId] = stats;
-    }
-
-    void CreatureStats::removeCorprusSpell(const std::string& sourceId)
-    {
-        auto corprusIt = mCorprusSpells.find(sourceId);
-        if (corprusIt != mCorprusSpells.end())
-        {
-            mCorprusSpells.erase(corprusIt);
-        }
     }
 }

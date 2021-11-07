@@ -13,7 +13,7 @@ struct BodyPart
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "BodyPart"; }
+    static std::string_view getRecordType() { return "BodyPart"; }
 
     enum MeshPart
     {
@@ -58,6 +58,7 @@ struct BodyPart
     };
 
     BYDTstruct mData;
+    unsigned int mRecordFlags;
     std::string mId, mModel, mRace;
 
     void load(ESMReader &esm, bool &isDeleted);

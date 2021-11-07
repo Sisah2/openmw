@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <osg/Quat>
 #include <osg/Vec4f>
 
 #include "ptr.hpp"
@@ -53,17 +54,12 @@ namespace MWWorld
     /// \brief Base class for referenceable esm records
     class Class
     {
-            static std::map<std::string, std::shared_ptr<Class> > sClasses;
-
-            std::string mTypeName;
-
-            // not implemented
-            Class (const Class&);
-            Class& operator= (const Class&);
+            static std::map<unsigned int, std::shared_ptr<Class> > sClasses;
+            unsigned int mType;
 
         protected:
 
-            Class();
+            Class() = default;
 
             std::shared_ptr<Action> defaultItemActivate(const Ptr &ptr, const Ptr &actor) const;
             ///< Generate default action for activating inventory items
@@ -72,15 +68,18 @@ namespace MWWorld
 
         public:
 
-            virtual ~Class();
+            virtual ~Class() = default;
+            Class (const Class&) = delete;
+            Class& operator= (const Class&) = delete;
 
-            const std::string& getTypeName() const {
-                return mTypeName;
+            unsigned int getType() const {
+                return mType;
             }
 
             virtual void insertObjectRendering (const Ptr& ptr, const std::string& mesh, MWRender::RenderingInterface& renderingInterface) const;
-            virtual void insertObject(const Ptr& ptr, const std::string& mesh, MWPhysics::PhysicsSystem& physics) const;
+            virtual void insertObject(const Ptr& ptr, const std::string& mesh, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const;
             ///< Add reference into a cell for rendering (default implementation: don't render anything).
+            virtual void insertObjectPhysics(const Ptr& ptr, const std::string& mesh, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const;
 
             virtual std::string getName (const ConstPtr& ptr) const = 0;
             ///< \return name or ID; can return an empty string.
@@ -338,10 +337,10 @@ namespace MWWorld
                 const;
             ///< Write additional state from \a ptr into \a state.
 
-            static const Class& get (const std::string& key);
+            static const Class& get (unsigned int key);
             ///< If there is no class for this \a key, an exception is thrown.
 
-            static void registerClass (const std::string& key,  std::shared_ptr<Class> instance);
+            static void registerClass (unsigned int key,  std::shared_ptr<Class> instance);
 
             virtual int getBaseGold(const MWWorld::ConstPtr& ptr) const;
 

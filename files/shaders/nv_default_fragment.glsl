@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(FORCE_OPAQUE)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -24,8 +25,6 @@ varying vec2 normalMapUV;
 varying vec4 passTangent;
 #endif
 
-uniform bool noAlpha;
-
 varying float euclideanDepth;
 varying float linearDepth;
 
@@ -45,7 +44,7 @@ void main()
 {
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, diffuseMapUV);
-    gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, adjustedDiffuseUV);
+    gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, diffuseMapUV);
 #else
     gl_FragData[0] = vec4(1.0);
 #endif
@@ -95,9 +94,9 @@ void main()
 #endif
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
 
-#if @translucentFramebuffer
-    if (noAlpha)
-        gl_FragData[0].a = 1.0;
+#if defined(FORCE_OPAQUE) && FORCE_OPAQUE
+    // having testing & blending isn't enough - we need to write an opaque pixel to be opaque
+    gl_FragData[0].a = 1.0;
 #endif
 
     applyShadowDebugOverlay();

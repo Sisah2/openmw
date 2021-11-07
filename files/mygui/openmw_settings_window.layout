@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <MyGUI type="Layout" version="3.2.0">
     <Widget type="Window" skin="MW_Window" position="0 0 400 485" layer="Windows" name="_Main">
-        <Property key="MinSize" value="430 446"/>
+        <Property key="MinSize" value="465 446"/>
         <Widget type="TabControl" skin="TabControl" position="8 8 368 405" align="Stretch" name="SettingsTab">
             <Property key="ButtonAutoWidth" value="true"/>
             <Widget type="TabItem" skin="" position="4 32 360 358">
@@ -375,6 +375,12 @@
                         <Widget type="TextBox" skin="NormalText" position="0 130 352 18" align="Left Top" name="RenderDistanceLabel">
                             <Property key="Caption" value="#{sRender_Distance}"/>
                         </Widget>
+                        <Widget type="TextBox" skin="NormalText" position="0 178 352 18" align="Left Top" name="GrassDistanceLabel">
+                            <Property key="Caption" value="Grass Rendering Distance"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="NormalText" position="0 226 352 18" align="Left Top" name="GrassDensityLabel">
+                            <Property key="Caption" value="Grass Density"/>
+                        </Widget>
                         <Widget type="ScrollBar" skin="MW_HScroll" position="0 154 352 18" align="HStretch Top" name="RenderingDistanceSlider">
                             <Property key="Range" value="4669"/>
                             <Property key="Page" value="128"/>
@@ -399,15 +405,32 @@
                             <UserString key="SettingLabelWidget" value="RenderDistanceLabel"/>
                             <UserString key="SettingLabelCaption" value="#{sRender_Distance} (x%s)"/>
                         </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 178 352 18" align="Left Top">
-                            <Property key="Caption" value="#{sNear}"/>
-                            <Property key="TextAlign" value="Left"/>
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 202 352 18" align="HStretch Top" name="GrassDistanceSlider">
+                            <Property key="Range" value="21376"/>
+                            <Property key="Page" value="128"/>
+                            <UserString key="SettingType" value="Slider"/>
+                            <UserString key="SettingCategory" value="Groundcover"/>
+                            <UserString key="SettingName" value="rendering distance"/>
+                            <UserString key="SettingValueType" value="Integer"/>
+                            <UserString key="SettingMin" value="3000"/>
+                            <UserString key="SettingMax" value="21504"/>
+                            <UserString key="SettingLabelWidget" value="GrassDistanceLabel"/>
+                            <UserString key="SettingLabelCaption" value="Grass Rendering Distance (%s)"/>
                         </Widget>
-                        <Widget type="TextBox" skin="SandText" position="0 178 352 18" align="Right Top">
-                            <Property key="Caption" value="#{sFar}"/>
-                            <Property key="TextAlign" value="Right"/>
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 250 352 18" align="HStretch Top" name="GrassDensitySlider">
+                            <Property key="Range" value="11"/>
+                            <Property key="Page" value="1"/>
+                            <UserString key="SettingType" value="Slider"/>
+                            <UserString key="SettingCategory" value="Groundcover"/>
+                            <UserString key="SettingName" value="density"/>
+                            <UserString key="SettingValueType" value="Integer"/>
+                            <UserString key="SettingMin" value="1"/>
+                            <UserString key="SettingMax" value="100"/>
+                            <UserString key="SettingLabelWidget" value="GrassDensityLabel"/>
+                            <UserString key="SettingLabelCaption" value="Grass Density (%s%%)"/>
                         </Widget>
                     </Widget>
+
                     <Widget type="TabItem" skin="" position="0 28 352 268">
                         <Property key="Caption" value="  Water  "/>
                         <Widget type="HBox" skin="" position="4 4 350 24">
@@ -420,7 +443,30 @@
                                 <Property key="Caption" value="Water shader"/>
                             </Widget>
                         </Widget>
-                        <Widget type="Widget" skin="" position="24 32 300 230">
+
+                        <Widget type="HBox" skin="" position="4 32 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                                <UserString key="SettingCategory" value="Water"/>
+                                <UserString key="SettingName" value="vtastek shader"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                                <Property key="Caption" value="Vtastek shader"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="4 60 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="UnderwaterFogButton">
+                                <UserString key="SettingCategory" value="Water"/>
+                                <UserString key="SettingName" value="underwater fog"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="UnderwaterFogLabel">
+                                <Property key="Caption" value="Underwater fog"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="Widget" skin="" position="24 88 300 230">
                             <Widget type="HBox" skin="" position="4 0 350 24">
                                 <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
                                     <UserString key="SettingCategory" value="Water"/>
@@ -433,6 +479,7 @@
                             </Widget>
                             <Widget type="HBox" skin="" position="4 28 350 24">
                                 <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 85 24" align="Left Top" name="WaterTextureSize">
+                                    <Property key="AddItem" value="Lowest"/>
                                     <Property key="AddItem" value="Low"/>
                                     <Property key="AddItem" value="Medium"/>
                                     <Property key="AddItem" value="High"/>
@@ -443,7 +490,7 @@
                             </Widget>
                             <Widget type="HBox" skin="" position="4 56 350 24">
                                 <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="WaterReflectionDetail">
-                                    <Property key="AddItem" value="Off"/>
+                                    <Property key="AddItem" value="Sky"/>
                                     <Property key="AddItem" value="Terrain"/>
                                     <Property key="AddItem" value="World"/>
                                     <Property key="AddItem" value="Objects"/>
@@ -455,7 +502,6 @@
                                 </Widget>
                             </Widget>
                         </Widget>
-
                     </Widget>
 
                     <Widget type="TabItem" skin="" position="4 32 360 308">
@@ -498,7 +544,7 @@
                         </Widget>
                         <Widget type="ScrollBar" skin="MW_HScroll" position="0 104 352 18" align="HStretch Top">
                             <Property key="Range" value="8192"/>
-                            <Property key="Page" value="1"/>
+                            <Property key="Page" value="128"/>
                             <UserString key="SettingType" value="Slider"/>
                             <UserString key="SettingMin" value="0"/>
                             <UserString key="SettingMax" value="8192"/>
@@ -644,8 +690,236 @@
                         </Widget>
                     </Widget>
                     -->
+
+                   <Widget type="TabItem" skin="" position="4 32 360 308" name="ShadersTab">
+                        <Property key="Caption" value="  Shaders  "/>
+
+                        <Widget type="TextBox" skin="SandText" position="30 5 300 25" align="Left Top" name="TonemaperLabel">
+                            <Property key="Caption" value="Tonemaper"/>
+                        </Widget>
+                        <Widget type="HBox" skin="" position="30 35 350 24">
+                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="TonemaperSwitch">
+                                <Property key="AddItem" value="None"/>
+                                <Property key="AddItem" value="Aces"/>
+                                <Property key="AddItem" value="Filmic"/>
+                                <Property key="AddItem" value="Lottes"/>
+                                <Property key="AddItem" value="Reinhard"/>
+                                <Property key="AddItem" value="Reinhard 2"/>
+                                <Property key="AddItem" value="Uchimura"/>
+                                <Property key="AddItem" value="Uncharted2"/>
+                                <Property key="AddItem" value="Unreal"/>
+                                <Property key="AddItem" value="Vtastek"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="180 35 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="LinearLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="linear lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="LinearLightingLabel">
+                                <Property key="Caption" value="Linear Lighting"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="TextBox" skin="NormalText" position="0 70 352 18" align="Left Top" name="ExposureText">
+                            <Property key="Caption" value="Tone Map Exposure"/>
+                        </Widget>
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 95 352 18" align="HStretch Top" name="ExposureSlider">
+                            <Property key="Range" value="10000"/>
+                            <Property key="Page" value="300"/>
+                            <UserString key="SettingType" value="Slider"/>
+                            <UserString key="SettingCategory" value="Shaders"/>
+                            <UserString key="SettingName" value="exposure"/>
+                            <UserString key="SettingValueType" value="Float"/>
+                            <UserString key="SettingMin" value="0.1"/>
+                            <UserString key="SettingMax" value="3.0"/>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="30 128 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="auto use object normal maps"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
+                                <Property key="Caption" value="Normal Maps"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="30 163 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="auto use object specular maps"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
+                                <Property key="Caption" value="Specular Maps"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="30 198 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ParallaxShadowsButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="parallax soft shadows"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ParallaxShadowsLabel">
+                                <Property key="Caption" value="Parallax Shadows"/>
+                            </Widget>
+                        </Widget>
+
+                        <Widget type="HBox" skin="" position="215 128 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="RadialFogButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="radial fog"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="RadialFogLabel">
+                                <Property key="Caption" value="Radial Fog"/>
+                            </Widget>
+                        </Widget>
+
+
+                        <Widget type="HBox" skin="" position="215 163 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="PPLLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="force per pixel lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="PPLLightingLabel">
+                                <Property key="Caption" value="Per Pixel Lighting"/>
+                            </Widget>
+                        </Widget>
+
+
+                        <Widget type="HBox" skin="" position="215 198 350 24">
+                          <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top" name="ClampLightingButton">
+                                <UserString key="SettingCategory" value="Shaders"/>
+                                <UserString key="SettingName" value="clamp lighting"/>
+                                <UserString key="SettingType" value="CheckButton"/>
+                            </Widget>
+                            <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top" name="ClampLightingLabel">
+                                <Property key="Caption" value="Clamp Lighting"/>
+                            </Widget>
+                       </Widget>
+
+
+                          <Widget type="TextBox" skin="NormalText" position="0 268 352 18" align="Left Top" name="ShaderGammaText">
+                            <Property key="Caption" value="#{sGamma_Correction}"/>
+                        </Widget>
+                        <Widget type="ScrollBar" skin="MW_HScroll" position="0 292 352 18" align="HStretch Top" name="ShaderGammaSlider">
+                            <Property key="Range" value="10000"/>
+                            <Property key="Page" value="300"/>
+                            <UserString key="SettingType" value="Slider"/>
+                            <UserString key="SettingCategory" value="Video"/>
+                            <UserString key="SettingName" value="gamma"/>
+                            <UserString key="SettingValueType" value="Float"/>
+                            <UserString key="SettingMin" value="0.1"/>
+                            <UserString key="SettingMax" value="3.0"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="SandText" position="0 316 352 18" align="Left Top" name="ShaderGammaTextDark">
+                            <Property key="Caption" value="#{sDark_Gamma}"/>
+                            <Property key="TextAlign" value="Left"/>
+                        </Widget>
+                        <Widget type="TextBox" skin="SandText" position="0 316 352 18" align="Right Top" name="ShaderGammaTextLight">
+                            <Property key="Caption" value="#{sLight_Gamma}"/>
+                            <Property key="TextAlign" value="Right"/>
+                        </Widget>
+
+
+                </Widget>
+
+
+
                 </Widget>
             </Widget>
+
+
+<!--
+            <Widget type="TabItem" skin="" position="4 32 360 358">
+                <Property key="Caption" value=" Game "/>
+
+                    <Widget type="AutoSizedTextBox" skin="SandText" position="70 8 75 16" align="Left Top">
+                        <Property key="Caption" value="Those settings require restart!"/>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="4 30 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Camera"/>
+                            <UserString key="SettingName" value="head bobbing"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Head Bobbing"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="170 30 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Camera"/>
+                            <UserString key="SettingName" value="view over shoulder"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="View Over Shoulder"/>
+                        </Widget>
+                    </Widget>
+
+
+                        <Widget type="TextBox" skin="SandText" position="4 60 350 24" align="Left Top" name="ShowOwnedLabel">
+                            <Property key="Caption" value="Show Owned"/>
+                        </Widget>
+                        <Widget type="HBox" skin="" position="4 90 350 24">
+                            <Widget type="ComboBox" skin="MW_ComboBox" position="0 0 115 24" align="Left Top" name="ShowOwnedSwitch">
+                                <Property key="AddItem" value="Tooltip"/>
+                                <Property key="AddItem" value="Crosshair"/>
+                                <Property key="AddItem" value="Both"/>
+                            </Widget>
+                        </Widget>
+
+
+
+                    <Widget type="HBox" skin="" position="170 90 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show projectile damage"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Projectile Damage"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="4 120 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show melee info"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Melee Info"/>
+                        </Widget>
+                    </Widget>
+
+                    <Widget type="HBox" skin="" position="170 120 350 24">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="show enchant chance"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 75 16" align="Left Top">
+                            <Property key="Caption" value="Show Enchant Chance"/>
+                        </Widget>
+                    </Widget>
+
+
+
+             </Widget>
+-->
+
+
         </Widget>
         <Widget type="AutoSizedButton" skin="MW_Button" position="320 420 56 24" align="Right Bottom" name="OkButton">
             <Property key="ExpandDirection" value="Left"/>

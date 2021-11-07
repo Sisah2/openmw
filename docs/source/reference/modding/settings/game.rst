@@ -441,7 +441,7 @@ Some mods add harvestable container models. When this setting is enabled, activa
 When this setting is turned off or when activating a regular container, the menu will open as usual.
 
 allow actors to follow over water surface
----------------------
+-----------------------------------------
 
 :Type:		boolean
 :Range:		True/False
@@ -455,3 +455,12 @@ If disabled actors without the ability to swim will not follow other actors to t
     Has effect only when Navigator is enabled.
 
 This setting can be controlled in Advanced tab of the launcher.
+
+default actor pathfind half extents
+-----------------------------------
+
+:Type:		3D vector floating point
+:Range:		All components > 0
+:Default:	29.27999496459961 28.479997634887695 66.5
+
+Actor half extents used for exterior cells to generate navmesh.

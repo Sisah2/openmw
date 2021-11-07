@@ -32,6 +32,9 @@ namespace MWGui
             MyGUI::ComboBox* mWaterTextureSize;
             MyGUI::ComboBox* mWaterReflectionDetail;
 
+            MyGUI::ComboBox* mTonemaperSwitch;
+            MyGUI::ComboBox* mShowOwnedSwitch;
+
             MyGUI::ComboBox* mMaxLights;
             MyGUI::ComboBox* mLightingMethodButton;
             MyGUI::Button* mLightsResetButton;
@@ -45,6 +48,7 @@ namespace MWGui
 
             void onTabChanged(MyGUI::TabControl* _sender, size_t index);
             void onOkButtonClicked(MyGUI::Widget* _sender);
+            void onPPLButtonClicked(MyGUI::Widget* _sender);
             void onTextureFilteringChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onSliderChangePosition(MyGUI::ScrollBar* scroller, size_t pos);
             void onButtonToggled(MyGUI::Widget* _sender);
@@ -55,6 +59,8 @@ namespace MWGui
 
             void onWaterTextureSizeChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onWaterReflectionDetailChanged(MyGUI::ComboBox* _sender, size_t pos);
+            void onTonemaperSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
+            void onShowOwnedSwitchChanged(MyGUI::ComboBox* _sender, size_t pos);
 
             void onLightingMethodButtonChanged(MyGUI::ComboBox* _sender, size_t pos);
             void onLightsResetButtonClicked(MyGUI::Widget* _sender);

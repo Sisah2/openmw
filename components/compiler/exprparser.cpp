@@ -353,15 +353,21 @@ namespace Compiler
     {
         if (const Extensions *extensions = getContext().getExtensions())
         {
+            char returnType; // ignored
             std::string argumentType; // ignored
             bool hasExplicit = false; // ignored
-            if (extensions->isInstruction (keyword, argumentType, hasExplicit))
+            bool isInstruction = extensions->isInstruction (keyword, argumentType, hasExplicit);
+
+            if(isInstruction || (mExplicit.empty() && extensions->isFunction(keyword, returnType, argumentType, hasExplicit)))
             {
-                // pretend this is not a keyword
                 std::string name = loc.mLiteral;
                 if (name.size()>=2 && name[0]=='"' && name[name.size()-1]=='"')
                     name = name.substr (1, name.size()-2);
-                return parseName (name, loc, scanner);
+                if(isInstruction || mLocals.getType(Misc::StringUtils::lowerCase(name)) != ' ')
+                {
+                    // pretend this is not a keyword
+                    return parseName (name, loc, scanner);
+                }
             }
         }
 
@@ -421,42 +427,26 @@ namespace Compiler
 
         if (mNextOperand)
         {
-            if (keyword==Scanner::K_getsquareroot)
+            // check for custom extensions
+            if (const Extensions *extensions = getContext().getExtensions())
             {
                 start();
 
-                mTokenLoc = loc;
-                parseArguments ("f", scanner);
+                char returnType;
+                std::string argumentType;
 
-                Generator::squareRoot (mCode);
-                mOperands.push_back ('f');
+                bool hasExplicit = false;
 
-                mNextOperand = false;
-                return true;
-            }
-            else
-            {
-                // check for custom extensions
-                if (const Extensions *extensions = getContext().getExtensions())
+                if (extensions->isFunction (keyword, returnType, argumentType, hasExplicit))
                 {
-                    start();
+                    mTokenLoc = loc;
+                    int optionals = parseArguments (argumentType, scanner);
 
-                    char returnType;
-                    std::string argumentType;
+                    extensions->generateFunctionCode (keyword, mCode, mLiterals, "", optionals);
+                    mOperands.push_back (returnType);
 
-                    bool hasExplicit = false;
-
-                    if (extensions->isFunction (keyword, returnType, argumentType, hasExplicit))
-                    {
-                        mTokenLoc = loc;
-                        int optionals = parseArguments (argumentType, scanner);
-
-                        extensions->generateFunctionCode (keyword, mCode, mLiterals, "", optionals);
-                        mOperands.push_back (returnType);
-
-                        mNextOperand = false;
-                        return true;
-                    }
+                    mNextOperand = false;
+                    return true;
                 }
             }
         }
@@ -642,7 +632,7 @@ namespace Compiler
     }
 
     int ExprParser::parseArguments (const std::string& arguments, Scanner& scanner,
-        std::vector<Interpreter::Type_Code>& code, int ignoreKeyword)
+        std::vector<Interpreter::Type_Code>& code, int ignoreKeyword, bool expectNames)
     {
         bool optional = false;
         int optionalCount = 0;
@@ -669,6 +659,7 @@ namespace Compiler
 
                 if (argument=='c') stringParser.smashCase();
                 if (argument=='x') stringParser.discard();
+                scanner.enableExpectName();
                 scanner.scan (stringParser);
 
                 if ((optional || argument=='x') && stringParser.isEmpty())
@@ -726,6 +717,8 @@ namespace Compiler
 
                 if (optional)
                     parser.setOptional (true);
+                if(expectNames)
+                    scanner.enableExpectName();
 
                 scanner.scan (parser);
 

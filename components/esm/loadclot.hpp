@@ -19,7 +19,7 @@ struct Clothing
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "Clothing"; }
+    static std::string_view getRecordType() { return "Clothing"; }
 
     enum Type
     {
@@ -46,6 +46,7 @@ struct Clothing
 
     PartReferenceList mParts;
 
+    unsigned int mRecordFlags;
     std::string mId, mName, mModel, mIcon, mEnchant, mScript;
 
     void load(ESMReader &esm, bool &isDeleted);

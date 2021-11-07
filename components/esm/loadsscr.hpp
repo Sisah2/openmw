@@ -21,9 +21,10 @@ struct StartScript
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "StartScript"; }
+    static std::string_view getRecordType() { return "StartScript"; }
 
     std::string mData;
+    unsigned int mRecordFlags;
     std::string mId;
 
     // Load a record and add it to the list

@@ -28,11 +28,6 @@ namespace MWClass
         }
     }
 
-    void Ingredient::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
-    {
-        // TODO: add option somewhere to enable collision for placeable objects
-    }
-
     std::string Ingredient::getModel(const MWWorld::ConstPtr &ptr) const
     {
         const MWWorld::LiveCellRef<ESM::Ingredient> *ref = ptr.get<ESM::Ingredient>();
@@ -86,7 +81,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Ingredient);
 
-        registerClass (typeid (ESM::Ingredient).name(), instance);
+        registerClass (ESM::Ingredient::sRecordId, instance);
     }
 
     std::string Ingredient::getUpSoundId (const MWWorld::ConstPtr& ptr) const

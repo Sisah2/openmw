@@ -28,7 +28,7 @@ namespace ESM
         while (esm.hasMoreSubs())
         {
             esm.getSubName();
-            switch (esm.retSubName().intval)
+            switch (esm.retSubName().toInt())
             {
                 case ESM::FourCC<'D','A','T','A'>::value:
                 {
@@ -61,7 +61,7 @@ namespace ESM
         esm.writeHNCString("NAME", mId);
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
         }
         else
         {

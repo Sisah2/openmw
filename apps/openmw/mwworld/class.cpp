@@ -23,21 +23,20 @@
 
 namespace MWWorld
 {
-    std::map<std::string, std::shared_ptr<Class> > Class::sClasses;
-
-    Class::Class() {}
-
-    Class::~Class() {}
+    std::map<unsigned int, std::shared_ptr<Class> > Class::sClasses;
 
     void Class::insertObjectRendering (const Ptr& ptr, const std::string& mesh, MWRender::RenderingInterface& renderingInterface) const
     {
 
     }
 
-    void Class::insertObject(const Ptr& ptr, const std::string& mesh, MWPhysics::PhysicsSystem& physics) const
+    void Class::insertObject(const Ptr& ptr, const std::string& mesh, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
 
     }
+
+    void Class::insertObjectPhysics(const Ptr& ptr, const std::string& mesh, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
+    {}
 
     bool Class::apply (const MWWorld::Ptr& ptr, const std::string& id,  const MWWorld::Ptr& actor) const
     {
@@ -229,15 +228,12 @@ namespace MWWorld
         throw std::runtime_error("Class does not support armor rating");
     }
 
-    const Class& Class::get (const std::string& key)
+    const Class& Class::get (unsigned int key)
     {
-        if (key.empty())
-            throw std::logic_error ("Class::get(): attempting to get an empty key");
-
-        std::map<std::string, std::shared_ptr<Class> >::const_iterator iter = sClasses.find (key);
+        auto iter = sClasses.find (key);
 
         if (iter==sClasses.end())
-            throw std::logic_error ("Class::get(): unknown class key: " + key);
+            throw std::logic_error ("Class::get(): unknown class key: " + std::to_string(key));
 
         return *iter->second;
     }
@@ -247,9 +243,9 @@ namespace MWWorld
         throw std::runtime_error ("class does not support persistence");
     }
 
-    void Class::registerClass(const std::string& key,  std::shared_ptr<Class> instance)
+    void Class::registerClass(unsigned int key, std::shared_ptr<Class> instance)
     {
-        instance->mTypeName = key;
+        instance->mType = key;
         sClasses.insert(std::make_pair(key, instance));
     }
 

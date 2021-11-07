@@ -10,33 +10,31 @@
 #include <QClipboard>
 #include <QModelIndex>
 
-ContentSelectorView::ContentSelector::ContentSelector(QWidget *parent) :
+ContentSelectorView::ContentSelector::ContentSelector(QWidget *parent, bool showOMWScripts) :
     QObject(parent)
 {
     ui.setupUi(parent);
     ui.addonView->setDragDropMode(QAbstractItemView::InternalMove);
 
-    buildContentModel();
+    buildContentModel(showOMWScripts);
     buildGameFileView();
     buildAddonView();
 }
 
-void ContentSelectorView::ContentSelector::buildContentModel()
+void ContentSelectorView::ContentSelector::buildContentModel(bool showOMWScripts)
 {
     QIcon warningIcon(ui.addonView->style()->standardIcon(QStyle::SP_MessageBoxWarning).pixmap(QSize(16, 15)));
-    mContentModel = new ContentSelectorModel::ContentModel(this, warningIcon);
+    mContentModel = new ContentSelectorModel::ContentModel(this, warningIcon, showOMWScripts);
 }
 
 void ContentSelectorView::ContentSelector::buildGameFileView()
 {
-    ui.gameFileView->setVisible (true);
-
-    ui.gameFileView->setPlaceholderText(QString("Select a game file..."));
+    ui.gameFileView->addItem("<No game file>");
+    ui.gameFileView->setVisible(true);
 
     connect (ui.gameFileView, SIGNAL (currentIndexChanged(int)),
              this, SLOT (slotCurrentGameFileIndexChanged(int)));
 
-    ui.gameFileView->setCurrentIndex(-1);
     ui.gameFileView->setCurrentIndex(0);
 }
 
@@ -108,7 +106,7 @@ void ContentSelectorView::ContentSelector::setProfileContent(const QStringList &
 
 void ContentSelectorView::ContentSelector::setGameFile(const QString &filename)
 {
-    int index = -1;
+    int index = 0;
 
     if (!filename.isEmpty())
     {
@@ -168,10 +166,11 @@ void ContentSelectorView::ContentSelector::addFiles(const QString &path)
         }
     }
 
-    if (ui.gameFileView->currentIndex() != -1)
-        ui.gameFileView->setCurrentIndex(-1);
+    if (ui.gameFileView->currentIndex() != 0)
+        ui.gameFileView->setCurrentIndex(0);
 
     mContentModel->uncheckAll();
+    mContentModel->checkForLoadOrderErrors();
 }
 
 void ContentSelectorView::ContentSelector::clearFiles()
@@ -183,7 +182,7 @@ QString ContentSelectorView::ContentSelector::currentFile() const
 {
     QModelIndex currentIdx = ui.addonView->currentIndex();
 
-    if (!currentIdx.isValid())
+    if (!currentIdx.isValid() && ui.gameFileView->currentIndex() > 0)
         return ui.gameFileView->currentText();
 
     QModelIndex idx = mContentModel->index(mAddonProxyModel->mapToSource(currentIdx).row(), 0, QModelIndex());

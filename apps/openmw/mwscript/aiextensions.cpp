@@ -208,8 +208,7 @@ namespace MWScript
                     {
                         if(!repeat)
                             repeat = true;
-                        Interpreter::Type_Integer idleValue = runtime[0].mInteger;
-                        idleValue = std::min(255, std::max(0, idleValue));
+                        Interpreter::Type_Integer idleValue = std::clamp(runtime[0].mInteger, 0, 255);
                         idleList.push_back(idleValue);
                         runtime.pop();
                         --arg0;
@@ -275,9 +274,11 @@ namespace MWScript
                     MWWorld::Ptr ptr = R()(runtime);
                     Interpreter::Type_Integer value = runtime[0].mInteger;
                     runtime.pop();
-
-                    ptr.getClass().getCreatureStats(ptr).setAiSetting(mIndex, value);
-                    ptr.getClass().setBaseAISetting(ptr.getCellRef().getRefId(), mIndex, value);
+                    if(ptr.getClass().isActor())
+                    {
+                        ptr.getClass().getCreatureStats(ptr).setAiSetting(mIndex, value);
+                        ptr.getClass().setBaseAISetting(ptr.getCellRef().getRefId(), mIndex, value);
+                    }
                 }
         };
 
@@ -360,7 +361,15 @@ namespace MWScript
                 {
                     MWWorld::Ptr ptr = R()(runtime);
 
-                    const auto value = static_cast<Interpreter::Type_Integer>(ptr.getClass().getCreatureStats (ptr).getAiSequence().getLastRunTypeId());
+                    Interpreter::Type_Integer value = -1;
+                    if(ptr.getClass().isActor())
+                    {
+                        const auto& stats = ptr.getClass().getCreatureStats(ptr);
+                        if(!stats.isDead() || !stats.isDeathAnimationFinished())
+                        {
+                            value = static_cast<Interpreter::Type_Integer>(stats.getAiSequence().getLastRunTypeId());
+                        }
+                    }
 
                     runtime.push (value);
                 }

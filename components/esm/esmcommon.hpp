@@ -16,6 +16,11 @@ enum Version
     VER_13 = 0x3fa66666
   };
 
+enum RecordFlag
+  {
+    FLAG_Persistent = 0x00000400,
+    FLAG_Blocked    = 0x00002000
+  };
 
 // CRTP for FIXED_STRING class, a structure used for holding fixed-length strings
 template< template<size_t> class DERIVED, size_t SIZE>
@@ -97,25 +102,35 @@ struct FIXED_STRING : public FIXED_STRING_BASE<FIXED_STRING, SIZE>
 template <>
 struct FIXED_STRING<4> : public FIXED_STRING_BASE<FIXED_STRING, 4>
 {
-    union {
-        char data[4];
-        uint32_t intval;
-    };
+    char data[4];
 
     using FIXED_STRING_BASE::operator==;
     using FIXED_STRING_BASE::operator!=;
 
-    bool operator==(uint32_t v) const { return v == intval; }
-    bool operator!=(uint32_t v) const { return v != intval; }
+    bool operator==(uint32_t v) const { return v == toInt(); }
+    bool operator!=(uint32_t v) const { return v != toInt(); }
+
+    FIXED_STRING<4>& operator=(std::uint32_t value)
+    {
+        std::memcpy(data, &value, sizeof(data));
+        return *this;
+    }
 
     void assign(const std::string& value)
     {
-        intval = 0;
+        std::memset(data, 0, sizeof(data));
         std::memcpy(data, value.data(), std::min(value.size(), sizeof(data)));
     }
 
     char const* ro_data() const { return data; }
     char*       rw_data() { return data; }
+
+    std::uint32_t toInt() const
+    {
+        std::uint32_t value;
+        std::memcpy(&value, data, sizeof(data));
+        return value;
+    }
 };
 
 typedef FIXED_STRING<4> NAME;

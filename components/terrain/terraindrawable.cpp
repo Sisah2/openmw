@@ -96,10 +96,10 @@ void TerrainDrawable::cull(osgUtil::CullVisitor *cv)
         return;
     }
 
-    if (mCompositeMap)
+    if (mCompositeMap && mCompositeMapRenderer)
     {
         mCompositeMapRenderer->setImmediate(mCompositeMap);
-        mCompositeMap = nullptr;
+        mCompositeMapRenderer = nullptr;
     }
 
     bool pushedLight = mLightListCallback && mLightListCallback->pushLightState(this, cv);

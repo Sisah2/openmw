@@ -45,7 +45,7 @@ namespace MWMechanics
             void add (const MWWorld::Ptr& ptr) override;
             ///< Register an object for management
 
-            void remove (const MWWorld::Ptr& ptr) override;
+            void remove (const MWWorld::Ptr& ptr, bool keepActive) override;
             ///< Deregister an object for management
 
             void updateCell(const MWWorld::Ptr &old, const MWWorld::Ptr &ptr) override;
@@ -75,7 +75,7 @@ namespace MWMechanics
             void setPlayerClass (const ESM::Class& class_) override;
             ///< Set player class to custom class.
 
-            void restoreDynamicStats(MWWorld::Ptr actor, double hours, bool sleep) override;
+            void restoreDynamicStats(const MWWorld::Ptr& actor, double hours, bool sleep) override;
 
             void rest(double hours, bool sleep) override;
             ///< If the player is sleeping or waiting, this should be called every hour.
@@ -87,13 +87,13 @@ namespace MWMechanics
             int getBarterOffer(const MWWorld::Ptr& ptr,int basePrice, bool buying) override;
             ///< This is used by every service to determine the price of objects given the trading skills of the player and NPC.
 
-            int getDerivedDisposition(const MWWorld::Ptr& ptr, bool addTemporaryDispositionChange = true) override;
+            int getDerivedDisposition(const MWWorld::Ptr& ptr, bool clamp = true) override;
             ///< Calculate the diposition of an NPC toward the player.
 
             int countDeaths (const std::string& id) const override;
             ///< Return the number of deaths for actors with the given ID.
 
-            void getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, float& tempChange, float& permChange) override;
+            void getPersuasionDispositionChange (const MWWorld::Ptr& npc, PersuasionType type, bool& success, int& tempChange, int& permChange) override;
             ///< Perform a persuasion action on NPC
 
             /// Check if \a observer is potentially aware of \a ptr. Does not do a line of sight check!
@@ -186,7 +186,7 @@ namespace MWMechanics
             /// Is \a ptr casting spell or using weapon now?
             bool isAttackingOrSpell(const MWWorld::Ptr &ptr) const override;
 
-            void castSpell(const MWWorld::Ptr& ptr, const std::string spellId, bool manualSpell=false) override;
+            void castSpell(const MWWorld::Ptr& ptr, const std::string& spellId, bool manualSpell=false) override;
 
             void processChangedSettings(const Settings::CategorySettingVector& settings) override;
 
@@ -229,8 +229,6 @@ namespace MWMechanics
             float getAngleToPlayer(const MWWorld::Ptr& ptr) const override;
             GreetingState getGreetingState(const MWWorld::Ptr& ptr) const override;
             bool isTurningToPlayer(const MWWorld::Ptr& ptr) const override;
-
-            void restoreStatsAfterCorprus(const MWWorld::Ptr& actor, const std::string& sourceId) override;
 
         private:
             bool canCommitCrimeAgainst(const MWWorld::Ptr& victim, const MWWorld::Ptr& attacker);

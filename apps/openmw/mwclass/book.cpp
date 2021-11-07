@@ -31,11 +31,6 @@ namespace MWClass
         }
     }
 
-    void Book::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
-    {
-        // TODO: add option somewhere to enable collision for placeable objects
-    }
-
     std::string Book::getModel(const MWWorld::ConstPtr &ptr) const
     {
         const MWWorld::LiveCellRef<ESM::Book> *ref = ptr.get<ESM::Book>();
@@ -90,7 +85,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Book);
 
-        registerClass (typeid (ESM::Book).name(), instance);
+        registerClass (ESM::Book::sRecordId, instance);
     }
 
     std::string Book::getUpSoundId (const MWWorld::ConstPtr& ptr) const

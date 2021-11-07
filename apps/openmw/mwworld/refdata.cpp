@@ -8,6 +8,8 @@
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
 
+#include "../mwlua/localscripts.hpp"
+
 namespace
 {
 enum RefDataFlags
@@ -21,6 +23,12 @@ enum RefDataFlags
 namespace MWWorld
 {
 
+    void RefData::setLuaScripts(std::shared_ptr<MWLua::LocalScripts>&& scripts)
+    {
+        mChanged = true;
+        mLuaScripts = std::move(scripts);
+    }
+
     void RefData::copy (const RefData& refData)
     {
         mBaseNode = refData.mBaseNode;
@@ -31,20 +39,23 @@ namespace MWWorld
         mChanged = refData.mChanged;
         mDeletedByContentFile = refData.mDeletedByContentFile;
         mFlags = refData.mFlags;
+        mPhysicsPostponed = refData.mPhysicsPostponed;
 
         mAnimationState = refData.mAnimationState;
 
         mCustomData = refData.mCustomData ? refData.mCustomData->clone() : nullptr;
+        mLuaScripts = refData.mLuaScripts;
     }
 
     void RefData::cleanup()
     {
         mBaseNode = nullptr;
         mCustomData = nullptr;
+        mLuaScripts = nullptr;
     }
 
     RefData::RefData()
-    : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true), mCount (1), mCustomData (nullptr), mChanged(false), mFlags(0)
+    : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true), mPhysicsPostponed(false), mCount (1), mCustomData (nullptr), mChanged(false), mFlags(0)
     {
         for (int i=0; i<3; ++i)
         {
@@ -54,7 +65,7 @@ namespace MWWorld
     }
 
     RefData::RefData (const ESM::CellRef& cellRef)
-    : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true),
+    : mBaseNode(nullptr), mDeletedByContentFile(false), mEnabled (true), mPhysicsPostponed(false), 
       mCount (1), mPosition (cellRef.mPos),
       mCustomData (nullptr),
       mChanged(false), mFlags(0) // Loading from ESM/ESP files -> assume unchanged
@@ -63,7 +74,7 @@ namespace MWWorld
 
     RefData::RefData (const ESM::ObjectState& objectState, bool deletedByContentFile)
     : mBaseNode(nullptr), mDeletedByContentFile(deletedByContentFile),
-      mEnabled (objectState.mEnabled != 0),
+      mEnabled (objectState.mEnabled != 0), mPhysicsPostponed(false),
       mCount (objectState.mCount),
       mPosition (objectState.mPosition),
       mAnimationState(objectState.mAnimationState),
@@ -128,6 +139,9 @@ namespace MWWorld
         catch (...)
         {}
     }
+
+    RefData::RefData(RefData&& other) noexcept = default;
+    RefData& RefData::operator=(RefData&& other) noexcept = default;
 
     void RefData::setBaseNode(SceneUtil::PositionAttitudeTransform *base)
     {

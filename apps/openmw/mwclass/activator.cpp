@@ -38,10 +38,15 @@ namespace MWClass
         }
     }
 
-    void Activator::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
+    void Activator::insertObject(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
+    {
+        insertObjectPhysics(ptr, model, rotation, physics);
+    }
+
+    void Activator::insertObjectPhysics(const MWWorld::Ptr& ptr, const std::string& model, const osg::Quat& rotation, MWPhysics::PhysicsSystem& physics) const
     {
         if(!model.empty())
-            physics.addObject(ptr, model);
+            physics.addObject(ptr, model, rotation, MWPhysics::CollisionType_World);
     }
 
     std::string Activator::getModel(const MWWorld::ConstPtr &ptr) const
@@ -84,16 +89,12 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Activator);
 
-        registerClass (typeid (ESM::Activator).name(), instance);
+        registerClass (ESM::Activator::sRecordId, instance);
     }
 
     bool Activator::hasToolTip (const MWWorld::ConstPtr& ptr) const
     {
         return !getName(ptr).empty();
-    }
-
-    bool Activator::allowTelekinesis(const MWWorld::ConstPtr &ptr) const {
-        return false;
     }
 
     MWGui::ToolTipInfo Activator::getToolTipInfo (const MWWorld::ConstPtr& ptr, int count) const

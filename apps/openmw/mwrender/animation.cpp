@@ -6,7 +6,6 @@
 #include <osg/MatrixTransform>
 #include <osg/BlendFunc>
 #include <osg/Material>
-#include <osg/PositionAttitudeTransform>
 #include <osg/Switch>
 
 #include <osgParticle/ParticleSystem>
@@ -18,6 +17,7 @@
 #include <components/resource/keyframemanager.hpp>
 
 #include <components/misc/constants.hpp>
+#include <components/misc/pathhelpers.hpp>
 #include <components/misc/resourcehelpers.hpp>
 
 #include <components/sceneutil/keyframe.hpp>
@@ -87,22 +87,22 @@ namespace
         std::vector<osg::ref_ptr<osg::Node> > mToRemove;
     };
 
-    class DayNightCallback : public osg::NodeCallback
+    class DayNightCallback : public SceneUtil::NodeCallback<DayNightCallback, osg::Switch*>
     {
     public:
         DayNightCallback() : mCurrentState(0)
         {
         }
 
-        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
+        void operator()(osg::Switch* node, osg::NodeVisitor* nv)
         {
             unsigned int state = MWBase::Environment::get().getWorld()->getNightDayMode();
-            const unsigned int newState = node->asGroup()->getNumChildren() > state ? state : 0;
+            const unsigned int newState = node->getNumChildren() > state ? state : 0;
 
             if (newState != mCurrentState)
             {
                 mCurrentState = newState;
-                node->asSwitch()->setSingleChildOn(mCurrentState);
+                node->setSingleChildOn(mCurrentState);
             }
 
             traverse(node, nv);
@@ -197,32 +197,6 @@ namespace
         return 0.0f;
     }
 
-    /// @brief Base class for visitors that remove nodes from a scene graph.
-    /// Subclasses need to fill the mToRemove vector.
-    /// To use, node->accept(removeVisitor); removeVisitor.remove();
-    class RemoveVisitor : public osg::NodeVisitor
-    {
-    public:
-        RemoveVisitor()
-            : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
-        {
-        }
-
-        void remove()
-        {
-            for (RemoveVec::iterator it = mToRemove.begin(); it != mToRemove.end(); ++it)
-            {
-                if (!it->second->removeChild(it->first))
-                    Log(Debug::Error) << "Error removing " << it->first->getName();
-            }
-        }
-
-    protected:
-        // <node to remove, parent node to remove it from>
-        typedef std::vector<std::pair<osg::Node*, osg::Group*> > RemoveVec;
-        std::vector<std::pair<osg::Node*, osg::Group*> > mToRemove;
-    };
-
     class GetExtendedBonesVisitor : public osg::NodeVisitor
     {
     public:
@@ -245,7 +219,7 @@ namespace
         std::vector<std::pair<osg::Node*, osg::Group*> > mFoundBones;
     };
 
-    class RemoveFinishedCallbackVisitor : public RemoveVisitor
+    class RemoveFinishedCallbackVisitor : public SceneUtil::RemoveVisitor
     {
     public:
         bool mHasMagicEffects;
@@ -290,7 +264,7 @@ namespace
         }
     };
 
-    class RemoveCallbackVisitor : public RemoveVisitor
+    class RemoveCallbackVisitor : public SceneUtil::RemoveVisitor
     {
     public:
         bool mHasMagicEffects;
@@ -398,90 +372,6 @@ namespace
     private:
         int mEffectId;
     };
-
-    // Removes all drawables from a graph.
-    class CleanObjectRootVisitor : public RemoveVisitor
-    {
-    public:
-        void apply(osg::Drawable& drw) override
-        {
-            applyDrawable(drw);
-        }
-
-        void apply(osg::Group& node) override
-        {
-            applyNode(node);
-        }
-        void apply(osg::MatrixTransform& node) override
-        {
-            applyNode(node);
-        }
-        void apply(osg::Node& node) override
-        {
-            applyNode(node);
-        }
-
-        void applyNode(osg::Node& node)
-        {
-            if (node.getStateSet())
-                node.setStateSet(nullptr);
-
-            if (node.getNodeMask() == 0x1 && node.getNumParents() == 1)
-                mToRemove.emplace_back(&node, node.getParent(0));
-            else
-                traverse(node);
-        }
-        void applyDrawable(osg::Node& node)
-        {
-            osg::NodePath::iterator parent = getNodePath().end()-2;
-            // We know that the parent is a Group because only Groups can have children.
-            osg::Group* parentGroup = static_cast<osg::Group*>(*parent);
-
-            // Try to prune nodes that would be empty after the removal
-            if (parent != getNodePath().begin())
-            {
-                // This could be extended to remove the parent's parent, and so on if they are empty as well.
-                // But for NIF files, there won't be a benefit since only TriShapes can be set to STATIC dataVariance.
-                osg::Group* parentParent = static_cast<osg::Group*>(*(parent - 1));
-                if (parentGroup->getNumChildren() == 1 && parentGroup->getDataVariance() == osg::Object::STATIC)
-                {
-                    mToRemove.emplace_back(parentGroup, parentParent);
-                    return;
-                }
-            }
-
-            mToRemove.emplace_back(&node, parentGroup);
-        }
-    };
-
-    class RemoveTriBipVisitor : public RemoveVisitor
-    {
-    public:
-        void apply(osg::Drawable& drw) override
-        {
-            applyImpl(drw);
-        }
-
-        void apply(osg::Group& node) override
-        {
-            traverse(node);
-        }
-        void apply(osg::MatrixTransform& node) override
-        {
-            traverse(node);
-        }
-
-        void applyImpl(osg::Node& node)
-        {
-            const std::string toFind = "tri bip";
-            if (Misc::StringUtils::ciCompareLen(node.getName(), toFind, toFind.size()) == 0)
-            {
-                osg::Group* parent = static_cast<osg::Group*>(*(getNodePath().end()-2));
-                // Not safe to remove in apply(), since the visitor is still iterating the child list
-                mToRemove.emplace_back(&node, parent);
-            }
-        }
-    };
 }
 
 namespace MWRender
@@ -497,11 +387,6 @@ namespace MWRender
         void setAlpha(const float alpha)
         {
             mAlpha = alpha;
-        }
-
-        void setLightSource(const osg::ref_ptr<SceneUtil::LightSource>& lightSource)
-        {
-            mLightSource = lightSource;
         }
 
     protected:
@@ -526,13 +411,10 @@ namespace MWRender
         {
             osg::Material* material = static_cast<osg::Material*>(stateset->getAttribute(osg::StateAttribute::MATERIAL));
             material->setAlpha(osg::Material::FRONT_AND_BACK, mAlpha);
-            if (mLightSource)
-                mLightSource->setActorFade(mAlpha);
         }
 
     private:
         float mAlpha;
-        osg::ref_ptr<SceneUtil::LightSource> mLightSource;
     };
 
     struct Animation::AnimSource
@@ -582,20 +464,18 @@ namespace MWRender
         }
     }
 
-    class ResetAccumRootCallback : public osg::NodeCallback
+    class ResetAccumRootCallback : public SceneUtil::NodeCallback<ResetAccumRootCallback, osg::MatrixTransform*>
     {
     public:
-        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
+        void operator()(osg::MatrixTransform* transform, osg::NodeVisitor* nv)
         {
-            osg::MatrixTransform* transform = static_cast<osg::MatrixTransform*>(node);
-
             osg::Matrix mat = transform->getMatrix();
             osg::Vec3f position = mat.getTrans();
             position = osg::componentMultiply(mResetAxes, position);
             mat.setTrans(position);
             transform->setMatrix(mat);
 
-            traverse(node, nv);
+            traverse(transform, nv);
         }
 
         void setAccumulate(const osg::Vec3f& accumulate)
@@ -702,8 +582,6 @@ namespace MWRender
 
     void Animation::loadAllAnimationsInFolder(const std::string &model, const std::string &baseModel)
     {
-        const std::map<std::string, VFS::File*>& index = mResourceSystem->getVFS()->getIndex();
-
         std::string animationPath = model;
         if (animationPath.find("meshes") == 0)
         {
@@ -711,21 +589,10 @@ namespace MWRender
         }
         animationPath.replace(animationPath.size()-3, 3, "/");
 
-        mResourceSystem->getVFS()->normalizeFilename(animationPath);
-
-        std::map<std::string, VFS::File*>::const_iterator found = index.lower_bound(animationPath);
-        while (found != index.end())
+        for (const auto& name : mResourceSystem->getVFS()->getRecursiveDirectoryIterator(animationPath))
         {
-            const std::string& name = found->first;
-            if (name.size() >= animationPath.size() && name.substr(0, animationPath.size()) == animationPath)
-            {
-                size_t pos = name.find_last_of('.');
-                if (pos != std::string::npos && name.compare(pos, name.size()-pos, ".kf") == 0)
-                    addSingleAnimSource(name, baseModel);
-            }
-            else
-                break;
-            ++found;
+            if (Misc::getFileExtension(name) == "kf")
+                addSingleAnimSource(name, baseModel);
         }
     }
 
@@ -1093,8 +960,9 @@ namespace MWRender
                 {
                     osg::ref_ptr<osg::Node> node = getNodeMap().at(it->first); // this should not throw, we already checked for the node existing in addAnimSource
 
-                    node->addUpdateCallback(it->second);
-                    mActiveControllers.emplace_back(node, it->second);
+                    osg::Callback* callback = it->second->getAsCallback();
+                    node->addUpdateCallback(callback);
+                    mActiveControllers.emplace_back(node, callback);
 
                     if (blendMask == 0 && node == mAccumRoot)
                     {
@@ -1406,8 +1274,6 @@ namespace MWRender
         if (model.empty())
             return;
 
-        const std::map<std::string, VFS::File*>& index = resourceSystem->getVFS()->getIndex();
-
         std::string animationPath = model;
         if (animationPath.find("meshes") == 0)
         {
@@ -1415,21 +1281,10 @@ namespace MWRender
         }
         animationPath.replace(animationPath.size()-4, 4, "/");
 
-        resourceSystem->getVFS()->normalizeFilename(animationPath);
-
-        std::map<std::string, VFS::File*>::const_iterator found = index.lower_bound(animationPath);
-        while (found != index.end())
+        for (const auto& name : resourceSystem->getVFS()->getRecursiveDirectoryIterator(animationPath))
         {
-            const std::string& name = found->first;
-            if (name.size() >= animationPath.size() && name.substr(0, animationPath.size()) == animationPath)
-            {
-                size_t pos = name.find_last_of('.');
-                if (pos != std::string::npos && name.compare(pos, name.size()-pos, ".nif") == 0)
-                    loadBonesFromFile(node, name, resourceSystem);
-            }
-            else
-                break;
-            ++found;
+            if (Misc::getFileExtension(name) == "nif")
+                loadBonesFromFile(node, name, resourceSystem);
         }
     }
 
@@ -1457,10 +1312,10 @@ namespace MWRender
 
                 cache.insert(std::make_pair(model, created));
 
-                return sceneMgr->createInstance(created);
+                return sceneMgr->getInstance(created);
             }
             else
-                return sceneMgr->createInstance(found->second);
+                return sceneMgr->getInstance(found->second);
         }
         else
         {
@@ -1622,6 +1477,7 @@ namespace MWRender
         bool exterior = mPtr.isInCell() && mPtr.getCell()->getCell()->isExterior();
 
         mExtraLightSource = SceneUtil::addLight(parent, esmLight, Mask_ParticleSystem, Mask_Lighting, exterior);
+        mExtraLightSource->setActorFade(mAlpha);
     }
 
     void Animation::addEffect (const std::string& model, int effectId, bool loop, const std::string& bonename, const std::string& texture)
@@ -1648,19 +1504,28 @@ namespace MWRender
             parentNode = mInsert;
         else
         {
-            NodeMap::const_iterator found = getNodeMap().find(Misc::StringUtils::lowerCase(bonename));
+            NodeMap::const_iterator found = getNodeMap().find(bonename);
             if (found == getNodeMap().end())
                 throw std::runtime_error("Can't find bone " + bonename);
 
             parentNode = found->second;
         }
 
-        osg::ref_ptr<osg::PositionAttitudeTransform> trans = new osg::PositionAttitudeTransform;
+        osg::ref_ptr<SceneUtil::PositionAttitudeTransform> trans = new SceneUtil::PositionAttitudeTransform;
         if (!mPtr.getClass().isNpc())
         {
-            osg::Vec3f bounds (MWBase::Environment::get().getWorld()->getHalfExtents(mPtr) * 2.f / Constants::UnitsPerFoot);
-            float scale = std::max({ bounds.x()/3.f, bounds.y()/3.f, bounds.z()/6.f });
-            trans->setScale(osg::Vec3f(scale, scale, scale));
+            osg::Vec3f bounds (MWBase::Environment::get().getWorld()->getHalfExtents(mPtr) * 2.f);
+            float scale = std::max({bounds.x(), bounds.y(), bounds.z() / 2.f}) / 64.f;
+            if (scale > 1.f)
+                trans->setScale(osg::Vec3f(scale, scale, scale));
+            float offset = 0.f;
+            if (bounds.z() < 128.f)
+                offset = bounds.z() - 128.f;
+            else if (bounds.z() < bounds.x() + bounds.y())
+                offset = 128.f - bounds.z();
+            if (MWBase::Environment::get().getWorld()->isFlying(mPtr))
+                offset /= 20.f;
+            trans->setPosition(osg::Vec3f(0.f, 0.f, offset * scale));
         }
         parentNode->addChild(trans);
 
@@ -1670,9 +1535,6 @@ namespace MWRender
         SceneUtil::FindMaxControllerLengthVisitor findMaxLengthVisitor;
         node->accept(findMaxLengthVisitor);
 
-        // FreezeOnCull doesn't work so well with effect particles, that tend to have moving emitters
-        SceneUtil::DisableFreezeOnCullVisitor disableFreezeOnCullVisitor;
-        node->accept(disableFreezeOnCullVisitor);
         node->setNodeMask(Mask_Effect);
 
         params.mMaxControllerLength = findMaxLengthVisitor.getMaxLength();
@@ -1751,8 +1613,7 @@ namespace MWRender
 
     const osg::Node* Animation::getNode(const std::string &name) const
     {
-        std::string lowerName = Misc::StringUtils::lowerCase(name);
-        NodeMap::const_iterator found = getNodeMap().find(lowerName);
+        NodeMap::const_iterator found = getNodeMap().find(name);
         if (found == getNodeMap().end())
             return nullptr;
         else
@@ -1771,7 +1632,6 @@ namespace MWRender
             if (mTransparencyUpdater == nullptr)
             {
                 mTransparencyUpdater = new TransparencyUpdater(alpha);
-                mTransparencyUpdater->setLightSource(mExtraLightSource);
                 mObjectRoot->addCullCallback(mTransparencyUpdater);
             }
             else
@@ -1782,6 +1642,8 @@ namespace MWRender
             mObjectRoot->removeCullCallback(mTransparencyUpdater);
             mTransparencyUpdater = nullptr;
         }
+        if (mExtraLightSource)
+            mExtraLightSource->setActorFade(alpha);
     }
 
     void Animation::setLightEffect(float effect)
@@ -1834,7 +1696,7 @@ namespace MWRender
         mRootController = addRotateController("bip01");
     }
 
-    RotateController* Animation::addRotateController(std::string bone)
+    RotateController* Animation::addRotateController(const std::string &bone)
     {
         auto iter = getNodeMap().find(bone);
         if (iter == getNodeMap().end())
@@ -1926,7 +1788,7 @@ namespace MWRender
             if (!ptr.getClass().getEnchantment(ptr).empty())
                 mGlowUpdater = SceneUtil::addEnchantedGlow(mObjectRoot, mResourceSystem, ptr.getClass().getEnchantmentColor(ptr));
         }
-        if (ptr.getTypeName() == typeid(ESM::Light).name() && allowLight)
+        if (ptr.getType() == ESM::Light::sRecordId && allowLight)
             addExtraLight(getOrCreateObjectRoot(), ptr.get<ESM::Light>()->mBase);
 
         if (!allowLight && mObjectRoot)
@@ -1955,7 +1817,7 @@ namespace MWRender
 
     bool ObjectAnimation::canBeHarvested() const
     {
-        if (mPtr.getTypeName() != typeid(ESM::Container).name())
+        if (mPtr.getType() != ESM::Container::sRecordId)
             return false;
 
         const MWWorld::LiveCellRef<ESM::Container>* ref = mPtr.get<ESM::Container>();
@@ -1963,11 +1825,6 @@ namespace MWRender
             return false;
 
         return SceneUtil::hasUserDescription(mObjectRoot, Constants::HerbalismLabel);
-    }
-
-    Animation::AnimState::~AnimState()
-    {
-
     }
 
     // ------------------------------

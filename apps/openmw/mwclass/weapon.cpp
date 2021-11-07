@@ -34,11 +34,6 @@ namespace MWClass
         }
     }
 
-    void Weapon::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
-    {
-        // TODO: add option somewhere to enable collision for placeable objects
-    }
-
     std::string Weapon::getModel(const MWWorld::ConstPtr &ptr) const
     {
         const MWWorld::LiveCellRef<ESM::Weapon> *ref = ptr.get<ESM::Weapon>();
@@ -130,7 +125,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Weapon);
 
-        registerClass (typeid (ESM::Weapon).name(), instance);
+        registerClass (ESM::Weapon::sRecordId, instance);
     }
 
     std::string Weapon::getUpSoundId (const MWWorld::ConstPtr& ptr) const

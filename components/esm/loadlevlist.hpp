@@ -22,6 +22,7 @@ struct LevelledListBase
 {
     int mFlags;
     unsigned char mChanceNone; // Chance that none are selected (0-100)
+    unsigned int mRecordFlags;
     std::string mId;
 
     // Record name used to read references. Must be set before load() is
@@ -47,7 +48,7 @@ struct CreatureLevList: LevelledListBase
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "CreatureLevList"; }
+    static std::string_view getRecordType() { return "CreatureLevList"; }
 
     enum Flags
     {
@@ -67,7 +68,7 @@ struct ItemLevList: LevelledListBase
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "ItemLevList"; }
+    static std::string_view getRecordType() { return "ItemLevList"; }
 
     enum Flags
     {

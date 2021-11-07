@@ -42,11 +42,11 @@ varying vec3 passNormal;
   #endif
 #endif
 
-uniform mat4 osg_ViewMatrixInverse;
+uniform highp mat4 osg_ViewMatrixInverse;
 uniform float osg_SimulationTime;
 
 uniform vec3 windData;
-uniform vec3 playerPos;
+uniform highp vec3 playerPos;
 attribute float originalCoords;
 
 #if @groundcoverStompMode == 0
@@ -58,27 +58,27 @@ attribute float originalCoords;
     #define STOMP_INTENSITY_LEVEL @groundcoverStompIntensity
 #endif
 
-vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
+highp vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 {
-    float h = originalCoords;
+    highp float h = originalCoords;
 
-    vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos, 1.0);
+    highp vec4 worldPos = osg_ViewMatrixInverse * vec4(viewPos, 1.0);
 
-    vec2 WindVec = vec2(windData.x);
+    highp vec2 WindVec = vec2(windData.x);
 
-    float v = length(WindVec);
-    vec2 displace = vec2(2.0 * WindVec + 0.1);
+    highp float v = length(WindVec);
+    highp vec2 displace = vec2(2.0 * WindVec + 0.1);
 
-    vec2 harmonics = vec2(0.0);
+    highp vec2 harmonics = vec2(0.0);
 
     harmonics.xy += vec2((1.0 - 0.10*v) * sin(1.0*osg_SimulationTime +  worldPos.xy / 1100.0));
     harmonics.xy += vec2((1.0 - 0.04*v) * cos(2.0*osg_SimulationTime +  worldPos.xy / 750.0));
     harmonics.xy += vec2((1.0 + 0.14*v) * sin(3.0*osg_SimulationTime +  worldPos.xy / 500.0));
     harmonics.xy += vec2((1.0 + 0.28*v) * sin(5.0*osg_SimulationTime  +  worldPos.xy / 200.0));
 
-    vec2 stomp = vec2(0.0);
+    highp vec2 stomp = vec2(0.0);
 #if STOMP
-    float d = length(worldPos.xy - playerPos.xy);
+    highp float d = length(worldPos.xy - playerPos.xy);
 #if STOMP_INTENSITY_LEVEL == 0
     // Gentle intensity
     const float STOMP_RANGE = 50.0; // maximum distance from player that grass is affected by stomping
@@ -100,11 +100,11 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 #endif
 #endif
 
-    vec4 ret = vec4(0.0);
+    highp vec4 ret = vec4(0.0);
     ret.xy += clamp(0.02 * h, 0.0, 1.0) * (harmonics * displace + stomp);
 
 #ifdef STORM_MODE
-    vec2 stormDir = vec2(windData.y, windData.z);
+    highp vec2 stormDir = vec2(windData.y, windData.z);
 
     if(stormDir != vec2(0.0) && h > 0.0) {
         ret.xy += h*stormDir;
@@ -118,7 +118,7 @@ vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 
 void main(void)
 {
-    vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
+    highp vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
 
     gl_ClipVertex = viewPos;

@@ -28,6 +28,10 @@ endif (GIT_CHECKOUT)
 
 # source files
 
+add_component_dir (lua
+    luastate scriptscontainer utilpackage serialization configuration
+    )
+
 add_component_dir (settings
     settings parser
     )
@@ -51,8 +55,9 @@ add_component_dir (shader
 
 add_component_dir (sceneutil
     clone attach visitor util statesetupdater controller skeleton riggeometry morphgeometry lightcontroller
-    lightmanager lightutil positionattitudetransform workqueue unrefqueue pathgridutil waterutil writescene serialize optimizer
-    actorutil detourdebugdraw navmesh agentpath shadow mwshadowtechnique recastmesh shadowsbin osgacontroller
+    lightmanager lightutil positionattitudetransform workqueue pathgridutil waterutil writescene serialize optimizer
+    actorutil detourdebugdraw navmesh agentpath shadow mwshadowtechnique recastmesh shadowsbin osgacontroller rtt
+    screencapture
     )
 
 add_component_dir (nif
@@ -79,7 +84,7 @@ add_component_dir (esm
     loadweap records aipackage effectlist spelllist variant variantimp loadtes3 cellref filter
     savedgame journalentry queststate locals globalscript player objectstate cellid cellstate globalmap inventorystate containerstate npcstate creaturestate dialoguestate statstate
     npcstats creaturestats weatherstate quickkeys fogstate spellstate activespells creaturelevliststate doorstate projectilestate debugprofile
-    aisequence magiceffects util custommarkerstate stolenitems transport animationstate controlsstate mappings
+    aisequence magiceffects util custommarkerstate stolenitems transport animationstate controlsstate mappings luascripts
     )
 
 add_component_dir (esmterrain
@@ -88,6 +93,7 @@ add_component_dir (esmterrain
 
 add_component_dir (misc
     constants utf8stream stringops resourcehelpers rng messageformatparser weakcache thread
+    compression
     )
 
 add_component_dir (debug
@@ -151,6 +157,10 @@ add_component_dir (fallback
     fallback validate
     )
 
+add_component_dir (queries
+    query luabindings
+    )
+
 if(WIN32)
     add_component_dir (crashcatcher
         windows_crashcatcher
@@ -183,7 +193,26 @@ add_component_dir(detournavigator
     raycast
     navmeshtileview
     oscillatingrecastmeshobject
+    offmeshconnectionsmanager
+    preparednavmeshdata
+    navmeshcacheitem
+    navigatorutils
     )
+
+add_component_dir(loadinglistener
+    reporter
+    )
+
+add_component_dir(sqlite3
+    db
+    statement
+    transaction
+)
+
+add_component_dir(esmloader
+    load
+    esmdata
+)
 
 set (ESM_UI ${CMAKE_SOURCE_DIR}/files/ui/contentselector.ui
     )
@@ -205,12 +234,11 @@ if (USE_QT)
         processinvoker
         )
 
-    add_component_dir (misc
+    add_component_qt_dir (misc
         helpviewer
         )
 
     QT5_WRAP_UI(ESM_UI_HDR ${ESM_UI})
-    QT5_WRAP_CPP(MOC_SRCS ${COMPONENT_MOC_FILES})
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -221,7 +249,9 @@ endif ()
 
 include_directories(${BULLET_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
-add_library(components STATIC ${COMPONENT_FILES} ${MOC_SRCS} ${ESM_UI_HDR})
+find_package(SQLite3 REQUIRED)
+
+add_library(components STATIC ${COMPONENT_FILES})
 
 target_link_libraries(components
     # CMake's built-in OSG finder does not use pkgconfig, so we have to
@@ -251,6 +281,9 @@ target_link_libraries(components
     RecastNavigation::DebugUtils
     RecastNavigation::Detour
     RecastNavigation::Recast
+
+    Base64
+    SQLite::SQLite3
     )
 
 target_link_libraries(components ${BULLET_LIBRARIES})
@@ -262,12 +295,23 @@ if (WIN32)
 endif()
 
 if (USE_QT)
-    target_link_libraries(components Qt5::Widgets Qt5::Core)
+    add_library(components_qt STATIC ${COMPONENT_QT_FILES} ${ESM_UI_HDR})
+    target_link_libraries(components_qt components Qt5::Widgets Qt5::Core)
+    target_compile_definitions(components_qt PRIVATE OPENMW_DOC_BASEURL="${OPENMW_DOC_BASEURL}")
 endif()
 
 if (GIT_CHECKOUT)
     add_dependencies (components git-version)
 endif (GIT_CHECKOUT)
+
+if (OSG_STATIC AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+    find_package(X11 REQUIRED COMPONENTS Xinerama Xrandr)
+    target_link_libraries(components ${CMAKE_DL_LIBS} X11::X11 X11::Xinerama X11::Xrandr)
+    find_package(Fontconfig MODULE)
+    if(Fontconfig_FOUND)
+        target_link_libraries(components Fontconfig::Fontconfig)
+    endif()
+endif()
 
 if (WIN32)
     target_link_libraries(components shlwapi)
@@ -288,3 +332,35 @@ endif()
 set(COMPONENT_FILES ${COMPONENT_FILES} PARENT_SCOPE)
 
 target_compile_definitions(components PUBLIC BT_USE_DOUBLE_PRECISION)
+
+if(OSG_STATIC)
+    unset(_osg_plugins_static_files)
+    add_library(components_osg_plugins INTERFACE)
+    foreach(_plugin ${USED_OSG_PLUGINS})
+        string(TOUPPER ${_plugin} _plugin_uc)
+        if(OPENMW_USE_SYSTEM_OSG)
+            list(APPEND _osg_plugins_static_files ${${_plugin_uc}_LIBRARY})
+        else()
+            list(APPEND _osg_plugins_static_files $<TARGET_FILE:${${_plugin_uc}_LIBRARY}>)
+            target_link_libraries(components_osg_plugins INTERFACE $<TARGET_PROPERTY:${${_plugin_uc}_LIBRARY},LINK_LIBRARIES>)
+            add_dependencies(components_osg_plugins ${${_plugin_uc}_LIBRARY})
+        endif()
+    endforeach()
+    # We use --whole-archive because OSG plugins use registration.
+    get_whole_archive_options(_opts ${_osg_plugins_static_files})
+    target_link_options(components_osg_plugins INTERFACE ${_opts})
+    target_link_libraries(components components_osg_plugins)
+
+    if(OPENMW_USE_SYSTEM_OSG)
+        # OSG plugin pkgconfig files are missing these dependencies.
+        # https://github.com/openscenegraph/OpenSceneGraph/issues/1052
+        find_package(Freetype REQUIRED)
+        find_package(JPEG REQUIRED)
+        find_package(PNG REQUIRED)
+        target_link_libraries(components Freetype::Freetype JPEG::JPEG PNG::PNG)
+    endif()
+endif(OSG_STATIC)
+
+if(USE_QT)
+    set_property(TARGET components_qt PROPERTY AUTOMOC ON)
+endif(USE_QT)

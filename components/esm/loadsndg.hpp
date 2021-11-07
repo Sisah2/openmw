@@ -17,7 +17,7 @@ struct SoundGenerator
 {
     static unsigned int sRecordId;
     /// Return a string descriptor for this record type. Currently used for debugging / error logs only.
-    static std::string getRecordType() { return "SoundGenerator"; }
+    static std::string_view getRecordType() { return "SoundGenerator"; }
 
     enum Type
     {
@@ -34,6 +34,7 @@ struct SoundGenerator
     // Type
     int mType;
 
+    unsigned int mRecordFlags;
     std::string mId, mCreature, mSound;
 
     void load(ESMReader &esm, bool &isDeleted);

@@ -23,7 +23,7 @@ namespace ContentSelectorView
 
     public:
 
-        explicit ContentSelector(QWidget *parent = nullptr);
+        explicit ContentSelector(QWidget *parent = nullptr, bool showOMWScripts = false);
 
         QString currentFile() const;
 
@@ -40,7 +40,7 @@ namespace ContentSelectorView
         void setGameFile (const QString &filename = QString(""));
 
         bool isGamefileSelected() const
-            { return ui.gameFileView->currentIndex() != -1; }
+            { return ui.gameFileView->currentIndex() > 0; }
 
         QWidget *uiWidget() const
             { return ui.contentGroupBox; }
@@ -56,7 +56,7 @@ namespace ContentSelectorView
 
         Ui::ContentSelector ui;
 
-        void buildContentModel();
+        void buildContentModel(bool showOMWScripts);
         void buildGameFileView();
         void buildAddonView();
         void buildContextMenu();

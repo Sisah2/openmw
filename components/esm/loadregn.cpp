@@ -11,12 +11,13 @@ namespace ESM
     void Region::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
+        mRecordFlags = esm.getRecordFlags();
 
         bool hasName = false;
         while (esm.hasMoreSubs())
         {
             esm.getSubName();
-            switch (esm.retSubName().intval)
+            switch (esm.retSubName().toInt())
             {
                 case ESM::SREC_NAME:
                     mId = esm.getHString();
@@ -39,7 +40,7 @@ namespace ESM
                         // May include the additional two bytes (but not necessarily)
                         if (esm.getSubSize() == sizeof(mData))
                         {
-                            esm.getExact(&mData, sizeof(mData));
+                            esm.getT(mData);
                         }
                         else
                         {
@@ -89,7 +90,7 @@ namespace ESM
 
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
             return;
         }
 

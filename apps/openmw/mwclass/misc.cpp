@@ -37,11 +37,6 @@ namespace MWClass
         }
     }
 
-    void Miscellaneous::insertObject(const MWWorld::Ptr& ptr, const std::string& model, MWPhysics::PhysicsSystem& physics) const
-    {
-        // TODO: add option somewhere to enable collision for placeable objects
-    }
-
     std::string Miscellaneous::getModel(const MWWorld::ConstPtr &ptr) const
     {
         const MWWorld::LiveCellRef<ESM::Miscellaneous> *ref = ptr.get<ESM::Miscellaneous>();
@@ -111,7 +106,7 @@ namespace MWClass
     {
         std::shared_ptr<Class> instance (new Miscellaneous);
 
-        registerClass (typeid (ESM::Miscellaneous).name(), instance);
+        registerClass (ESM::Miscellaneous::sRecordId, instance);
     }
 
     std::string Miscellaneous::getUpSoundId (const MWWorld::ConstPtr& ptr) const

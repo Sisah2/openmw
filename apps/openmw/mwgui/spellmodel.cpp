@@ -1,6 +1,7 @@
 #include "spellmodel.hpp"
 
 #include <components/debug/debuglog.hpp>
+#include <components/misc/utf8stream.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
@@ -69,7 +70,7 @@ namespace MWGui
                     fullEffectName += " " + wm->getGameSettingString(ESM::Attribute::sGmstAttributeIds[effect.mAttribute], "");
                 }
 
-                std::string convert = Misc::StringUtils::lowerCaseUtf8(fullEffectName);
+                std::string convert = Utf8Stream::lowerCaseUtf8(fullEffectName);
                 if (convert.find(filter) != std::string::npos)
                 {
                     return true;
@@ -90,15 +91,14 @@ namespace MWGui
         const MWWorld::ESMStore &esmStore =
             MWBase::Environment::get().getWorld()->getStore();
 
-        std::string filter = Misc::StringUtils::lowerCaseUtf8(mFilter);
+        std::string filter = Utf8Stream::lowerCaseUtf8(mFilter);
 
-        for (MWMechanics::Spells::TIterator it = spells.begin(); it != spells.end(); ++it)
+        for (const ESM::Spell* spell : spells)
         {
-            const ESM::Spell* spell = it->first;
             if (spell->mData.mType != ESM::Spell::ST_Power && spell->mData.mType != ESM::Spell::ST_Spell)
                 continue;
 
-            std::string name = Misc::StringUtils::lowerCaseUtf8(spell->mName);
+            std::string name = Utf8Stream::lowerCaseUtf8(spell->mName);
  
             if (name.find(filter) == std::string::npos 
                 && !matchingEffectExists(filter, spell->mEffects))
@@ -109,7 +109,7 @@ namespace MWGui
             if (spell->mData.mType == ESM::Spell::ST_Spell)
             {
                 newSpell.mType = Spell::Type_Spell;
-                std::string cost = std::to_string(spell->mData.mCost);
+                std::string cost = std::to_string(MWMechanics::calcSpellCost(*spell));
                 std::string chance = std::to_string(int(MWMechanics::getSpellSuccessChance(spell, mActor)));
                 newSpell.mCostColumn = cost + "/" + chance;
             }
@@ -140,7 +140,7 @@ namespace MWGui
             if (enchant->mData.mType != ESM::Enchantment::WhenUsed && enchant->mData.mType != ESM::Enchantment::CastOnce)
                 continue;
 
-            std::string name = Misc::StringUtils::lowerCaseUtf8(item.getClass().getName(item));
+            std::string name = Utf8Stream::lowerCaseUtf8(item.getClass().getName(item));
 
             if (name.find(filter) == std::string::npos
                 && !matchingEffectExists(filter, enchant->mEffects))

@@ -13,8 +13,7 @@ namespace ESM {
     void Creature::load(ESMReader &esm, bool &isDeleted)
     {
         isDeleted = false;
-
-        mPersistent = (esm.getRecordFlags() & 0x0400) != 0;
+        mRecordFlags = esm.getRecordFlags();
 
         mAiPackage.mList.clear();
         mInventory.mList.clear();
@@ -32,7 +31,7 @@ namespace ESM {
         while (esm.hasMoreSubs())
         {
             esm.getSubName();
-            switch (esm.retSubName().intval)
+            switch (esm.retSubName().toInt())
             {
                 case ESM::SREC_NAME:
                     mId = esm.getHString();
@@ -115,7 +114,7 @@ namespace ESM {
 
         if (isDeleted)
         {
-            esm.writeHNCString("DELE", "");
+            esm.writeHNString("DELE", "", 3);
             return;
         }
 

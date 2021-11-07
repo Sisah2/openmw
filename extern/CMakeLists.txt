@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+set(CMAKE_CXX_CLANG_TIDY "")
+
 # Like `FetchContent_MakeAvailable` but passes EXCLUDE_FROM_ALL to `add_subdirectory`.
 macro(FetchContent_MakeAvailableExcludeFromAll)
     foreach(contentName IN ITEMS ${ARGV})
@@ -185,4 +187,24 @@ if(NOT OPENMW_USE_SYSTEM_RECASTNAVIGATION)
         SOURCE_DIR fetched/recastnavigation
     )
     FetchContent_MakeAvailableExcludeFromAll(recastnavigation)
+endif()
+
+if (NOT OPENMW_USE_SYSTEM_SQLITE3)
+    include(FetchContent)
+    FetchContent_Declare(sqlite3
+        URL https://www.sqlite.org/2021/sqlite-amalgamation-3360000.zip
+        URL_HASH MD5=c5d360c74111bafae1b704721ff18fe6
+        SOURCE_DIR fetched/sqlite3
+    )
+    FetchContent_MakeAvailableExcludeFromAll(sqlite3)
+
+    add_library(sqlite3 STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
+    target_include_directories(sqlite3 INTERFACE ${sqlite3_SOURCE_DIR}/)
+    if (UNIX)
+        target_link_libraries(sqlite3 ${CMAKE_DL_LIBS})
+    endif()
+    add_library(SQLite::SQLite3 ALIAS sqlite3)
+
+    set(SQLite3_INCLUDE_DIR ${sqlite3_SOURCE_DIR}/ PARENT_SCOPE)
+    set(SQLite3_LIBRARY sqlite3 PARENT_SCOPE)
 endif()
