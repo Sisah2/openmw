@@ -11,7 +11,11 @@ file(GLOB UNITTEST_SRC_FILES
 
     ../openmw/mwworld/store.cpp
     ../openmw/mwworld/esmstore.cpp
+    ../openmw/mwworld/timestamp.cpp
+
     mwworld/test_store.cpp
+    mwworld/testduration.cpp
+    mwworld/testtimestamp.cpp
 
     mwdialogue/test_keywordsearch.cpp
 
@@ -27,6 +31,7 @@ file(GLOB UNITTEST_SRC_FILES
     lua/test_configuration.cpp
     lua/test_l10n.cpp
     lua/test_storage.cpp
+    lua/test_async.cpp
 
     lua/test_ui_content.cpp
 

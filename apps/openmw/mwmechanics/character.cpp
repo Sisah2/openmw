@@ -338,6 +338,9 @@ void CharacterController::refreshHitRecoilAnims()
     {
         if (!mAnimation->isPlaying(mCurrentHit))
         {
+            if (isKnockedOut() && mCurrentHit.empty() && knockout)
+                return;
+
             mHitState = CharState_None;
             mCurrentHit.clear();
             stats.setKnockedDown(false);
@@ -389,18 +392,6 @@ void CharacterController::refreshHitRecoilAnims()
             mCurrentHit = chooseRandomGroup(hitStateToAnimGroup(CharState_Hit));
     }
 
-    if (!mAnimation->hasAnimation(mCurrentHit))
-    {
-        // The hit animation is missing. Reset the current hit state and immediately cancel all states as if the animation were instantaneous.
-        mHitState = CharState_None;
-        mCurrentHit.clear();
-        stats.setKnockedDown(false);
-        stats.setHitRecovery(false);
-        stats.setBlock(false);
-        resetCurrentIdleState();
-        return;
-    }
-
     // Cancel upper body animations
     if (isKnockedOut() || isKnockedDown())
     {
@@ -416,6 +407,12 @@ void CharacterController::refreshHitRecoilAnims()
         {
             mUpperBodyState = UpperCharState_Nothing;
         }
+    }
+
+    if (!mAnimation->hasAnimation(mCurrentHit))
+    {
+        mCurrentHit.clear();
+        return;
     }
 
     mAnimation->play(mCurrentHit, priority, MWRender::Animation::BlendMask_All, true, 1, startKey, stopKey, 0.0f, ~0ul);
@@ -686,7 +683,7 @@ void CharacterController::refreshIdleAnims(CharacterState idle, bool force)
     // FIXME: if one of the below states is close to their last animation frame (i.e. will be disabled in the coming update),
     // the idle animation should be displayed
     if (((mUpperBodyState != UpperCharState_Nothing && mUpperBodyState != UpperCharState_WeapEquiped)
-       || mMovementState != CharState_None || mHitState != CharState_None) && !mPtr.getClass().isBipedal(mPtr))
+       || mMovementState != CharState_None || !mCurrentHit.empty()) && !mPtr.getClass().isBipedal(mPtr))
     {
         resetCurrentIdleState();
         return;

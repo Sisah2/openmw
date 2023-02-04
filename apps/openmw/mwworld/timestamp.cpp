@@ -2,16 +2,19 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <string>
 
 #include <components/esm/defs.hpp>
+
+#include "duration.hpp"
 
 namespace MWWorld
 {
     TimeStamp::TimeStamp (float hour, int day)
     : mHour (hour), mDay (day)
     {
-        if (hour<0 || hour>=24 || day<0)
-            throw std::runtime_error ("invalid time stamp");
+        if (hour < 0 || hour >= 24)
+            throw std::runtime_error("invalid time stamp hour: " + std::to_string(hour));
     }
 
     float TimeStamp::getHour() const
@@ -29,11 +32,10 @@ namespace MWWorld
         if (hours<0)
             throw std::runtime_error ("can't move time stamp backwards in time");
 
-        hours += mHour;
+        const Duration duration = Duration::fromHours(mHour + hours);
 
-        mHour = static_cast<float> (std::fmod (hours, 24));
-
-        mDay += static_cast<int>(hours / 24);
+        mHour = duration.getHours();
+        mDay += duration.getDays();
 
         return *this;
     }

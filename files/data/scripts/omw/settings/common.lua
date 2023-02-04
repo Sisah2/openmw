@@ -6,6 +6,7 @@ local argumentSectionPostfix = 'Arguments'
 
 local contextSection = storage.playerSection or storage.globalSection
 local groupSection = contextSection(groupSectionKey)
+groupSection:reset()
 groupSection:removeOnExit()
 
 local function validateSettingOptions(options)
@@ -136,7 +137,6 @@ return {
                 saved[groupKey] = contextSection(groupKey):asTable()
             end
         end
-        groupSection:reset()
         return saved
     end,
     registerGroup = registerGroup,

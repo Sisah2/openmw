@@ -43,7 +43,7 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="1">
+         <item row="6" column="1">
           <widget class="QCheckBox" name="avoidCollisionsCheckBox">
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled NPCs apply evasion maneuver to avoid collisions with others.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -81,6 +81,16 @@
            <property name="text">
             <string>Permanent barter disposition changes</string>
            </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QCheckBox" name="stealingFromKnockedOutCheckBox">
+          <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Make stealing items from NPCs that were knocked down possible during combat.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+            <string>Always allow stealing from knocked out actors</string>
+          </property>
           </widget>
          </item>
          <item row="0" column="1">
@@ -143,17 +153,17 @@
            </property>
           </widget>
          </item>
+         <item row="5" column="1">
+          <widget class="QCheckBox" name="classicCalmSpellsCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Stops combat with NPCs affected by Calm spells every frame -- like in Morrowind without the MCP.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Classic Calm spells behavior</string>
+           </property>
+          </widget>
+         </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="stealingFromKnockedOutCheckBox">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Make stealing items from NPCs that were knocked down possible during combat.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string>Always allow stealing from knocked out actors</string>
-         </property>
-        </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="allowNPCToFollowOverWaterSurfaceCheckBox">
@@ -455,7 +465,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="0">
+              <item row="3" column="0">
                <widget class="QCheckBox" name="softParticlesCheckBox">
                 <property name="toolTip">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enables soft particles for particle effects. This technique softens the intersection between individual particles and other opaque geometry by blending between them.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -465,6 +475,16 @@
                 </property>
                </widget>
               </item>
+              <item row="3" column="1">
+                <widget class="QCheckBox" name="adjustCoverageForAlphaTestCheckBox">
+                 <property name="toolTip">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Simulate coverage-preserving mipmaps to prevent alpha-tested meshes shrinking as they get further away. Will cause meshes whose textures have coverage-preserving mipmaps to grow, though, so refer to mod installation instructions for how to set this.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                 <property name="text">
+                  <string>Adjust coverage for alpha test</string>
+                 </property>
+                </widget>
+               </item>
              </layout>
             </widget>
            </item>

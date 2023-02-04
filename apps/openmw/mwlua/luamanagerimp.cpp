@@ -1,5 +1,9 @@
 #include "luamanagerimp.hpp"
 
+#include <osg/Stats>
+
+#include "sol/state_view.hpp"
+
 #include <components/debug/debuglog.hpp>
 
 #include <components/esm3/esmreader.hpp>
@@ -127,6 +131,10 @@ namespace MWLua
     void LuaManager::update()
     {
         static const bool luaDebug = Settings::Manager::getBool("lua debug", "Lua");
+        static const int gcStepCount = Settings::Manager::getInt("gc steps per frame", "Lua");
+        if (gcStepCount > 0)
+            lua_gc(mLua.sol(), LUA_GCSTEP, gcStepCount);
+
         if (mPlayer.isEmpty())
             return;  // The game is not started yet.
 
@@ -176,7 +184,7 @@ namespace MWLua
 
         // Run queued callbacks
         for (CallbackWithData& c : mQueuedCallbacks)
-            c.mCallback.call(c.mArg);
+            c.mCallback.tryCall(c.mArg);
         mQueuedCallbacks.clear();
 
         // Engine handlers in local scripts
@@ -598,4 +606,9 @@ namespace MWLua
         mActionQueue.push_back(std::make_unique<FunctionAction>(&mLua, std::move(action), name));
     }
 
+    void LuaManager::reportStats(unsigned int frameNumber, osg::Stats& stats)
+    {
+        const sol::state_view state(mLua.sol());
+        stats.setAttribute(frameNumber, "Lua UsedMemory", state.memory_used());
+    }
 }
