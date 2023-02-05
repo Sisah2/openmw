@@ -516,7 +516,7 @@ namespace MWGui
 //        Settings::Manager::setInt("resolution x", "Video", resX);
 //        Settings::Manager::setInt("resolution y", "Video", resY);
 
-        apply();
+//        apply();
     }
 
     void SettingsWindow::onResolutionCancel()
@@ -876,8 +876,8 @@ namespace MWGui
                 std::string resStr = mResolutionList->getItemNameAt(mResolutionList->getIndexSelected());
                 int resX, resY;
                 parseResolution (resX, resY, resStr);
-                Settings::Manager::setInt("resolution x", "Video", resX);
-                Settings::Manager::setInt("resolution y", "Video", resY);
+//                Settings::Manager::setInt("resolution x", "Video", resX);
+//                Settings::Manager::setInt("resolution y", "Video", resY);
             }
 
             bool supported = false;
@@ -903,8 +903,8 @@ namespace MWGui
             {
                 if (fallbackX != 0 && fallbackY != 0)
                 {
-                    Settings::Manager::setInt("resolution x", "Video", fallbackX);
-                    Settings::Manager::setInt("resolution y", "Video", fallbackY);
+//                    Settings::Manager::setInt("resolution x", "Video", fallbackX);
+//                    Settings::Manager::setInt("resolution y", "Video", fallbackY);
                 }
             }
 
