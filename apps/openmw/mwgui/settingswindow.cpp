@@ -513,8 +513,8 @@ namespace MWGui
         int resX, resY;
         parseResolution (resX, resY, resStr);
 
-        Settings::Manager::setInt("resolution x", "Video", resX);
-        Settings::Manager::setInt("resolution y", "Video", resY);
+//        Settings::Manager::setInt("resolution x", "Video", resX);
+//        Settings::Manager::setInt("resolution y", "Video", resY);
 
         apply();
     }
