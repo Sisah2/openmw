@@ -1845,7 +1845,7 @@ void MWShadowTechnique::createShaders()
     osg::ref_ptr<osg::ClipControl> clipcontrol = new osg::ClipControl(osg::ClipControl::LOWER_LEFT, osg::ClipControl::NEGATIVE_ONE_TO_ONE);
     _shadowCastingStateSet->setAttribute(clipcontrol, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
     _shadowCastingStateSet->setAttribute(depth, osg::StateAttribute::ON|osg::StateAttribute::OVERRIDE);
-//    _shadowCastingStateSet->setMode(GL_DEPTH_CLAMP, osg::StateAttribute::ON);
+    _shadowCastingStateSet->setMode(0x864F, osg::StateAttribute::ON);
 
     // TODO: compare performance when alpha testing is handled here versus using a discard in the fragment shader
 }
