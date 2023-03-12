@@ -715,6 +715,13 @@ namespace Shader
         if (!node.getUserValue("shaderPrefix", shaderPrefix))
             shaderPrefix = mDefaultShaderPrefix;
 
+        if (shaderPrefix == "snow") 
+        {
+            shaderPrefix = "objects";
+            defineMap["forcePPL"] = "0";
+            defineMap["particleOcclusion"] = "1";
+        }
+
         auto program = mShaderManager.getProgram(shaderPrefix, defineMap, mProgramTemplate);
         writableStateSet->setAttributeAndModes(program, osg::StateAttribute::ON);
         addedState->setAttributeAndModes(program);

@@ -728,7 +728,10 @@ namespace MWRender
                         ps->setUserValue("particleOcclusion", true);
                 }
 
-                mSceneManager->recreateShaders(mParticleNode);
+                if (mPrecipitationOcclusion && mCurrentParticleEffect == "meshes\\snow.nif")
+             	    mSceneManager->recreateShaders(mParticleNode, "snow");
+		else
+             	    mSceneManager->recreateShaders(mParticleNode);
 
                 if (mPrecipitationOcclusion && occlusionEnabledForEffect)
                 {
