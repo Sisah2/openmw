@@ -718,8 +718,15 @@ namespace Shader
         if (shaderPrefix == "snow") 
         {
             shaderPrefix = "objects";
+            defineMap["endLight"] = "0";
             defineMap["forcePPL"] = "0";
             defineMap["particleOcclusion"] = "1";
+        } 
+	else if (shaderPrefix == "other_weather_particle_effect") 
+        {
+            shaderPrefix = "objects";
+            defineMap["endLight"] = "0";
+            defineMap["forcePPL"] = "0";
         }
 
         auto program = mShaderManager.getProgram(shaderPrefix, defineMap, mProgramTemplate);

@@ -731,7 +731,7 @@ namespace MWRender
                 if (mPrecipitationOcclusion && mCurrentParticleEffect == "meshes\\snow.nif")
              	    mSceneManager->recreateShaders(mParticleNode, "snow");
 		else
-             	    mSceneManager->recreateShaders(mParticleNode);
+             	    mSceneManager->recreateShaders(mParticleNode, "other_weather_particle_effect");
 
                 if (mPrecipitationOcclusion && occlusionEnabledForEffect)
                 {
