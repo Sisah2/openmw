@@ -163,7 +163,7 @@ namespace MWRender
                 if (Stereo::getMultiview())
                     mTextures[i][Tex_OpaqueDepth] = new osg::Texture2DArray;
                 else
-                    mTextures[i][Tex_OpaqueDepth] = new osg::Texture2D;
+                    mTextures[i][Tex_Depth] = new osg::Texture2D;
             }
         }
 
@@ -527,7 +527,7 @@ namespace MWRender
         {
             fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
             fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
-                Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
+                Stereo::createMultiviewCompatibleAttachment(textures[Tex_Depth]));
         }
 
 #ifdef __APPLE__
@@ -763,7 +763,8 @@ namespace MWRender
 
         if (mDisableDepthPasses)
         {
-            textures[Tex_OpaqueDepth] = nullptr;
+            textures[Tex_OpaqueDepth] = textures[Tex_Depth];
+            //textures[Tex_OpaqueDepth]->setName("opaqueTexMap");
         }
         else
         {
