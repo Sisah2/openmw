@@ -763,6 +763,7 @@ namespace MWRender
 
         if (mDisableDepthPasses)
         {
+            int test = mSamples(Settings::Manager::getInt("test", "Test"));
             
             if(mTextures[0][Tex_Depth] == nullptr)
                 Log(Debug::Error) << "[0] == nullptr";
@@ -770,7 +771,24 @@ namespace MWRender
             if(mTextures[1][Tex_Depth] == nullptr)
                 Log(Debug::Error) << "[1] == nullptr";
             
-            textures[Tex_OpaqueDepth] = textures[Tex_Depth];
+            
+            if(test == 1) {
+                textures[Tex_OpaqueDepth] = mTextures[0][Tex_Depth];
+                }
+            else if(test == 2) {
+                textures[Tex_OpaqueDepth] = mTextures[1][Tex_Depth];
+                }
+            else if(test == 3) {
+                textures = mTextures[0];
+                }
+            
+            else if(test == 4) {
+                textures = mTextures[1];
+                }
+            
+            
+            
+            //textures[Tex_OpaqueDepth] = textures[Tex_Depth];
             //textures[Tex_OpaqueDepth]->setName("opaqueTexMap");
         }
         else
