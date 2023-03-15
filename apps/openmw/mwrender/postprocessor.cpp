@@ -763,6 +763,13 @@ namespace MWRender
 
         if (mDisableDepthPasses)
         {
+            
+            if(mTextures[0][Tex_Depth] == nullptr)
+                Log(Debug::Error) << "[0] == nullptr";
+            
+            if(mTextures[1][Tex_Depth] == nullptr)
+                Log(Debug::Error) << "[1] == nullptr";
+            
             textures[Tex_OpaqueDepth] = textures[Tex_Depth];
             //textures[Tex_OpaqueDepth]->setName("opaqueTexMap");
         }
