@@ -162,8 +162,8 @@ namespace MWRender
             {
                 if (Stereo::getMultiview())
                     mTextures[i][Tex_OpaqueDepth] = new osg::Texture2DArray;
-                else
-                    mTextures[i][Tex_Depth] = new osg::Texture2D;
+                //else
+                   // mTextures[i][Tex_Depth] = new osg::Texture2D;
             }
         }
 
@@ -763,7 +763,7 @@ namespace MWRender
 
         if (mDisableDepthPasses)
         {
-            int test = Settings::Manager::getInt("test", "Test"));
+            int test = Settings::Manager::getInt("test", "Test");
             
             if(mTextures[0][Tex_Depth] == nullptr)
                 Log(Debug::Error) << "[0] == nullptr";
