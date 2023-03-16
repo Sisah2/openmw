@@ -772,8 +772,11 @@ namespace MWRender
                 Log(Debug::Error) << "[1] == nullptr";
             
             
-            if(test == 1) {
-                textures[Tex_OpaqueDepth] = mTextures[0][Tex_Depth];
+            if(test == 0) {
+                textures[Tex_OpaqueDepth] = textures[Tex_Depth];
+                }
+            else if(test == 1) {
+                textures[Tex_OpaqueDepth] = mTextures[1][Tex_Depth];
                 }
             else if(test == 2) {
                 textures[Tex_OpaqueDepth] = mTextures[1][Tex_Depth];
