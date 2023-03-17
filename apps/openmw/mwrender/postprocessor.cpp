@@ -803,8 +803,8 @@ namespace MWRender
                 mTextures[1] = mTextures[1];
                 }
             else if(test == 9) {
-                mTextures[0][Tex_OpaqueDepth] = mTextures[0]Tex_Depth];
-                mTextures[1][Tex_OpaqueDepth] = mTextures[0]Tex_Depth];
+                mTextures[0][Tex_OpaqueDepth] = mTextures[0][Tex_Depth];
+                mTextures[1][Tex_OpaqueDepth] = mTextures[0][Tex_Depth];
                 }
             else if(test == 10) {
                 mTextures[0][Tex_OpaqueDepth] = mTextures[1][Tex_Depth];
