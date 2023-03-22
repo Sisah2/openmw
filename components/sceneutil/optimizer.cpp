@@ -115,6 +115,7 @@ void Optimizer::optimize(osg::Node* node, unsigned int options)
         MergeGeometryVisitor mgv(this);
         mgv.setTargetMaximumNumberOfVertices(1000000);
         mgv.setMergeAlphaBlending(_mergeAlphaBlending);
+        mgv.setRemoveAlphaBlending(_removeAlphaBlending);
         mgv.setViewPoint(_viewPoint);
         node->accept(mgv);
 
@@ -1164,7 +1165,18 @@ void Optimizer::MergeGeometryVisitor::checkAlphaBlendingActive()
 
 void Optimizer::MergeGeometryVisitor::apply(osg::Group &group)
 {
-    bool pushed = pushStateSet(group.getStateSet());
+    bool pushed = false;
+    if (osg::StateSet* stateSet = group.getStateSet())
+    {
+        if (_removeAlphaBlending)
+        {
+            stateSet->removeAttribute(osg::StateAttribute::BLENDFUNC);
+            stateSet->removeMode(GL_BLEND);
+            stateSet->setRenderBinToInherit();
+        }
+
+        pushed = pushStateSet(stateSet);
+    }
 
     if (!_alphaBlendingActive || _mergeAlphaBlending)
         mergeGroup(group);

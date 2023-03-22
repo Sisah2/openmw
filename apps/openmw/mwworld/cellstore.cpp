@@ -315,6 +315,24 @@ namespace
 
 namespace MWWorld
 {
+        template <typename X>
+        bool CellRefList<X>::ignoreInstance (const X* ptr)
+        {
+            return false;
+        }
+
+        template <>
+        bool CellRefList<ESM::Static>::ignoreInstance (const ESM::Static* ptr)
+        {
+            const char* model_lowercase = Misc::StringUtils::lowerCase(ptr->mModel).c_str();
+            bool isGroundcoverModel = false;
+            if(model_lowercase[0] == 'g' && model_lowercase[1] == 'r' && model_lowercase[2] == 'a' && model_lowercase[3] == 's'
+                && model_lowercase[4] == 's' && model_lowercase[5] == '\\') isGroundcoverModel = true;
+
+            return isGroundcoverModel;
+        }
+
+
     struct CellStoreImp
     {
         CellStoreTuple mRefLists;
@@ -353,6 +371,8 @@ namespace MWWorld
 
         if (const X* ptr = store.search(ref.mRefID))
         {
+            if(ignoreInstance(ptr)) return;
+
             typename std::list<LiveRef>::iterator iter = std::find(mList.begin(), mList.end(), ref.mRefNum);
 
             LiveRef liveCellRef(ref, ptr);

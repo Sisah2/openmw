@@ -8,6 +8,7 @@
 #include <osg/MatrixTransform>
 #include <osg/Sequence>
 #include <osg/Switch>
+#include <osg/AlphaFunc>
 #include <osgAnimation/BasicAnimationManager>
 #include <osgUtil/IncrementalCompileOperation>
 
@@ -42,6 +43,8 @@
 #include "vismask.hpp"
 
 #include <condition_variable>
+
+#include <components/debug/debuglog.hpp>
 
 namespace MWRender
 {
@@ -140,6 +143,7 @@ namespace MWRender
         bool mOptimizeBillboards = true;
         LODRange mDistances = { 0.f, 0.f };
         osg::Vec3f mViewVector;
+        bool mGroundcover = false;
         osg::Node::NodeMask mCopyMask = ~0u;
         mutable std::vector<const osg::Node*> mNodePath;
 
@@ -157,11 +161,37 @@ namespace MWRender
 
         osg::Node* operator()(const osg::Node* node) const override
         {
+//tady neco chybi
             if (!(node->getNodeMask() & mCopyMask))
                 return nullptr;
 
+//            if (const osg::Drawable* d = node->asDrawable())
+//                return operator()(d);
+
             if (const osg::Drawable* d = node->asDrawable())
-                return operator()(d);
+            {
+                osg::Node* clone = operator()(d);
+                osg::Geometry* geom = clone ? clone->asGeometry() : nullptr;
+                if (!mGroundcover || !geom) return clone;
+
+                osg::Array* vertexArray = geom->getVertexArray();
+                if (!vertexArray || vertexArray->getType() != osg::Array::Vec3ArrayType) return clone;
+                osg::Vec3Array* vertices = static_cast<osg::Vec3Array*>(vertexArray);
+
+                // We should keep an original vertex array to animate groundcover page properly
+                osg::ref_ptr<osg::FloatArray> attrs = new osg::FloatArray(vertices->getNumElements());
+                for (unsigned int i = 0; i < vertices->getNumElements(); i++)
+                {
+                    (*attrs)[i] = (*vertices)[i].z();
+                }
+
+                //if (needvbo(geom))
+                    attrs->setVertexBufferObject(new osg::VertexBufferObject);
+
+                geom->setVertexAttribArray(1, attrs, osg::Array::BIND_PER_VERTEX);
+
+                return geom;
+            }
 
             if (dynamic_cast<const osgParticle::ParticleProcessor*>(node))
                 return nullptr;
@@ -453,15 +483,20 @@ namespace MWRender
         }
     };
 
-    ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager)
+    ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, bool groundcover)
         : GenericResourceManager<ChunkId>(nullptr)
         , mSceneManager(sceneManager)
+        , mGroundcover(groundcover)
         , mRefTrackerLocked(false)
     {
         mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain");
         mDebugBatches = Settings::Manager::getBool("debug chunks", "Terrain");
+        mDebugGroundcoverBatches = Settings::Manager::getBool("debug chunks", "Groundcover");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
-        mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
+        if (mGroundcover) 
+            mMinSize = 0.01;
+        else
+            mMinSize = Settings::Manager::getFloat("object paging min size", "Terrain");
         mMinSizeMergeFactor = Settings::Manager::getFloat("object paging min size merge factor", "Terrain");
         mMinSizeCostMultiplier = Settings::Manager::getFloat("object paging min size cost multiplier", "Terrain");
     }
@@ -469,6 +504,12 @@ namespace MWRender
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
         const osg::Vec3f& viewPoint, bool compile, unsigned char lod)
     {
+        static const bool groundcoverPagingEnabled = Settings::Manager::getBool("paging", "Groundcover");
+
+	float groundcoverDensity = 0.f;
+        if (groundcoverPagingEnabled)
+            groundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
+
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size / 2.f), std::floor(center.y() - size / 2.f));
 
         osg::Vec3f worldCenter = osg::Vec3f(center.x(), center.y(), 0) * ESM::Land::REAL_SIZE;
@@ -515,6 +556,16 @@ namespace MWRender
                                 refs.erase(ref.mRefNum);
                                 continue;
                             }
+/*
+                            if (groundcoverPagingEnabled)
+                            {
+                                // FIXME: per-instance check requires search
+                                if (isGroundcover(type, ref.mRefID, store))
+                                {
+                                    if (!calculator.isInstanceEnabled(groundcoverDensity)) continue;
+                                }
+                            }
+*/
                             refs[ref.mRefNum] = std::move(ref);
                         }
                     }
@@ -538,7 +589,7 @@ namespace MWRender
             }
         }
 
-        if (activeGrid)
+        if (activeGrid && !mGroundcover)
         {
             std::lock_guard<std::mutex> lock(mRefTrackerMutex);
             for (auto ref : getRefTracker().mBlacklist)
@@ -605,6 +656,19 @@ namespace MWRender
             std::string model = getModel(type, ref.mRefID, store);
             if (model.empty())
                 continue;
+
+            const char* model_lowercase = Misc::StringUtils::lowerCase(model).c_str();
+            bool isGroundcoverModel = false;
+            if(model_lowercase[0] == 'g' && model_lowercase[1] == 'r' && model_lowercase[2] == 'a' && model_lowercase[3] == 's' && model_lowercase[4] == 's' && model_lowercase[5] == '\\') isGroundcoverModel = true;
+
+            if(mGroundcover && !isGroundcoverModel)
+                continue;
+
+            if(!mGroundcover && isGroundcoverModel)
+                continue;
+
+if(mGroundcover)  Log(Debug::Info) << "found grass model " << model_lowercase;
+
             model = Misc::ResourceHelpers::correctMeshPath(model, mSceneManager->getVFS());
 
             if (activeGrid && type != ESM::REC_STAT)
@@ -638,22 +702,25 @@ namespace MWRender
 
             osg::ref_ptr<const osg::Node> cnode = mSceneManager->getTemplate(model, false);
 
-            if (activeGrid)
+            if (!mGroundcover)
             {
-                if (cnode->getNumChildrenRequiringUpdateTraversal() > 0
-                    || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel)
-                    || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
-                    || (cnode->getName() == "Collada visual scene group"
-                        && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
-                    continue;
-                else
-                    refnumSet->mRefnums.push_back(pair.first);
-            }
+                if (activeGrid)
+                {
+                    if (cnode->getNumChildrenRequiringUpdateTraversal() > 0
+                        || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel)
+                        || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
+                        || (cnode->getName() == "Collada visual scene group"
+                            && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
+                        continue;
+                    else
+                        refnumSet->mRefnums.push_back(pair.first);
+                }
 
-            {
-                std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-                if (getRefTracker().mDisabled.count(pair.first))
-                    continue;
+                {
+                    std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+                    if (getRefTracker().mDisabled.count(pair.first))
+                        continue;
+                }
             }
 
             float radius2 = cnode->getBound().radius2() * ref.mScale * ref.mScale;
@@ -684,6 +751,7 @@ namespace MWRender
         osg::ref_ptr<Resource::TemplateMultiRef> templateRefs = new Resource::TemplateMultiRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop;
+        copyop.mGroundcover = mGroundcover;
         copyop.mCopyMask = copyMask;
         for (const auto& pair : nodes)
         {
@@ -793,11 +861,17 @@ namespace MWRender
         if (mergeGroup->getNumChildren())
         {
             SceneUtil::Optimizer optimizer;
-            if (size > 1 / 8.f)
+            if (!mGroundcover && size > 1/8.f)
             {
                 optimizer.setViewPoint(relativeViewPoint);
                 optimizer.setMergeAlphaBlending(true);
             }
+
+            if (mGroundcover)
+            {
+                optimizer.setRemoveAlphaBlending(true);
+            }
+
             optimizer.setIsOperationPermissibleForObjectCallback(new CanOptimizeCallback);
             unsigned int options = SceneUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS
                 | SceneUtil::Optimizer::REMOVE_REDUNDANT_NODES | SceneUtil::Optimizer::MERGE_GEOMETRY;
@@ -827,9 +901,9 @@ namespace MWRender
         }
 
         group->getBound();
-        group->setNodeMask(Mask_Static);
+        group->setNodeMask(mGroundcover ? Mask_Groundcover : Mask_Static);
         osg::UserDataContainer* udc = group->getOrCreateUserDataContainer();
-        if (activeGrid)
+        if (activeGrid && !mGroundcover)
         {
             std::sort(refnumSet->mRefnums.begin(), refnumSet->mRefnums.end());
             refnumSet->mRefnums.erase(
@@ -839,12 +913,42 @@ namespace MWRender
         }
         udc->addUserObject(templateRefs);
 
+        if (mGroundcover)
+        {
+            mSceneManager->reinstateRemovedState(group);
+
+            if (mSceneManager->getLightingMethod() != SceneUtil::LightingMethod::FFP)
+                group->setCullCallback(new SceneUtil::LightListCallback);
+
+            osg::StateSet* stateset = group->getOrCreateStateSet();
+            stateset->removeAttribute(osg::StateAttribute::MATERIAL);
+            stateset->removeAttribute(osg::StateAttribute::ALPHAFUNC);
+            stateset->removeMode(GL_ALPHA_TEST);
+            stateset->removeAttribute(osg::StateAttribute::BLENDFUNC);
+            stateset->removeMode(GL_BLEND);
+            stateset->setRenderBinToInherit();
+
+            osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
+            stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
+
+//            static const osg::ref_ptr<osg::Program> programTemplate = mSceneManager->getShaderManager().getProgramTemplate() ? static_cast<osg::Program*>(mSceneManager->getShaderManager().getProgramTemplate()->clone(osg::CopyOp::SHALLOW_COPY)) : new osg::Program;
+
+            if (mDebugGroundcoverBatches)
+            {
+                osg::Vec3f color(Misc::Rng::rollProbability(), Misc::Rng::rollProbability(), Misc::Rng::rollProbability());
+                color.normalize();
+                stateset->addUniform(new osg::Uniform("debugColor", color));
+            }
+
+            mSceneManager->recreateShaders(group, "groundcover_paging", true/*, programTemplate*/);
+        }
+
         return group;
     }
 
     unsigned int ObjectPaging::getNodeMask()
     {
-        return Mask_Static;
+        return mGroundcover ? Mask_Groundcover : Mask_Static;
     }
 
     struct ClearCacheFunctor
@@ -993,7 +1097,10 @@ namespace MWRender
 
     void ObjectPaging::reportStats(unsigned int frameNumber, osg::Stats* stats) const
     {
-        stats->setAttribute(frameNumber, "Object Chunk", mCache->getCacheSize());
+        if (mGroundcover)
+            stats->setAttribute(frameNumber, "Groundcover Chunk", mCache->getCacheSize());
+        else
+            stats->setAttribute(frameNumber, "Object Chunk", mCache->getCacheSize());
     }
 
 }

@@ -72,7 +72,7 @@ class Optimizer
 
     public:
 
-        Optimizer() : _mergeAlphaBlending(false), _sharedStateManager(nullptr), _sharedStateMutex(nullptr) {}
+        Optimizer() : _mergeAlphaBlending(false), _sharedStateManager(nullptr), _sharedStateMutex(nullptr), _removeAlphaBlending(false) {}
         virtual ~Optimizer() {}
 
         enum OptimizationOptions
@@ -126,6 +126,7 @@ class Optimizer
         };
 
         void setMergeAlphaBlending(bool merge) { _mergeAlphaBlending = merge; }
+        void setRemoveAlphaBlending(bool remove) { _removeAlphaBlending = remove; }
         void setViewPoint(const osg::Vec3f& viewPoint) { _viewPoint = viewPoint; }
 
         void setSharedStateManager(osgDB::SharedStateManager* sharedStateManager, std::mutex* sharedStateMutex) { _sharedStateMutex = sharedStateMutex; _sharedStateManager = sharedStateManager; }
@@ -266,6 +267,7 @@ class Optimizer
 
         osg::Vec3f _viewPoint;
         bool _mergeAlphaBlending;
+        bool _removeAlphaBlending;
 
         osgDB::SharedStateManager* _sharedStateManager;
         mutable std::mutex* _sharedStateMutex;
@@ -397,11 +399,19 @@ class Optimizer
                 /// default to traversing all children.
                 MergeGeometryVisitor(Optimizer* optimizer=0) :
                     BaseOptimizerVisitor(optimizer, MERGE_GEOMETRY),
-                    _targetMaximumNumberOfVertices(10000), _alphaBlendingActive(false), _mergeAlphaBlending(false) {}
+                    _targetMaximumNumberOfVertices(10000),
+                    _alphaBlendingActive(false),
+                    _mergeAlphaBlending(false),
+                    _removeAlphaBlending(false)
+                    {}
 
                 void setMergeAlphaBlending(bool merge)
                 {
                     _mergeAlphaBlending = merge;
+                }
+                void setRemoveAlphaBlending(bool remove)
+                {
+                    _removeAlphaBlending = remove;
                 }
                 void setViewPoint(const osg::Vec3f& viewPoint)
                 {
@@ -441,6 +451,7 @@ class Optimizer
                 std::vector<osg::StateSet*> _stateSetStack;
                 bool _alphaBlendingActive;
                 bool _mergeAlphaBlending;
+                bool _removeAlphaBlending;
                 osg::Vec3f _viewPoint;
         };
 

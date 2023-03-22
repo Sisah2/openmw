@@ -24,7 +24,7 @@ namespace MWRender
     class ObjectPaging : public Resource::GenericResourceManager<ChunkId>, public Terrain::QuadTreeWorld::ChunkManager
     {
     public:
-        ObjectPaging(Resource::SceneManager* sceneManager);
+        ObjectPaging(Resource::SceneManager* sceneManager, bool groundcover);
         ~ObjectPaging() = default;
 
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags,
@@ -55,7 +55,9 @@ namespace MWRender
     private:
         Resource::SceneManager* mSceneManager;
         bool mActiveGrid;
+        bool mGroundcover;
         bool mDebugBatches;
+        bool mDebugGroundcoverBatches;
         float mMergeFactor;
         float mMinSize;
         float mMinSizeMergeFactor;
