@@ -45,6 +45,7 @@
 #include <condition_variable>
 
 #include <components/debug/debuglog.hpp>
+#include <components/shader/shadermanager.hpp>
 
 namespace MWRender
 {
@@ -65,12 +66,16 @@ namespace MWRender
         }
     }
 
-    std::string getModel(int type, const ESM::RefId& id, const MWWorld::ESMStore& store)
+    std::string getModel(int type, const ESM::RefId& id, const MWWorld::ESMStore& store, bool& isGroundcover)
     {
         switch (type)
         {
             case ESM::REC_STAT:
-                return store.get<ESM::Static>().searchStatic(id)->mModel;
+            {
+                const ESM::Static* entity = store.get<ESM::Static>().searchStatic(id);
+                isGroundcover = entity->mIsGroundcover;
+                return entity->mModel;
+            }
             case ESM::REC_ACTI:
                 return store.get<ESM::Activator>().searchStatic(id)->mModel;
             case ESM::REC_DOOR:
@@ -161,7 +166,6 @@ namespace MWRender
 
         osg::Node* operator()(const osg::Node* node) const override
         {
-//tady neco chybi
             if (!(node->getNodeMask() & mCopyMask))
                 return nullptr;
 
@@ -491,8 +495,8 @@ namespace MWRender
     {
         mActiveGrid = Settings::Manager::getBool("object paging active grid", "Terrain");
         mDebugBatches = Settings::Manager::getBool("debug chunks", "Terrain");
-        mDebugGroundcoverBatches = Settings::Manager::getBool("debug chunks", "Groundcover");
         mMergeFactor = Settings::Manager::getFloat("object paging merge factor", "Terrain");
+        mGroundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
         if (mGroundcover) 
             mMinSize = 0.01;
         else
@@ -504,12 +508,6 @@ namespace MWRender
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
         const osg::Vec3f& viewPoint, bool compile, unsigned char lod)
     {
-        static const bool groundcoverPagingEnabled = Settings::Manager::getBool("paging", "Groundcover");
-
-	float groundcoverDensity = 0.f;
-        if (groundcoverPagingEnabled)
-            groundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
-
         osg::Vec2i startCell = osg::Vec2i(std::floor(center.x() - size / 2.f), std::floor(center.y() - size / 2.f));
 
         osg::Vec3f worldCenter = osg::Vec3f(center.x(), center.y(), 0) * ESM::Land::REAL_SIZE;
@@ -556,16 +554,18 @@ namespace MWRender
                                 refs.erase(ref.mRefNum);
                                 continue;
                             }
-/*
-                            if (groundcoverPagingEnabled)
+
+                            if (mGroundcover && type == ESM::REC_STAT && mGroundcoverDensity < 1.f)
                             {
                                 // FIXME: per-instance check requires search
-                                if (isGroundcover(type, ref.mRefID, store))
+                                if (store.get<ESM::Static>().searchStatic(ref.mRefID)->mIsGroundcover)
                                 {
-                                    if (!calculator.isInstanceEnabled(groundcoverDensity)) continue;
+                                    mCurrentGroundcover += mGroundcoverDensity;
+                                    if (mCurrentGroundcover < 1.f) continue;
+                                    mCurrentGroundcover -= 1.f;
                                 }
                             }
-*/
+
                             refs[ref.mRefNum] = std::move(ref);
                         }
                     }
@@ -653,21 +653,13 @@ namespace MWRender
                 continue;
 
             int type = store.findStatic(ref.mRefID);
-            std::string model = getModel(type, ref.mRefID, store);
+            bool isGroundCover = false;
+            std::string model = getModel(type, ref.mRefID, store, isGroundCover);
             if (model.empty())
                 continue;
 
-            const char* model_lowercase = Misc::StringUtils::lowerCase(model).c_str();
-            bool isGroundcoverModel = false;
-            if(model_lowercase[0] == 'g' && model_lowercase[1] == 'r' && model_lowercase[2] == 'a' && model_lowercase[3] == 's' && model_lowercase[4] == 's' && model_lowercase[5] == '\\') isGroundcoverModel = true;
-
-            if(mGroundcover && !isGroundcoverModel)
+            if(mGroundcover != isGroundCover)
                 continue;
-
-            if(!mGroundcover && isGroundcoverModel)
-                continue;
-
-if(mGroundcover)  Log(Debug::Info) << "found grass model " << model_lowercase;
 
             model = Misc::ResourceHelpers::correctMeshPath(model, mSceneManager->getVFS());
 
@@ -866,12 +858,12 @@ if(mGroundcover)  Log(Debug::Info) << "found grass model " << model_lowercase;
                 optimizer.setViewPoint(relativeViewPoint);
                 optimizer.setMergeAlphaBlending(true);
             }
-
+/*
             if (mGroundcover)
             {
                 optimizer.setRemoveAlphaBlending(true);
             }
-
+*/
             optimizer.setIsOperationPermissibleForObjectCallback(new CanOptimizeCallback);
             unsigned int options = SceneUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS
                 | SceneUtil::Optimizer::REMOVE_REDUNDANT_NODES | SceneUtil::Optimizer::MERGE_GEOMETRY;
@@ -915,7 +907,7 @@ if(mGroundcover)  Log(Debug::Info) << "found grass model " << model_lowercase;
 
         if (mGroundcover)
         {
-            mSceneManager->reinstateRemovedState(group);
+//            mSceneManager->reinstateRemovedState(group);
 
             if (mSceneManager->getLightingMethod() != SceneUtil::LightingMethod::FFP)
                 group->setCullCallback(new SceneUtil::LightListCallback);
@@ -931,16 +923,19 @@ if(mGroundcover)  Log(Debug::Info) << "found grass model " << model_lowercase;
             osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
             stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
 
+            mSceneManager->reinstateRemovedState(group);
+
 //            static const osg::ref_ptr<osg::Program> programTemplate = mSceneManager->getShaderManager().getProgramTemplate() ? static_cast<osg::Program*>(mSceneManager->getShaderManager().getProgramTemplate()->clone(osg::CopyOp::SHALLOW_COPY)) : new osg::Program;
 
-            if (mDebugGroundcoverBatches)
-            {
-                osg::Vec3f color(Misc::Rng::rollProbability(), Misc::Rng::rollProbability(), Misc::Rng::rollProbability());
-                color.normalize();
-                stateset->addUniform(new osg::Uniform("debugColor", color));
-            }
 
-            mSceneManager->recreateShaders(group, "groundcover_paging", true/*, programTemplate*/);
+            static const osg::ref_ptr<osg::Program> programTemplate = mSceneManager->getShaderManager().getProgramTemplate()
+                ? Shader::ShaderManager::cloneProgram(mSceneManager->getShaderManager().getProgramTemplate())
+                : osg::ref_ptr<osg::Program>(new osg::Program);
+
+
+            programTemplate->addBindAttribLocation("originalHeight", 1);
+
+            mSceneManager->recreateShaders(group, "groundcover_paging", true, programTemplate);
         }
 
         return group;
@@ -1101,6 +1096,11 @@ if(mGroundcover)  Log(Debug::Info) << "found grass model " << model_lowercase;
             stats->setAttribute(frameNumber, "Groundcover Chunk", mCache->getCacheSize());
         else
             stats->setAttribute(frameNumber, "Object Chunk", mCache->getCacheSize());
+    }
+
+    void ObjectPaging::setGroundcoverDensity(float density)
+    {
+        mGroundcoverDensity = density;
     }
 
 }

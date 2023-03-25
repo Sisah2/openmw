@@ -33,6 +33,8 @@ namespace MWRender
         osg::ref_ptr<osg::Node> createChunk(float size, const osg::Vec2f& center, bool activeGrid,
             const osg::Vec3f& viewPoint, bool compile, unsigned char lod);
 
+        bool isGroundcoverInstanceEnabled();
+
         unsigned int getNodeMask() override;
 
         /// @return true if view needs rebuild
@@ -50,14 +52,17 @@ namespace MWRender
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) const override;
 
+        void setGroundcoverDensity(float density);
+
         void getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out);
 
     private:
         Resource::SceneManager* mSceneManager;
         bool mActiveGrid;
         bool mGroundcover;
+        float mCurrentGroundcover;
+        float mGroundcoverDensity;
         bool mDebugBatches;
-        bool mDebugGroundcoverBatches;
         float mMergeFactor;
         float mMinSize;
         float mMinSizeMergeFactor;

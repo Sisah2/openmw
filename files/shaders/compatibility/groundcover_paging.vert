@@ -58,7 +58,6 @@ uniform vec3 playerPos;
     #define STOMP_INTENSITY_LEVEL @groundcoverStompIntensity
 #endif
 
-
 highp vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
 {
     vec3 windData = vec3(windSpeed, 0.0, 0.0);
@@ -120,17 +119,13 @@ highp vec4 grassDisplacement(vec3 viewPos, vec4 vertex)
     return vertex + ret;
 }
 
-
 void main(void)
 {
-
     highp vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
     gl_ClipVertex = viewPos;
     euclideanDepth = length(viewPos.xyz);
 
-
     gl_Position = gl_ModelViewProjectionMatrix * grassDisplacement(viewPos.xyz, gl_Vertex);
-
 
     linearDepth = getLinearDepth(gl_Position.z, viewPos.z);
 

@@ -605,7 +605,6 @@ namespace Shader
                 = programTemplate ? cloneProgram(programTemplate) : osg::ref_ptr<osg::Program>(new osg::Program);
             program->addShader(vertexShader);
             program->addShader(fragmentShader);
-            program->addBindAttribLocation("originalHeight", 1);
             addLinkedShaders(fragmentShader, program);
 
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;

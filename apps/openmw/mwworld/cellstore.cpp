@@ -324,14 +324,8 @@ namespace MWWorld
         template <>
         bool CellRefList<ESM::Static>::ignoreInstance (const ESM::Static* ptr)
         {
-            const char* model_lowercase = Misc::StringUtils::lowerCase(ptr->mModel).c_str();
-            bool isGroundcoverModel = false;
-            if(model_lowercase[0] == 'g' && model_lowercase[1] == 'r' && model_lowercase[2] == 'a' && model_lowercase[3] == 's'
-                && model_lowercase[4] == 's' && model_lowercase[5] == '\\') isGroundcoverModel = true;
-
-            return isGroundcoverModel;
+            return ptr->mIsGroundcover;
         }
-
 
     struct CellStoreImp
     {

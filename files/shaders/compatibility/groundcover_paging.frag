@@ -30,6 +30,7 @@ varying float linearDepth;
 uniform vec2 screenRes;
 uniform float far;
 uniform float alphaRef;
+uniform float groundcoverFadeEnd;
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passViewPos;
@@ -67,8 +68,9 @@ void main()
     gl_FragData[0] = vec4(1.0);
 #endif
 
-    if (euclideanDepth > @groundcoverFadeStart)
-        gl_FragData[0].a *= 1.0-smoothstep(@groundcoverFadeStart, @groundcoverFadeEnd, euclideanDepth);
+    if(gl_FrontMaterial.emission.xyz == vec3(0.0))
+    if (euclideanDepth > groundcoverFadeEnd * 0.9)
+        gl_FragData[0].a *= 1.0-smoothstep(groundcoverFadeEnd * 0.9, groundcoverFadeEnd, euclideanDepth);
 
     gl_FragData[0].a = alphaTest(gl_FragData[0].a, alphaRef);
 
@@ -91,6 +93,9 @@ void main()
 #if !@disableNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
+
+    if(gl_FrontMaterial.emission.xyz != vec3(0.0))
+        gl_FragData[0].xyz += gl_FrontMaterial.emission.xyz;
 
     applyShadowDebugOverlay();
 }

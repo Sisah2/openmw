@@ -160,6 +160,7 @@ namespace MWRender
             , mFar(0.f)
             , mWindSpeed(0.f)
             , mSkyBlendingStartCoef(Settings::Manager::getFloat("sky blending start", "Fog"))
+            , mGroundcoverFadeEnd(Settings::Manager::getFloat("rendering distance", "Groundcover"))
             , mUsePlayerUniforms(usePlayerUniforms)
         {
         }
@@ -176,6 +177,7 @@ namespace MWRender
             {
                 stateset->addUniform(new osg::Uniform("windSpeed", 0.0f));
                 stateset->addUniform(new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f)));
+                stateset->addUniform(new osg::Uniform("groundcoverFadeEnd", 0.f));
             }
         }
 
@@ -190,6 +192,7 @@ namespace MWRender
             {
                 stateset->getUniform("windSpeed")->set(mWindSpeed);
                 stateset->getUniform("playerPos")->set(mPlayerPos);
+                stateset->getUniform("groundcoverFadeEnd")->set(mGroundcoverFadeEnd);
             }
         }
 
@@ -203,6 +206,8 @@ namespace MWRender
 
         void setPlayerPos(osg::Vec3f playerPos) { mPlayerPos = playerPos; }
 
+        void setGroundcoverFadeEnd(float fadeEnd) { mGroundcoverFadeEnd = fadeEnd; }
+
     private:
         float mNear;
         float mFar;
@@ -211,6 +216,7 @@ namespace MWRender
         bool mUsePlayerUniforms;
         osg::Vec3f mPlayerPos;
         osg::Vec2f mScreenRes;
+        float mGroundcoverFadeEnd;
     };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
@@ -431,7 +437,6 @@ namespace MWRender
             = std::to_string(std::clamp(Settings::Manager::getInt("stomp mode", "Groundcover"), 0, 2));
         globalDefines["groundcoverStompIntensity"]
             = std::to_string(std::clamp(Settings::Manager::getInt("stomp intensity", "Groundcover"), 0, 2));
-        globalDefines["groundcoverDebugBatches"] = Settings::Manager::getBool("debug chunks", "Groundcover") ? "1" : "0";
 
         globalDefines["reverseZ"] = reverseZ ? "1" : "0";
 
@@ -503,7 +508,7 @@ namespace MWRender
 
         if (groundcover)
         {
-            float density = Settings::Manager::getFloat("density", "Groundcover");
+            float density = Settings::Manager::getFloat("density", "Groundcover")/100.f;
             density = std::clamp(density, 0.f, 1.f);
 
             mGroundcover = std::make_unique<Groundcover>(
@@ -953,8 +958,9 @@ namespace MWRender
 //	    osg::Vec2f stormDir = mSky->getSmoothedStormDir();
 
             float fadeEnd = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-            float fadeStart = fadeEnd * Settings::Manager::getFloat("fade start", "Groundcover");
+            //float fadeStart = fadeEnd * Settings::Manager::getFloat("fade start", "Groundcover");
 
+            mSharedUniformStateUpdater->setGroundcoverFadeEnd(fadeEnd);
 //            mSharedUniformStateUpdater->setGrassData(osg::Matrix3(windSpeed, 0.0/*stormDir[0]*/, 0.0/*stormDir[1]*/, playerPos[0], playerPos[1], playerPos[2], fadeStart, fadeEnd, 0.f));
         }
 
@@ -1454,6 +1460,8 @@ namespace MWRender
             }
             else if (it->first == "Groundcover" && it->second == "density")
             {
+            	float groundcoverDensity = std::max(0.f, Settings::Manager::getFloat("density", "Groundcover")/100.f);
+            	mGroundcoverPaging->setGroundcoverDensity(groundcoverDensity);
             	mGroundcoverPaging->clearCache();
                 mGroundcoverWorld->rebuildViews();
             }
