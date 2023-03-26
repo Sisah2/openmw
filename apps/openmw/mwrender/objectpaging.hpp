@@ -52,6 +52,8 @@ namespace MWRender
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) const override;
 
+        float getGroundcoverDensity();
+
         void setGroundcoverDensity(float density);
 
         void getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out);

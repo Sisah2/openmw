@@ -160,8 +160,8 @@ namespace MWRender
             , mFar(0.f)
             , mWindSpeed(0.f)
             , mSkyBlendingStartCoef(Settings::Manager::getFloat("sky blending start", "Fog"))
-            , mGroundcoverFadeEnd(Settings::Manager::getFloat("rendering distance", "Groundcover"))
             , mUsePlayerUniforms(usePlayerUniforms)
+            , mGroundcoverFadeEnd(Settings::Manager::getFloat("rendering distance", "Groundcover"))
         {
         }
 
@@ -950,19 +950,7 @@ namespace MWRender
         }
 
         if (mGroundcoverPaging)
-        {
-            const MWWorld::Ptr& player = mPlayerAnimation->getPtr();
-            osg::Vec3f playerPos(player.getRefData().getPosition().asVec3());
-
-            float windSpeed = mSky->getBaseWindSpeed();
-//	    osg::Vec2f stormDir = mSky->getSmoothedStormDir();
-
-            float fadeEnd = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
-            //float fadeStart = fadeEnd * Settings::Manager::getFloat("fade start", "Groundcover");
-
-            mSharedUniformStateUpdater->setGroundcoverFadeEnd(fadeEnd);
-//            mSharedUniformStateUpdater->setGrassData(osg::Matrix3(windSpeed, 0.0/*stormDir[0]*/, 0.0/*stormDir[1]*/, playerPos[0], playerPos[1], playerPos[2], fadeStart, fadeEnd, 0.f));
-        }
+            mSharedUniformStateUpdater->setGroundcoverFadeEnd(mGroundcoverPaging->getGroundcoverDensity());
 
         updateNavMesh();
         updateRecastMesh();

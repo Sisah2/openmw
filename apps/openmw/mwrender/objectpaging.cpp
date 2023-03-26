@@ -9,6 +9,7 @@
 #include <osg/Sequence>
 #include <osg/Switch>
 #include <osg/AlphaFunc>
+#include <osg/BlendFunc>
 #include <osgAnimation/BasicAnimationManager>
 #include <osgUtil/IncrementalCompileOperation>
 
@@ -66,16 +67,12 @@ namespace MWRender
         }
     }
 
-    std::string getModel(int type, const ESM::RefId& id, const MWWorld::ESMStore& store, bool& isGroundcover)
+    std::string getModel(int type, const ESM::RefId& id, const MWWorld::ESMStore& store)
     {
         switch (type)
         {
             case ESM::REC_STAT:
-            {
-                const ESM::Static* entity = store.get<ESM::Static>().searchStatic(id);
-                isGroundcover = entity->mIsGroundcover;
-                return entity->mModel;
-            }
+                return store.get<ESM::Static>().searchStatic(id)->mModel;
             case ESM::REC_ACTI:
                 return store.get<ESM::Activator>().searchStatic(id)->mModel;
             case ESM::REC_DOOR:
@@ -555,10 +552,17 @@ namespace MWRender
                                 continue;
                             }
 
-                            if (mGroundcover && type == ESM::REC_STAT && mGroundcoverDensity < 1.f)
+                            // FIXME: per-instance check requires search
+                            if(mGroundcover && type != ESM::REC_STAT)
+                               continue;
+
+                            if(type == ESM::REC_STAT)
                             {
-                                // FIXME: per-instance check requires search
-                                if (store.get<ESM::Static>().searchStatic(ref.mRefID)->mIsGroundcover)
+                                bool isGroundcoverModel = store.get<ESM::Static>().searchStatic(ref.mRefID)->mIsGroundcover;
+                                if(mGroundcover != isGroundcoverModel)
+                                   continue;
+
+                                if (mGroundcover)
                                 {
                                     mCurrentGroundcover += mGroundcoverDensity;
                                     if (mCurrentGroundcover < 1.f) continue;
@@ -653,12 +657,8 @@ namespace MWRender
                 continue;
 
             int type = store.findStatic(ref.mRefID);
-            bool isGroundCover = false;
-            std::string model = getModel(type, ref.mRefID, store, isGroundCover);
+            std::string model = getModel(type, ref.mRefID, store);
             if (model.empty())
-                continue;
-
-            if(mGroundcover != isGroundCover)
                 continue;
 
             model = Misc::ResourceHelpers::correctMeshPath(model, mSceneManager->getVFS());
@@ -907,11 +907,9 @@ namespace MWRender
 
         if (mGroundcover)
         {
-//            mSceneManager->reinstateRemovedState(group);
-
             if (mSceneManager->getLightingMethod() != SceneUtil::LightingMethod::FFP)
                 group->setCullCallback(new SceneUtil::LightListCallback);
-
+/*
             osg::StateSet* stateset = group->getOrCreateStateSet();
             stateset->removeAttribute(osg::StateAttribute::MATERIAL);
             stateset->removeAttribute(osg::StateAttribute::ALPHAFUNC);
@@ -922,16 +920,18 @@ namespace MWRender
 
             osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
             stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON);
+*/
+            osg::StateSet* stateset = group->getOrCreateStateSet();
+            osg::ref_ptr<osg::AlphaFunc> alpha = new osg::AlphaFunc(osg::AlphaFunc::GEQUAL, 128.f / 255.f);
+            stateset->setAttributeAndModes(alpha.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+            stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+            stateset->setRenderBinDetails(0, "RenderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
 
             mSceneManager->reinstateRemovedState(group);
-
-//            static const osg::ref_ptr<osg::Program> programTemplate = mSceneManager->getShaderManager().getProgramTemplate() ? static_cast<osg::Program*>(mSceneManager->getShaderManager().getProgramTemplate()->clone(osg::CopyOp::SHALLOW_COPY)) : new osg::Program;
-
 
             static const osg::ref_ptr<osg::Program> programTemplate = mSceneManager->getShaderManager().getProgramTemplate()
                 ? Shader::ShaderManager::cloneProgram(mSceneManager->getShaderManager().getProgramTemplate())
                 : osg::ref_ptr<osg::Program>(new osg::Program);
-
 
             programTemplate->addBindAttribLocation("originalHeight", 1);
 
@@ -1096,6 +1096,11 @@ namespace MWRender
             stats->setAttribute(frameNumber, "Groundcover Chunk", mCache->getCacheSize());
         else
             stats->setAttribute(frameNumber, "Object Chunk", mCache->getCacheSize());
+    }
+
+    float ObjectPaging::getGroundcoverDensity()
+    {
+        return mGroundcoverDensity;
     }
 
     void ObjectPaging::setGroundcoverDensity(float density)
