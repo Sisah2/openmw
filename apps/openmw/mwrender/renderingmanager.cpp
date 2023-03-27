@@ -950,7 +950,7 @@ namespace MWRender
         }
 
         if (mGroundcoverPaging)
-            mSharedUniformStateUpdater->setGroundcoverFadeEnd(mGroundcoverPaging->getGroundcoverDensity());
+            mSharedUniformStateUpdater->setGroundcoverFadeEnd(mGroundcover.get()->getViewDistance());
 
         updateNavMesh();
         updateRecastMesh();
