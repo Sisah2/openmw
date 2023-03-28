@@ -949,9 +949,6 @@ namespace MWRender
             mSharedUniformStateUpdater->setPlayerPos(playerPos);
         }
 
-        if (mGroundcoverPaging)
-            mSharedUniformStateUpdater->setGroundcoverFadeEnd(mGroundcover.get()->getViewDistance());
-
         updateNavMesh();
         updateRecastMesh();
 
@@ -1445,6 +1442,7 @@ namespace MWRender
             {
             	float groundcoverDistance = std::max(0.f, Settings::Manager::getFloat("rendering distance", "Groundcover"));
             	mGroundcoverWorld->setViewDistance(groundcoverDistance);
+                mSharedUniformStateUpdater->setGroundcoverFadeEnd(groundcoverDistance);
             }
             else if (it->first == "Groundcover" && it->second == "density")
             {
