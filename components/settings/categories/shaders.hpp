@@ -43,6 +43,7 @@ namespace Settings
         SettingValue<bool> mWeatherParticleOcclusion{ "Shaders", "weather particle occlusion" };
         SettingValue<float> mWeatherParticleOcclusionSmallFeatureCullingPixelSize{ "Shaders",
             "weather particle occlusion small feature culling pixel size" };
+        SettingValue<bool> mNewSetting{ "Shaders", "my_new_setting" };
     };
 }
 
