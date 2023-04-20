@@ -2409,6 +2409,7 @@ namespace MWWorld
     void World::saveLoaded()
     {
         mStore.validateDynamic();
+        mCurrentDate->setup(mGlobalVariables);
     }
 
     void World::setupPlayer()
@@ -3297,7 +3298,7 @@ namespace MWWorld
                     if (!ref.mRef.getTeleport())
                         continue;
 
-                    if (ref.mRef.getDestCell().empty())
+                    if (ref.mRef.getDestCell().is<ESM::ESM3ExteriorCellRefId>())
                     {
                         ESM::Position pos = ref.mRef.getDoorDest();
                         result = pos.asVec3();
@@ -3337,8 +3338,8 @@ namespace MWWorld
         nextCells.insert(ptr.getCell()->getCell()->getId());
         while (!nextCells.empty())
         {
-            currentCells = nextCells;
-            nextCells.clear();
+            currentCells.clear();
+            std::swap(currentCells, nextCells);
             for (const auto& cell : currentCells)
             {
                 MWWorld::CellStore* next = mWorldModel.getCell(cell);
@@ -3358,7 +3359,7 @@ namespace MWWorld
                     if (!ref.mRef.getTeleport())
                         continue;
 
-                    if (ref.mRef.getDestCell().empty())
+                    if (ref.mRef.getDestCell().is<ESM::ESM3ExteriorCellRefId>())
                     {
                         osg::Vec3f worldPos = ref.mRef.getDoorDest().asVec3();
                         return getClosestMarkerFromExteriorPosition(worldPos, id);
@@ -3366,7 +3367,7 @@ namespace MWWorld
                     else
                     {
                         const auto& dest = ref.mRef.getDestCell();
-                        if (!checkedCells.count(dest) && !currentCells.count(dest))
+                        if (!checkedCells.contains(dest) && !currentCells.contains(dest))
                             nextCells.insert(dest);
                     }
                 }

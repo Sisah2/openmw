@@ -16,8 +16,8 @@
 namespace
 {
     // TODO: Switch to C++23 to get a working version of std::unordered_map::erase
-    template <class T>
-    bool eraseFromMap(T& map, const ESM::RefId& value)
+    template <class T, class Id>
+    bool eraseFromMap(T& map, const Id& value)
     {
         auto it = map.find(value);
         if (it != map.end())
@@ -95,19 +95,19 @@ namespace MWWorld
     template class IndexedStore<ESM::MagicEffect>;
     template class IndexedStore<ESM::Skill>;
 
-    template <typename T>
-    TypedDynamicStore<T>::TypedDynamicStore()
+    template <class T, class Id>
+    TypedDynamicStore<T, Id>::TypedDynamicStore()
     {
     }
 
-    template <typename T>
-    TypedDynamicStore<T>::TypedDynamicStore(const TypedDynamicStore<T>& orig)
+    template <class T, class Id>
+    TypedDynamicStore<T, Id>::TypedDynamicStore(const TypedDynamicStore<T, Id>& orig)
         : mStatic(orig.mStatic)
     {
     }
 
-    template <typename T>
-    void TypedDynamicStore<T>::clearDynamic()
+    template <class T, class Id>
+    void TypedDynamicStore<T, Id>::clearDynamic()
     {
         // remove the dynamic part of mShared
         assert(mShared.size() >= mStatic.size());
@@ -115,8 +115,8 @@ namespace MWWorld
         mDynamic.clear();
     }
 
-    template <typename T>
-    const T* TypedDynamicStore<T>::search(const ESM::RefId& id) const
+    template <class T, class Id>
+    const T* TypedDynamicStore<T, Id>::search(const Id& id) const
     {
         typename Dynamic::const_iterator dit = mDynamic.find(id);
         if (dit != mDynamic.end())
@@ -128,8 +128,8 @@ namespace MWWorld
 
         return nullptr;
     }
-    template <typename T>
-    const T* TypedDynamicStore<T>::searchStatic(const ESM::RefId& id) const
+    template <class T, class Id>
+    const T* TypedDynamicStore<T, Id>::searchStatic(const Id& id) const
     {
         typename Static::const_iterator it = mStatic.find(id);
         if (it != mStatic.end())
@@ -138,24 +138,29 @@ namespace MWWorld
         return nullptr;
     }
 
-    template <typename T>
-    bool TypedDynamicStore<T>::isDynamic(const ESM::RefId& id) const
+    template <class T, class Id>
+    bool TypedDynamicStore<T, Id>::isDynamic(const Id& id) const
     {
         typename Dynamic::const_iterator dit = mDynamic.find(id);
         return (dit != mDynamic.end());
     }
-    template <typename T>
-    const T* TypedDynamicStore<T>::searchRandom(const std::string_view prefix, Misc::Rng::Generator& prng) const
+    template <class T, class Id>
+    const T* TypedDynamicStore<T, Id>::searchRandom(const std::string_view prefix, Misc::Rng::Generator& prng) const
     {
-        std::vector<const T*> results;
-        std::copy_if(mShared.begin(), mShared.end(), std::back_inserter(results),
-            [prefix](const T* item) { return item->mId.startsWith(prefix); });
-        if (!results.empty())
-            return results[Misc::Rng::rollDice(results.size(), prng)];
-        return nullptr;
+        if constexpr (std::is_same_v<Id, ESM::RefId>)
+        {
+            std::vector<const T*> results;
+            std::copy_if(mShared.begin(), mShared.end(), std::back_inserter(results),
+                [prefix](const T* item) { return item->mId.startsWith(prefix); });
+            if (!results.empty())
+                return results[Misc::Rng::rollDice(results.size(), prng)];
+            return nullptr;
+        }
+        else
+            throw std::runtime_error("Store<T>::searchRandom is supported only if Id is ESM::RefId");
     }
-    template <typename T>
-    const T* TypedDynamicStore<T>::find(const ESM::RefId& id) const
+    template <class T, class Id>
+    const T* TypedDynamicStore<T, Id>::find(const Id& id) const
     {
         const T* ptr = search(id);
         if (ptr == nullptr)
@@ -174,8 +179,8 @@ namespace MWWorld
         }
         return ptr;
     }
-    template <typename T>
-    RecordId TypedDynamicStore<T>::load(ESM::ESMReader& esm)
+    template <class T, class Id>
+    RecordId TypedDynamicStore<T, Id>::load(ESM::ESMReader& esm)
     {
         T record;
         bool isDeleted = false;
@@ -188,42 +193,41 @@ namespace MWWorld
         if (inserted.second)
             mShared.push_back(&inserted.first->second);
 
-        return RecordId(record.mId, isDeleted);
+        if constexpr (std::is_same_v<Id, ESM::RefId>)
+            return RecordId(record.mId, isDeleted);
+        else
+            return RecordId();
     }
-    template <typename T>
-    void TypedDynamicStore<T>::setUp()
+
+    template <class T, class Id>
+    void TypedDynamicStore<T, Id>::setUp()
     {
     }
 
-    template <typename T>
-    typename TypedDynamicStore<T>::iterator TypedDynamicStore<T>::begin() const
+    template <class T, class Id>
+    typename TypedDynamicStore<T, Id>::iterator TypedDynamicStore<T, Id>::begin() const
     {
         return mShared.begin();
     }
-    template <typename T>
-    typename TypedDynamicStore<T>::iterator TypedDynamicStore<T>::end() const
+    template <class T, class Id>
+    typename TypedDynamicStore<T, Id>::iterator TypedDynamicStore<T, Id>::end() const
     {
         return mShared.end();
     }
-    template <typename T>
-    const T& TypedDynamicStore<T>::at(size_t index) const
-    {
-        return *mShared.at(index);
-    }
 
-    template <typename T>
-    size_t TypedDynamicStore<T>::getSize() const
+    template <class T, class Id>
+    size_t TypedDynamicStore<T, Id>::getSize() const
     {
         return mShared.size();
     }
 
-    template <typename T>
-    int TypedDynamicStore<T>::getDynamicSize() const
+    template <class T, class Id>
+    int TypedDynamicStore<T, Id>::getDynamicSize() const
     {
         return mDynamic.size();
     }
-    template <typename T>
-    void TypedDynamicStore<T>::listIdentifier(std::vector<ESM::RefId>& list) const
+    template <class T, class Id>
+    void TypedDynamicStore<T, Id>::listIdentifier(std::vector<Id>& list) const
     {
         list.reserve(list.size() + getSize());
         typename std::vector<T*>::const_iterator it = mShared.begin();
@@ -232,8 +236,8 @@ namespace MWWorld
             list.push_back((*it)->mId);
         }
     }
-    template <typename T>
-    T* TypedDynamicStore<T>::insert(const T& item, bool overrideOnly)
+    template <class T, class Id>
+    T* TypedDynamicStore<T, Id>::insert(const T& item, bool overrideOnly)
     {
         if (overrideOnly)
         {
@@ -247,8 +251,8 @@ namespace MWWorld
             mShared.push_back(ptr);
         return ptr;
     }
-    template <typename T>
-    T* TypedDynamicStore<T>::insertStatic(const T& item)
+    template <class T, class Id>
+    T* TypedDynamicStore<T, Id>::insertStatic(const T& item)
     {
         std::pair<typename Static::iterator, bool> result = mStatic.insert_or_assign(item.mId, item);
         T* ptr = &result.first->second;
@@ -256,8 +260,8 @@ namespace MWWorld
             mShared.push_back(ptr);
         return ptr;
     }
-    template <typename T>
-    bool TypedDynamicStore<T>::eraseStatic(const ESM::RefId& id)
+    template <class T, class Id>
+    bool TypedDynamicStore<T, Id>::eraseStatic(const Id& id)
     {
         typename Static::iterator it = mStatic.find(id);
 
@@ -282,8 +286,8 @@ namespace MWWorld
         return true;
     }
 
-    template <typename T>
-    bool TypedDynamicStore<T>::erase(const ESM::RefId& id)
+    template <class T, class Id>
+    bool TypedDynamicStore<T, Id>::erase(const Id& id)
     {
         if (!eraseFromMap(mDynamic, id))
             return false;
@@ -297,13 +301,13 @@ namespace MWWorld
         }
         return true;
     }
-    template <typename T>
-    bool TypedDynamicStore<T>::erase(const T& item)
+    template <class T, class Id>
+    bool TypedDynamicStore<T, Id>::erase(const T& item)
     {
         return erase(item.mId);
     }
-    template <typename T>
-    void TypedDynamicStore<T>::write(ESM::ESMWriter& writer, Loading::Listener& progress) const
+    template <class T, class Id>
+    void TypedDynamicStore<T, Id>::write(ESM::ESMWriter& writer, Loading::Listener& progress) const
     {
         for (typename Dynamic::const_iterator iter(mDynamic.begin()); iter != mDynamic.end(); ++iter)
         {
@@ -315,8 +319,8 @@ namespace MWWorld
             }
         }
     }
-    template <typename T>
-    RecordId TypedDynamicStore<T>::read(ESM::ESMReader& reader, bool overrideOnly)
+    template <class T, class Id>
+    RecordId TypedDynamicStore<T, Id>::read(ESM::ESMReader& reader, bool overrideOnly)
     {
         T record;
         bool isDeleted = false;
@@ -326,7 +330,10 @@ namespace MWWorld
         }
         insert(record, overrideOnly);
 
-        return RecordId(record.mId, isDeleted);
+        if constexpr (std::is_same_v<Id, ESM::RefId>)
+            return RecordId(record.mId, isDeleted);
+        else
+            return RecordId();
     }
 
     // LandTexture
@@ -903,71 +910,35 @@ namespace MWWorld
         bool interior = pathgrid.mData.mX == 0 && pathgrid.mData.mY == 0
             && mCells->search(pathgrid.mCell.getRefIdString()) != nullptr;
 
+        ESM::RefId cell
+            = interior ? pathgrid.mCell : ESM::RefId::esm3ExteriorCell(pathgrid.mData.mX, pathgrid.mData.mY);
         // deal with mods that have empty pathgrid records (Issue #6209)
         // we assume that these records are empty on purpose (i.e. to remove old pathgrid on an updated cell)
         if (isDeleted || pathgrid.mPoints.empty() || pathgrid.mEdges.empty())
         {
-            if (interior)
-            {
-                Interior::iterator it = mInt.find(pathgrid.mCell);
-                if (it != mInt.end())
-                    mInt.erase(it);
-            }
-            else
-            {
-                Exterior::iterator it = mExt.find(std::make_pair(pathgrid.mData.mX, pathgrid.mData.mY));
-                if (it != mExt.end())
-                    mExt.erase(it);
-            }
+            mStatic.erase(cell);
 
             return RecordId(ESM::RefId(), isDeleted);
         }
 
         // Try to overwrite existing record
-        if (interior)
-        {
-            std::pair<Interior::iterator, bool> ret = mInt.insert(std::make_pair(pathgrid.mCell, pathgrid));
-            if (!ret.second)
-                ret.first->second = pathgrid;
-        }
-        else
-        {
-            std::pair<Exterior::iterator, bool> ret
-                = mExt.insert(std::make_pair(std::make_pair(pathgrid.mData.mX, pathgrid.mData.mY), pathgrid));
-            if (!ret.second)
-                ret.first->second = pathgrid;
-        }
+        auto ret = mStatic.emplace(cell, pathgrid);
+        if (!ret.second)
+            ret.first->second = pathgrid;
 
         return RecordId(ESM::RefId(), isDeleted);
     }
     size_t Store<ESM::Pathgrid>::getSize() const
     {
-        return mInt.size() + mExt.size();
+        return mStatic.size();
     }
     void Store<ESM::Pathgrid>::setUp() {}
-    const ESM::Pathgrid* Store<ESM::Pathgrid>::search(int x, int y) const
-    {
-        Exterior::const_iterator it = mExt.find(std::make_pair(x, y));
-        if (it != mExt.end())
-            return &(it->second);
-        return nullptr;
-    }
     const ESM::Pathgrid* Store<ESM::Pathgrid>::search(const ESM::RefId& name) const
     {
-        Interior::const_iterator it = mInt.find(ESM::RefId(name));
-        if (it != mInt.end())
+        auto it = mStatic.find(name);
+        if (it != mStatic.end())
             return &(it->second);
         return nullptr;
-    }
-    const ESM::Pathgrid* Store<ESM::Pathgrid>::find(int x, int y) const
-    {
-        const ESM::Pathgrid* pathgrid = search(x, y);
-        if (!pathgrid)
-        {
-            const std::string msg = "Pathgrid in cell '" + std::to_string(x) + " " + std::to_string(y) + "' not found";
-            throw std::runtime_error(msg);
-        }
-        return pathgrid;
     }
     const ESM::Pathgrid* Store<ESM::Pathgrid>::find(const ESM::RefId& name) const
     {
@@ -978,10 +949,7 @@ namespace MWWorld
     }
     const ESM::Pathgrid* Store<ESM::Pathgrid>::search(const ESM::Cell& cell) const
     {
-        if (!(cell.mData.mFlags & ESM::Cell::Interior))
-            return search(cell.mData.mX, cell.mData.mY);
-        else
-            return search(ESM::RefId::stringRefId(cell.mName));
+        return search(cell.mId);
     }
     const ESM::Pathgrid* Store<ESM::Pathgrid>::search(const MWWorld::Cell& cellVariant) const
     {
@@ -993,10 +961,7 @@ namespace MWWorld
     }
     const ESM::Pathgrid* Store<ESM::Pathgrid>::find(const ESM::Cell& cell) const
     {
-        if (!(cell.mData.mFlags & ESM::Cell::Interior))
-            return find(cell.mData.mX, cell.mData.mY);
-        else
-            return find(ESM::RefId::stringRefId(cell.mName));
+        return find(cell.mId);
     }
 
     // Skill
@@ -1282,6 +1247,6 @@ template class MWWorld::TypedDynamicStore<ESM4::Ingredient>;
 template class MWWorld::TypedDynamicStore<ESM4::MiscItem>;
 template class MWWorld::TypedDynamicStore<ESM4::Static>;
 template class MWWorld::TypedDynamicStore<ESM4::Light>;
-template class MWWorld::TypedDynamicStore<ESM4::Reference>;
+template class MWWorld::TypedDynamicStore<ESM4::Reference, ESM::FormId>;
 template class MWWorld::TypedDynamicStore<ESM4::Cell>;
 template class MWWorld::TypedDynamicStore<ESM4::Weapon>;
