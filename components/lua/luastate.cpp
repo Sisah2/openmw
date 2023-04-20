@@ -5,6 +5,7 @@
 #endif // NO_LUAJIT
 
 #include <boost/filesystem.hpp>
+#include <fstream>
 
 #include <components/debug/debuglog.hpp>
 #include <components/vfs/manager.hpp>
@@ -60,6 +61,13 @@ namespace LuaUtil
 
         mLua["writeToLog"] = [](std::string_view s) { Log(Debug::Level::Info) << s; };
 
+        mLua["setEnvironment"]
+            = [](const sol::environment& env, const sol::function& fn) { sol::set_environment(env, fn); };
+        mLua["loadFromVFS"] = [this](std::string_view packageName) {
+            return loadScriptAndCache(packageNameToVfsPath(packageName, mVFS));
+        };
+        mLua["loadInternalLib"] = [this](std::string_view packageName) { return loadInternalLib(packageName); };
+
         // Some fixes for compatibility between different Lua versions
         if (mLua["unpack"] == sol::nil)
             mLua["unpack"] = mLua["table"]["unpack"];
@@ -84,6 +92,19 @@ namespace LuaUtil
                 return writeToLog(table.concat(strs, '\t'))
             end
             printGen = function(name) return function(...) return printToLog(name, ...) end end
+
+            function requireGen(env, loaded, loadFn)
+                return function(packageName)
+                    local p = loaded[packageName]
+                    if p == nil then
+                        local loader = loadFn(packageName)
+                        setEnvironment(env, loader)
+                        p = loader(packageName)
+                        loaded[packageName] = p
+                    end
+                    return p
+                end
+            end
 
             function createStrictIndexFn(tbl)
                 return function(_, key)
@@ -207,17 +228,7 @@ namespace LuaUtil
             loaded[key] = maybeRunLoader(value);
         for (const auto& [key, value] : packages)
             loaded[key] = maybeRunLoader(value);
-        env["require"] = [this, env, loaded, hiddenData](std::string_view packageName) mutable
-        {
-            sol::object package = loaded[packageName];
-            if (package != sol::nil)
-                return package;
-            sol::protected_function packageLoader = loadScriptAndCache(packageNameToVfsPath(packageName, mVFS));
-            sol::set_environment(env, packageLoader);
-            package = call(packageLoader, packageName);
-            loaded[packageName] = package;
-            return package;
-        };
+        env["require"] = mLua["requireGen"](env, loaded, mLua["loadFromVFS"]);
 
         sol::set_environment(env, script);
         return call(script);
@@ -229,15 +240,7 @@ namespace LuaUtil
         sol::table loaded(mLua, sol::create);
         for (const std::string& s : safePackages)
             loaded[s] = static_cast<sol::object>(mSandboxEnv[s]);
-        env["require"] = [this, loaded, env](const std::string& module) mutable
-        {
-            if (loaded[module] != sol::nil)
-                return loaded[module];
-            sol::protected_function initializer = loadInternalLib(module);
-            sol::set_environment(env, initializer);
-            loaded[module] = call(initializer, module);
-            return loaded[module];
-        };
+        env["require"] = mLua["requireGen"](env, loaded, mLua["loadInternalLib"]);
         return env;
     }
 
@@ -271,7 +274,9 @@ namespace LuaUtil
     sol::function LuaState::loadInternalLib(std::string_view libName)
     {
         std::string path = packageNameToPath(libName, mLibSearchPaths);
-        sol::load_result res = mLua.load_file(path, sol::load_mode::text);
+        std::ifstream stream(path);
+        std::string fileContent(std::istreambuf_iterator<char>(stream), {});
+        sol::load_result res = mLua.load(fileContent, path, sol::load_mode::text);
         if (!res.valid())
             throw std::runtime_error("Lua error: " + res.get<std::string>());
         return res;

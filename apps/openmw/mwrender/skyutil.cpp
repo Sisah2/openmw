@@ -10,6 +10,7 @@
 #include <osg/TexMat>
 #include <osg/OcclusionQueryNode>
 #include <osg/ColorMask>
+#include <osg/ColorMaski>
 #include <osg/BlendFunc>
 #include <osg/AlphaFunc>
 #include <osg/observer_ptr>
@@ -628,7 +629,7 @@ namespace MWRender
 
                 for (int view : {0, 1})
                 {
-                    auto projectionMatrix = sm.computeEyeProjection(view, true);
+                    auto projectionMatrix = sm.computeEyeProjection(view, SceneUtil::AutoDepth::isReversed());
                     auto viewOffsetMatrix = sm.computeEyeViewOffset(view);
                     for (int col : {0, 1, 2})
                         viewOffsetMatrix(3, col) = 0;
@@ -643,23 +644,15 @@ namespace MWRender
         {
             auto& sm = Stereo::Manager::instance();
             auto* projectionMatrixUniform = stateset->getUniform("projectionMatrix");
-            auto projectionMatrix = sm.computeEyeProjection(0, true);
-            auto viewOffsetMatrix = sm.computeEyeViewOffset(0);
-            for (int col : {0, 1, 2})
-                viewOffsetMatrix(3, col) = 0;
-
-            projectionMatrixUniform->set(viewOffsetMatrix * projectionMatrix);
+            auto projectionMatrix = sm.computeEyeProjection(0, SceneUtil::AutoDepth::isReversed());
+            projectionMatrixUniform->set(projectionMatrix);
         }
         void applyRight(osg::StateSet* stateset, osgUtil::CullVisitor* /*cv*/) override
         {
             auto& sm = Stereo::Manager::instance();
             auto* projectionMatrixUniform = stateset->getUniform("projectionMatrix");
-            auto projectionMatrix = sm.computeEyeProjection(1, true);
-            auto viewOffsetMatrix = sm.computeEyeViewOffset(1);
-            for (int col : {0, 1, 2})
-                viewOffsetMatrix(3, col) = 0;
-
-            projectionMatrixUniform->set(viewOffsetMatrix * projectionMatrix);
+            auto projectionMatrix = sm.computeEyeProjection(1, SceneUtil::AutoDepth::isReversed());
+            projectionMatrixUniform->set(projectionMatrix);
         }
 
     private:
@@ -794,7 +787,8 @@ namespace MWRender
         // Disable writing to the color buffer. We are using this geometry for visibility tests only.
         osg::ref_ptr<osg::ColorMask> colormask = new osg::ColorMask(0, 0, 0, 0);
         stateset->setAttributeAndModes(colormask);
-
+        if (sceneManager.getSupportsNormalsRT())
+            stateset->setAttributeAndModes(new osg::ColorMaski(1, false, false, false, false));
         mTransform->addChild(queryNode);
 
         mOcclusionQueryVisiblePixels = createOcclusionQueryNode(queryNode, true);

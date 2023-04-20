@@ -29,6 +29,13 @@ namespace MWRender
 
 namespace MWPhysics
 {
+    enum class LockingPolicy
+    {
+        NoLocks,
+        ExclusiveLocksOnly,
+        AllowSharedLocks,
+    };
+
     class PhysicsTaskScheduler
     {
         public:
@@ -61,6 +68,8 @@ namespace MWPhysics
             void releaseSharedStates(); // destroy all objects whose destructor can't be safely called from ~PhysicsTaskScheduler()
 
         private:
+            class WorkersSync;
+
             void doSimulation();
             void worker();
             void updateActorsPositions();
@@ -75,6 +84,8 @@ namespace MWPhysics
             void afterPostSim();
             void syncWithMainThread();
             void waitForWorkers();
+            void prepareWork(float& timeAccum, std::vector<Simulation>&& simulations, osg::Timer_t frameStart,
+                unsigned int frameNumber, osg::Stats& stats);
 
             std::unique_ptr<WorldFrameData> mWorldFrameData;
             std::vector<Simulation> mSimulations;
@@ -92,26 +103,20 @@ namespace MWPhysics
             std::unique_ptr<Misc::Barrier> mPostStepBarrier;
             std::unique_ptr<Misc::Barrier> mPostSimBarrier;
 
+            LockingPolicy mLockingPolicy;
             unsigned mNumThreads;
             int mNumJobs;
             int mRemainingSteps;
             int mLOSCacheExpiry;
-            std::size_t mFrameCounter;
             bool mAdvanceSimulation;
-            bool mQuit;
             std::atomic<int> mNextJob;
             std::atomic<int> mNextLOS;
             std::vector<std::thread> mThreads;
-
-            std::size_t mWorkersFrameCounter = 0;
-            std::condition_variable mWorkersDone;
-            std::mutex mWorkersDoneMutex;
 
             mutable std::shared_mutex mSimulationMutex;
             mutable std::shared_mutex mCollisionWorldMutex;
             mutable std::shared_mutex mLOSCacheMutex;
             mutable std::mutex mUpdateAabbMutex;
-            std::condition_variable_any mHasJob;
 
             unsigned int mFrameNumber;
             const osg::Timer* mTimer;
@@ -124,6 +129,8 @@ namespace MWPhysics
             osg::Timer_t mTimeBegin;
             osg::Timer_t mTimeEnd;
             osg::Timer_t mFrameStart;
+
+            std::unique_ptr<WorkersSync> mWorkersSync;
     };
 
 }
