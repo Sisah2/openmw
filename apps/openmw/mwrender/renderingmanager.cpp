@@ -421,6 +421,7 @@ namespace MWRender
         globalDefines["numViews"] = "1";
         globalDefines["disableNormals"] = "1";
 
+        globalDefines["my_new_define"] = Settings::Manager::getBool("my_new_setting", "Shaders") ? "1" : "0";
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
 
