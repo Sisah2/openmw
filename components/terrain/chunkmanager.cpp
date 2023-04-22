@@ -10,6 +10,8 @@
 
 #include <components/sceneutil/lightmanager.hpp>
 
+#include <components/settings/settings.hpp>
+    
 #include "compositemaprenderer.hpp"
 #include "material.hpp"
 #include "storage.hpp"

@@ -2395,6 +2395,11 @@ namespace MWWorld
         return mRendering->getCamera();
     }
 
+    osg::Vec3f World::getCameraPos()
+    {
+        return mRendering->getCamera()->getPosition();
+    }
+
     bool World::vanityRotateCamera(float* rot)
     {
         auto* camera = mRendering->getCamera();

@@ -92,16 +92,40 @@ namespace MWRender
             return nullptr;
 
         ChunkId id = std::make_tuple(center, size, activeGrid);
-
         osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id);
+        osg::ref_ptr<osg::Node> node;
+
         if (obj)
-            return static_cast<osg::Node*>(obj.get());
+            node = static_cast<osg::Node*>(obj.get());
         else
         {
-            osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile, lod);
+            node = createChunk(size, center, activeGrid, viewPoint, compile, lod);
             mCache->addEntryToObjectCache(id, node.get());
+        }
+
+        if(activeGrid)
+        {
+            node->setNodeMask(MWRender::Mask_Static);
             return node;
         }
+
+        osg::Vec3f cameraPos = MWBase::Environment::get().getWorld()->getCameraPos();
+        float maxHeight = 0;
+        node->getUserValue("maxHeight", maxHeight); // FIXME: it dont work properly, need real bounding box
+        osg::Vec3f chunkPos0 = osg::Vec3f(center.x(), center.y(), 0) * ESM::Land::REAL_SIZE;
+
+        float x, y, z, w;
+        x = cameraPos.z();
+        y = maxHeight;
+        z = (osg::Vec3f(cameraPos[0], cameraPos[1], 0.0) - chunkPos0).length() - ((size / 2.0) * 1.42);
+        w = (x*z)/(x+y);
+
+        if(w > Settings::Manager::getFloat("reflection distance", "Water"))
+            node->setNodeMask(MWRender::Mask_NonReflected);
+        else
+            node->setNodeMask(MWRender::Mask_Static);
+
+        return node;
     }
 
     class CanOptimizeCallback : public SceneUtil::Optimizer::IsOperationPermissibleForObjectCallback
@@ -655,6 +679,7 @@ namespace MWRender
         std::map<ESM::RefNum, ESM::CellRef> refs = collectRefs(size, center);
         const auto& world = MWBase::Environment::get().getWorld();
         const auto& store = world->getStore();
+        float maxHeight = -20000.0;
 
         if (activeGrid && !mGroundcover)
         {
@@ -805,6 +830,10 @@ namespace MWRender
             else
                 analyzeVisitor.addInstance(emplaced.first->second.mAnalyzeResult);
             emplaced.first->second.mInstances.push_back(&ref);
+
+            float height = pos.z() + ((cnode->getBound().center().z() + cnode->getBound().radius()) * ref.mScale);
+            if (height > maxHeight)
+                maxHeight = height;
         }
 
         osg::ref_ptr<osg::Group> group = new osg::Group;
@@ -1006,6 +1035,8 @@ namespace MWRender
 
             mSceneManager->recreateShaders(group, "groundcover_paging", true, programTemplate);
         }
+
+        group->setUserValue("maxHeight", maxHeight);
 
         return group;
     }

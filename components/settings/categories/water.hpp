@@ -24,6 +24,7 @@ namespace Settings
         SettingValue<float> mSmallFeatureCullingPixelSize{ "Water", "small feature culling pixel size",
             makeMaxStrictSanitizerFloat(0) };
         SettingValue<float> mRefractionScale{ "Water", "refraction scale", makeClampSanitizerFloat(0, 1) };
+        SettingValue<float> mReflectionDistance{ "Water", "reflection distance", makeMaxStrictSanitizerFloat(0) };
     };
 }
 

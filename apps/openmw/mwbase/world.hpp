@@ -437,6 +437,7 @@ namespace MWBase
         virtual osg::Matrixf getActorHeadTransform(const MWWorld::ConstPtr& actor) const = 0;
 
         virtual MWRender::Camera* getCamera() = 0;
+        virtual osg::Vec3f getCameraPos() = 0;
         virtual void togglePOV(bool force = false) = 0;
         virtual bool isFirstPerson() const = 0;
         virtual bool isPreviewModeEnabled() const = 0;
