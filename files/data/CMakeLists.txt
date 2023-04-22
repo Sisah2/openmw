@@ -90,6 +90,8 @@ set(BUILTIN_DATA_FILES
     shaders/adjustments.omwfx
     shaders/bloomlinear.omwfx
     shaders/debug.omwfx
+    shaders/textures/water_nm.png
+    shaders/distant_water.omwfx
 
     mygui/core.skin
     mygui/core.xml

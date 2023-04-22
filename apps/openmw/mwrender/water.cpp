@@ -694,6 +694,7 @@ namespace MWRender
         defineMap["rain_ripple_detail"] = std::to_string(rippleDetail);
         defineMap["ripple_map_world_scale"] = std::to_string(RipplesSurface::mWorldScaleFactor);
         defineMap["ripple_map_size"] = std::to_string(RipplesSurface::mRTTSize) + ".0";
+        defineMap["reflectionDistance"] = std::to_string(Settings::Manager::getFloat("reflection distance", "Water"));
 
         Stereo::Manager::instance().shaderStereoDefines(defineMap);
 

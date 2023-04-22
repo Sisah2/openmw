@@ -70,6 +70,7 @@ namespace fx
 #define OMW_REVERSE_Z @reverseZ
 #define OMW_RADIAL_FOG @radialFog
 #define OMW_EXPONENTIAL_FOG @exponentialFog
+#define OMW_REFLECTION_DISTANCE @reflectionDistance
 #define OMW_HDR @hdr
 #define OMW_NORMALS @normals
 #define OMW_USE_BINDINGS @useBindings
@@ -262,6 +263,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                   { "@normals", technique.getNormals() ? "1" : "0" },
                   { "@reverseZ", SceneUtil::AutoDepth::isReversed() ? "1" : "0" },
                   { "@radialFog", Settings::Manager::getBool("radial fog", "Fog") ? "1" : "0" },
+                  { "@reflectionDistance", std::to_string(Settings::Manager::getFloat("reflection distance", "Water")) },
                   { "@exponentialFog", Settings::Manager::getBool("exponential fog", "Fog") ? "1" : "0" },
                   { "@hdr", technique.getHDR() ? "1" : "0" }, { "@in", mLegacyGLSL ? "varying" : "in" },
                   { "@out", mLegacyGLSL ? "varying" : "out" }, { "@position", "gl_Position" },

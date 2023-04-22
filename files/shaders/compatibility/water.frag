@@ -223,5 +223,8 @@ void main(void)
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 #endif
 
+    float distance = distance(position.xy, cameraPos.xy);
+    gl_FragData[0].a = min(gl_FragData[0].a, clamp((@reflectionDistance - distance) / (@reflectionDistance - @reflectionDistance * 0.8), 0.0, 1.0));
+
     applyShadowDebugOverlay();
 }
