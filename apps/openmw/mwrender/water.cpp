@@ -640,12 +640,12 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("reflectionMap", 1));
             if (mRefraction)
             {
-                stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
+              //  stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
                 stateset->addUniform(new osg::Uniform("refractionMap", 2));
                 stateset->addUniform(new osg::Uniform("refractionDepthMap", 3));
-                stateset->setRenderBinDetails(MWRender::RenderBin_Default, "RenderBin");
+            //    stateset->setRenderBinDetails(MWRender::RenderBin_Default, "RenderBin");
             }
-            else
+           // else
             {
                 stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
                 stateset->setRenderBinDetails(MWRender::RenderBin_Water, "RenderBin");
