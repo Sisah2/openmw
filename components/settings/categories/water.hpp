@@ -25,6 +25,8 @@ namespace Settings
             makeMaxStrictSanitizerFloat(0) };
         SettingValue<float> mRefractionScale{ "Water", "refraction scale", makeClampSanitizerFloat(0, 1) };
         SettingValue<float> mReflectionDistance{ "Water", "reflection distance", makeMaxStrictSanitizerFloat(0) };
+        SettingValue<float> mTest{ "Water", "test",
+            makeMaxStrictSanitizerFloat(0) };
     };
 }
 

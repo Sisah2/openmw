@@ -16,7 +16,7 @@
 
 // tweakables -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-const float VISIBILITY = 2500.0;
+const float VISIBILITY = 25000.0;
 
 const float BIG_WAVES_X = 0.1; // strength of big waves
 const float BIG_WAVES_Y = 0.1;
@@ -94,6 +94,10 @@ uniform vec2 screenRes;
 
 void main(void)
 {
+    vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
+    float distance = distance(position.xy, cameraPos.xy);
+    if(distance >= @reflectionDistance) discard;
+
     vec2 UV = worldPos.xy / (8192.0*5.0) * 3.0;
     UV.y *= -1.0;
 
@@ -135,7 +139,6 @@ void main(void)
     normal = normalize(vec3(-normal.x * bump, -normal.y * bump, normal.z));
 
     vec3 lVec = normalize((gl_ModelViewMatrixInverse * vec4(lcalcPosition(0).xyz, 0.0)).xyz);
-    vec3 cameraPos = (gl_ModelViewMatrixInverse * vec4(0,0,0,1)).xyz;
     vec3 vVec = normalize(position.xyz - cameraPos.xyz);
 
     float sunFade = length(gl_LightModel.ambient.xyz);
@@ -160,7 +163,7 @@ void main(void)
     float depthSample = linearizeDepth(sampleRefractionDepthMap(screenCoords), near, far) * radialise;
     float depthSampleDistorted = linearizeDepth(sampleRefractionDepthMap(screenCoords-screenCoordsOffset), near, far) * radialise;
     float surfaceDepth = linearizeDepth(gl_FragCoord.z, near, far) * radialise;
-    float realWaterDepth = depthSample - surfaceDepth;  // undistorted water depth in view direction, independent of frustum
+    float realWaterDepth =  depthSample - surfaceDepth;  // undistorted water depth in view direction, independent of frustum
     screenCoordsOffset *= clamp(realWaterDepth / BUMP_SUPPRESS_DEPTH,0,1);
 #endif
     // reflection
@@ -189,7 +192,7 @@ void main(void)
     if (cameraPos.z < 0.0)
         refraction = clamp(refraction * 1.5, 0.0, 1.0);
     else
-        refraction = mix(refraction, waterColor, clamp(depthSampleDistorted/VISIBILITY, 0.0, 1.0));
+        refraction = mix(refraction, waterColor, clamp(depthSampleDistorted, 0.0, 1.0));
 
     // sunlight scattering
     // normal for sunlight scattering
@@ -223,8 +226,12 @@ void main(void)
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 #endif
 
-    float distance = distance(position.xy, cameraPos.xy);
-    gl_FragData[0].a = min(gl_FragData[0].a, clamp((@reflectionDistance - distance) / (@reflectionDistance - @reflectionDistance * 0.8), 0.0, 1.0));
+#if 1
+    gl_FragData[0].a = min(gl_FragData[0].a, clamp((@reflectionDistance - distance) / (@reflectionDistance - @reflectionDistance * 0.9), 0.0, 1.0));
+
+//    if(distance > @reflectionDistance - 50.0 && distance < @reflectionDistance) gl_FragData[0] = vec4(1.0);
+//    if(distance > @reflectionDistance * 0.8 - 50.0 && distance < @reflectionDistance * 0.8) gl_FragData[0] = vec4(1.0);
+#endif
 
     applyShadowDebugOverlay();
 }

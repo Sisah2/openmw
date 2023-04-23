@@ -109,6 +109,8 @@ namespace MWRender
             return node;
         }
 
+        if (Settings::Manager::getFloat("test", "Water") == 0) 
+        {
         osg::Vec3f cameraPos = MWBase::Environment::get().getWorld()->getCameraPos();
         float maxHeight = 0;
         node->getUserValue("maxHeight", maxHeight); // FIXME: it dont work properly, need real bounding box
@@ -124,6 +126,7 @@ namespace MWRender
             node->setNodeMask(MWRender::Mask_NonReflected);
         else
             node->setNodeMask(MWRender::Mask_Static);
+        }
 
         return node;
     }
@@ -163,6 +166,35 @@ namespace MWRender
         }
     }
 
+    class WaterReflectionCullCallback : public osg::DrawableCullCallback
+    {
+    public:
+
+        bool cull(osg::NodeVisitor* nv, osg::Drawable* drawable, osg::RenderInfo* renderInfo) const override
+        {
+            osgUtil::CullVisitor& cv = *nv->asCullVisitor();
+            const osg::BoundingBox& bb = drawable->getBoundingBox();
+
+            if (drawable->isCullingActive() && cv.isCulled(bb))
+                return true;
+
+            if (cv.getCurrentCamera()->getName() == "ReflectionCamera")
+            {
+                float x, y, z, w;
+                x = -1.0 * cv.getEyePoint().z();
+                y = bb.zMax();
+                z = (osg::Vec2f(cv.getEyePoint().x(), cv.getEyePoint().y()) - osg::Vec2f(bb.center().x(), bb.center().y())).length() - bb.radius();
+                w = (x*z)/(x+y);
+
+            if ((x > 0.0 && bb.zMax() < 0.0) ||
+                (x < 0.0 && bb.zMin() > 0.0) || 
+                 w > Settings::Manager::getFloat("reflection distance", "Water"))
+                    return true;
+            }
+            return false;
+        }
+    };
+
     class CopyOp : public osg::CopyOp
     {
     public:
@@ -197,6 +229,10 @@ namespace MWRender
             {
                 osg::Node* clone = operator()(d);
                 osg::Geometry* geom = clone ? clone->asGeometry() : nullptr;
+
+                if (geom && Settings::Manager::getFloat("test", "Water") == 1.0)
+                    geom->addCullCallback(new WaterReflectionCullCallback());
+
                 if (!mGroundcover || !geom) return clone;
 
                 osg::Array* vertexArray = geom->getVertexArray();

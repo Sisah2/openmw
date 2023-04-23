@@ -95,8 +95,10 @@ namespace Terrain
             z = (osg::Vec3f(cv->getEyePoint().x(), cv->getEyePoint().y(), 0.0) - osg::Vec3f(bb.center().x(), bb.center().y(), 0.0)).length() - bb.radius();
             w = (x*z)/(x+y);
 
-            if ((x > 0.0 && bb.zMax() < 0.0) || (x < 0.0 && bb.zMin() > 0.0) || w > Settings::Manager::getFloat("reflection distance", "Water"))
-                return;
+            if ((x > 0.0 && bb.zMax() < 0.0) ||
+                (x < 0.0 && bb.zMin() > 0.0) || 
+                w > Settings::Manager::getFloat("reflection distance", "Water"))
+                    return;
         }
 
         if (shadowcam)
