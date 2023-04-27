@@ -757,6 +757,12 @@ namespace MWRender
             tex->setSourceType(SceneUtil::AutoDepth::depthSourceType());
             tex->setInternalFormat(SceneUtil::AutoDepth::depthInternalFormat());
         };
+        
+        auto setupDepth2 = [](osg::Texture* tex) {
+            tex->setSourceFormat(GL_RGB);
+            tex->setSourceType(GL_UNSIGNED_BYTE);
+            tex->setInternalFormat(GL_RGB);
+        };
 
         setupDepth(textures[Tex_Depth]);
 
@@ -766,7 +772,7 @@ namespace MWRender
         }
         else
         {
-            setupDepth(textures[Tex_OpaqueDepth]);
+            setupDepth2(textures[Tex_OpaqueDepth]);
             textures[Tex_OpaqueDepth]->setName("opaqueTexMap");
         }
 
