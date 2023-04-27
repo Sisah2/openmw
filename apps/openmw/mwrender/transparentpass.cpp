@@ -70,7 +70,7 @@ namespace MWRender
         }
 
         const osg::Texture* tex
-            = opaqueFbo->getAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER)
+            = opaqueFbo->getAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0)
                   .getTexture();
 
         if (Stereo::getMultiview())
