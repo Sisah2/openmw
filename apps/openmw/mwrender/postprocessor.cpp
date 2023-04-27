@@ -241,7 +241,7 @@ namespace MWRender
         mDisableDepthPasses = !mSoftParticles && !postPass;
 
 #ifdef ANDROID
-        mDisableDepthPasses = true;
+   //     mDisableDepthPasses = true;
 #endif
 
         if (!mDisableDepthPasses)
