@@ -248,7 +248,7 @@ namespace MWRender
         {
             mTransparentDepthPostPass = new TransparentDepthBinCallback(
                 mRendering.getResourceSystem()->getSceneManager()->getShaderManager(), postPass);
-           // osgUtil::RenderBin::getRenderBinPrototype("DepthSortedBin")->setDrawCallback(mTransparentDepthPostPass);
+            osgUtil::RenderBin::getRenderBinPrototype("DepthSortedBin")->setDrawCallback(mTransparentDepthPostPass);
         }
 
         if (mUsePostProcessing && mTechniqueFileMap.empty())
