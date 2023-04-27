@@ -525,7 +525,7 @@ namespace MWRender
         if (textures[Tex_OpaqueDepth])
         {
             fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
-            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
+            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
                 Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
         }
 
