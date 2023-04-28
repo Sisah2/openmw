@@ -117,7 +117,7 @@ namespace MWRender
         {
             osgUtil::RenderLeaf* rl = *rit;
             const osg::StateSet* ss = rl->_parent->getStateSet();
-/*
+
             if (rl->_drawable->getNodeMask() == Mask_ParticleSystem || rl->_drawable->getNodeMask() == Mask_Effect)
                 continue;
 
@@ -128,7 +128,7 @@ namespace MWRender
                 if (mat->getDiffuse(osg::Material::FRONT).a() < 0.5)
                     continue;
             }
-*/
+
             rl->render(renderInfo, previous);
             previous = rl;
         }
