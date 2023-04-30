@@ -106,6 +106,9 @@ uniform sampler2D orthoDepthMap;
 varying vec3 orthoDepthMapCoord;
 #endif
 
+
+varying float isLeaf;
+
 void main()
 {
 #if @particleOcclusion
@@ -159,6 +162,8 @@ vec3 viewNormal = normalize(gl_NormalMatrix * normal);
 
     vec4 diffuseColor = getDiffuseColor();
     gl_FragData[0].a *= diffuseColor.a;
+
+if(isLeaf == 1.0 && gl_FragData[0].a < 0.25) discard;
 
 #if @darkMap
     gl_FragData[0] *= texture2D(darkMap, darkMapUV);

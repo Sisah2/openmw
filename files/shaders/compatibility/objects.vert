@@ -73,6 +73,9 @@ uniform mat4 depthSpaceMatrix;
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 
+varying float isLeaf;
+uniform sampler2D diffuseMap;
+
 void main(void)
 {
 #if @particleOcclusion
@@ -145,6 +148,14 @@ void main(void)
     clampLightingResult(passLighting);
     shadowDiffuseLighting *= getDiffuseColor().xyz;
 #endif
+
+#if @diffuseMap
+if (texture2D(diffuseMap, vec2(0.0)).a == 0.0 && 
+    dot(gl_FrontMaterial.emission.rgb, vec3(1.0)) == 0.0
+    )
+{
+    isLeaf = 1.0;
+}
 
 #if (@shadows_enabled)
     setupShadowCoords(viewPos, viewNormal);

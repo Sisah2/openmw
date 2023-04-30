@@ -328,10 +328,15 @@ namespace MWRender
         mPingPongCanvas->setHDR(frameId, getHDR());
 
         mPingPongCanvas->setSceneTexture(frameId, getTexture(Tex_Scene, frameId));
+/*
         if (mDisableDepthPasses)
             mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
         else
             mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
+*/
+        mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
+        if (!mDisableDepthPasses)
+            mPingPongCanvas->setPostPassDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
 
         mPingPongCanvas->setLDRSceneTexture(frameId, getTexture(Tex_Scene_LDR, frameId));
 
@@ -586,6 +591,7 @@ namespace MWRender
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerLastShader", Unit_LastShader));
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerLastPass", Unit_LastPass));
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerDepth", Unit_Depth));
+            node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerPostPassDepth", Unit_PostPassDepth));
 
             if (mNormals)
                 node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerNormals", Unit_Normals));
@@ -759,9 +765,9 @@ namespace MWRender
         };
         
         auto setupDepth2 = [](osg::Texture* tex) {
-            tex->setSourceFormat(GL_RGB);
+            tex->setSourceFormat(GL_RGBA);
             tex->setSourceType(GL_UNSIGNED_BYTE);
-            tex->setInternalFormat(GL_RGB);
+            tex->setInternalFormat(GL_RGBA);
         };
 
         setupDepth(textures[Tex_Depth]);

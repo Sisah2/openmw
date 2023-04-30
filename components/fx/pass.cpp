@@ -74,6 +74,7 @@ namespace fx
 #define OMW_NORMALS @normals
 #define OMW_USE_BINDINGS @useBindings
 #define OMW_MULTIVIEW @multiview
+#define OMW_TRANSPARENT_POST_PASS @postPass
 #define omw_In @in
 #define omw_Out @out
 #define omw_Position @position
@@ -88,6 +89,7 @@ namespace fx
 uniform @builtinSampler omw_SamplerLastShader;
 uniform @builtinSampler omw_SamplerLastPass;
 uniform highp @builtinSampler omw_SamplerDepth;
+uniform highp @builtinSampler omw_SamplerPostPassDepth;
 uniform @builtinSampler omw_SamplerNormals;
 
 uniform vec4 omw_PointLights[@pointLightCount];
@@ -156,10 +158,23 @@ mat4 omw_InvProjectionMatrix()
         float depth = omw_Texture2D(omw_SamplerDepth, uv).r;
 #endif
 #if OMW_REVERSE_Z
-        return 1.0 - depth;
-#else
-        return depth;
+        depth = 1.0 - depth;
 #endif
+
+#if OMW_TRANSPARENT_POST_PASS
+        vec3 postPassDepth = texture2D(omw_SamplerPostPassDepth, uv).xyz;
+
+        if(postPassDepth.r != 0.0 && postPassDepth.g != 1.0 && postPassDepth.b != 0.5) 
+        {
+            const vec3 bitUnshift3 = vec3(1.0/65536.0, 1.0/256.0, 1.0);
+            float z_e_mine = dot(postPassDepth, bitUnshift3);
+            z_e_mine = mix(omw.near, omw.far, z_e_mine);
+            float nonLinearDepth = (omw.far + omw.near - 2.0 * omw.near * omw.far / z_e_mine) / (omw.far - omw.near);
+            nonLinearDepth = (nonLinearDepth + 1.0) / 2.0;
+            depth = min(nonLinearDepth, depth);
+        }
+#endif
+        return depth;
     }
 
     vec4 omw_GetLastShader(vec2 uv)
@@ -256,6 +271,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
             = { { "@pointLightCount", std::to_string(SceneUtil::PPLightBuffer::sMaxPPLightsArraySize) },
                   { "@version", std::to_string(technique.getGLSLVersion()) },
                   { "@multiview", Stereo::getMultiview() ? "1" : "0" },
+                  { "@postPass", Settings::Manager::getBool("transparent postpass", "Post Processing") ? "1" : "0" },
                   { "@builtinSampler", Stereo::getMultiview() ? "sampler2DArray" : "sampler2D" },
                   { "@profile", technique.getGLSLProfile() }, { "@extensions", extBlock.str() },
                   { "@uboStruct", StateUpdater::getStructDefinition() }, { "@ubo", mUBO ? "1" : "0" },
