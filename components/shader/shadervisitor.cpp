@@ -25,10 +25,10 @@
 #include <components/sceneutil/morphgeometry.hpp>
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/riggeometryosgaextension.hpp>
+#include <components/sceneutil/depth.hpp>
 #include <components/settings/settings.hpp>
 #include <components/stereo/stereomanager.hpp>
 #include <components/vfs/manager.hpp>
-
 #include "removedalphafunc.hpp"
 #include "shadermanager.hpp"
 
