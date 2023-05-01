@@ -43,6 +43,7 @@ namespace MWRender
         }
 
         void setDepthTexture(size_t frameId, osg::ref_ptr<osg::Texture> tex) { mBufferData[frameId].depthTex = tex; }
+        void setPostPassDepthTexture(size_t frameId, osg::ref_ptr<osg::Texture> tex) { mBufferData[frameId].postPassDepthTex = tex; }
 
         void setNormalsTexture(size_t frameId, osg::ref_ptr<osg::Texture> tex)
         {
@@ -87,6 +88,7 @@ namespace MWRender
 
             osg::ref_ptr<osg::Texture> sceneTex;
             osg::ref_ptr<osg::Texture> depthTex;
+            osg::ref_ptr<osg::Texture> postPassDepthTex;
             osg::ref_ptr<osg::Texture> sceneTexLDR;
             osg::ref_ptr<osg::Texture> normalsTex;
         };

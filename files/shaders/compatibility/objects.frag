@@ -153,6 +153,8 @@ vec3 viewNormal = normalize(gl_NormalMatrix * normal);
 #if @diffuseMap
     gl_FragData[0] = texture2D(diffuseMap, adjustedDiffuseUV);
     gl_FragData[0].a *= coveragePreservingAlphaScale(diffuseMap, adjustedDiffuseUV);
+    if(gl_FragData[0].a < @alphaDiscard && texture2D(diffuseMap, vec2(0.0)).a == 0.0 && dot(gl_FrontMaterial.emission.rgb, vec3(1.0)) == 0.0)
+        discard;
 #else
     gl_FragData[0] = vec4(1.0);
 #endif

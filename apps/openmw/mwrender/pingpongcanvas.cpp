@@ -209,7 +209,7 @@ namespace MWRender
             const auto& node = data[index];
 
             node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_Depth, bufferData.depthTex);
-
+            node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_PostPassDepth, bufferData.postPassDepthTex);
             if (bufferData.hdr)
                 node.mRootStateSet->setTextureAttribute(
                     PostProcessor::TextureUnits::Unit_EyeAdaptation, mLuminanceCalculator.getLuminanceTexture(frameId));

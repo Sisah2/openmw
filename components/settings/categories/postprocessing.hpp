@@ -21,6 +21,9 @@ namespace Settings
         SettingValue<float> mAutoExposureSpeed{ "Post Processing", "auto exposure speed",
             makeMaxStrictSanitizerFloat(0.0001f) };
         SettingValue<bool> mTransparentPostpass{ "Post Processing", "transparent postpass" };
+        SettingValue<float> mAlphaDiscardTreshold{ "Post Processing", "alpha discard treshold",
+            makeClampSanitizerFloat(0.0f, 1.0f) };
+        SettingValue<bool> mDisableDepthWrites{ "Post Processing", "disable depth writes" };
     };
 }
 

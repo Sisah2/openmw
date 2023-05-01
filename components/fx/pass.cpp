@@ -74,6 +74,7 @@ namespace fx
 #define OMW_NORMALS @normals
 #define OMW_USE_BINDINGS @useBindings
 #define OMW_MULTIVIEW @multiview
+#define OMW_TRANSPARENT_POST_PASS @postPass
 #define omw_In @in
 #define omw_Out @out
 #define omw_Position @position
@@ -88,6 +89,7 @@ namespace fx
 uniform @builtinSampler omw_SamplerLastShader;
 uniform @builtinSampler omw_SamplerLastPass;
 uniform highp @builtinSampler omw_SamplerDepth;
+uniform highp @builtinSampler omw_SamplerPostPassDepth;
 uniform @builtinSampler omw_SamplerNormals;
 
 uniform vec4 omw_PointLights[@pointLightCount];
@@ -157,9 +159,13 @@ mat4 omw_InvProjectionMatrix()
 #endif
 #if OMW_REVERSE_Z
         return 1.0 - depth;
-#else
-        return depth;
 #endif
+
+#if OMW_TRANSPARENT_POST_PASS
+        float depth2 = texture2D(omw_SamplerPostPassDepth, uv).r;
+        depth = min(depth, depth2);
+#endif
+        return depth;
     }
 
     vec4 omw_GetLastShader(vec2 uv)
@@ -256,6 +262,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
             = { { "@pointLightCount", std::to_string(SceneUtil::PPLightBuffer::sMaxPPLightsArraySize) },
                   { "@version", std::to_string(technique.getGLSLVersion()) },
                   { "@multiview", Stereo::getMultiview() ? "1" : "0" },
+                  { "@postPass", Settings::Manager::getBool("transparent postpass", "Post Processing") ? "1" : "0" },
                   { "@builtinSampler", Stereo::getMultiview() ? "sampler2DArray" : "sampler2D" },
                   { "@profile", technique.getGLSLProfile() }, { "@extensions", extBlock.str() },
                   { "@uboStruct", StateUpdater::getStructDefinition() }, { "@ubo", mUBO ? "1" : "0" },

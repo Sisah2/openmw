@@ -90,8 +90,9 @@ namespace MWRender
         else
         {
             opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
-            ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(),
-                tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            //ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(),
+                //tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         }
 
         msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER)

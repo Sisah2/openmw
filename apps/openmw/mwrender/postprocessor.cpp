@@ -241,7 +241,7 @@ namespace MWRender
         mDisableDepthPasses = !mSoftParticles && !postPass;
 
 #ifdef ANDROID
-        mDisableDepthPasses = true;
+ //       mDisableDepthPasses = true;
 #endif
 
         if (!mDisableDepthPasses)
@@ -328,13 +328,19 @@ namespace MWRender
         mPingPongCanvas->setHDR(frameId, getHDR());
 
         mPingPongCanvas->setSceneTexture(frameId, getTexture(Tex_Scene, frameId));
+        /*
         if (mDisableDepthPasses)
             mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
         else
             mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
-
+*/
         mPingPongCanvas->setLDRSceneTexture(frameId, getTexture(Tex_Scene_LDR, frameId));
 
+        
+        mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
+        if (!mDisableDepthPasses)
+            mPingPongCanvas->setPostPassDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
+        
         if (mTransparentDepthPostPass)
         {
             mTransparentDepthPostPass->mFbo[frameId] = mFbos[frameId][FBO_Primary];
@@ -480,7 +486,7 @@ namespace MWRender
             fbos[FBO_Primary]->setAttachment(
                 osg::Camera::COLOR_BUFFER1, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
         fbos[FBO_Primary]->setAttachment(
-            osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Depth]));
+            osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(mSoftParticles ? textures[Tex_OpaqueDepth] : textures[Tex_Depth]));
 
         fbos[FBO_FirstPerson] = new osg::FrameBufferObject;
 
@@ -526,7 +532,7 @@ namespace MWRender
         {
             fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
             fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
-                Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
+                Stereo::createMultiviewCompatibleAttachment(mSoftParticles ? textures[Tex_Depth] : textures[Tex_OpaqueDepth]));
         }
 
 #ifdef __APPLE__
@@ -586,6 +592,7 @@ namespace MWRender
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerLastShader", Unit_LastShader));
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerLastPass", Unit_LastPass));
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerDepth", Unit_Depth));
+            node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerPostPassDepth", Unit_PostPassDepth));
 
             if (mNormals)
                 node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerNormals", Unit_Normals));

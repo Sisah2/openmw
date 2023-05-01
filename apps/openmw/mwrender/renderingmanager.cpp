@@ -420,6 +420,9 @@ namespace MWRender
         globalDefines["useOVR_multiview"] = "0";
         globalDefines["numViews"] = "1";
         globalDefines["disableNormals"] = "1";
+        globalDefines["alphaDiscard"] = Settings::Manager::getBool("transparent postpass", "Post Processing")
+            ? std::to_string(Settings::Manager::getFloat("alpha discard treshold", "Post Processing"))
+            : "0.0";
 
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;

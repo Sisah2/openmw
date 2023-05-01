@@ -81,6 +81,7 @@ namespace MWRender
             Unit_LastShader = 0,
             Unit_LastPass,
             Unit_Depth,
+            Unit_PostPassDepth,
             Unit_EyeAdaptation,
             Unit_Normals,
             Unit_NextFree
