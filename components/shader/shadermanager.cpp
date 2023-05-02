@@ -717,6 +717,9 @@ namespace Shader
         std::string_view slotDescr;
         switch (slot)
         {
+            case Slot::DepthTexture:
+                slotDescr = "depth texture";
+                break;
             case Slot::OpaqueDepthTexture:
                 slotDescr = "opaque depth texture";
                 break;

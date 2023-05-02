@@ -480,6 +480,16 @@ namespace Resource
         mAdjustCoverageForAlphaTest = adjustCoverage;
     }
 
+    void SceneManager::setDepthTex(osg::ref_ptr<osg::Texture> texturePing, osg::ref_ptr<osg::Texture> texturePong)
+    {
+        mDepthTex = { texturePing, texturePong };
+    }
+
+    osg::ref_ptr<osg::Texture> SceneManager::getDepthTex(size_t frame)
+    {
+        return mDepthTex[frame % 2];
+    }
+
     void SceneManager::setOpaqueDepthTex(osg::ref_ptr<osg::Texture> texturePing, osg::ref_ptr<osg::Texture> texturePong)
     {
         mOpaqueDepthTex = { texturePing, texturePong };

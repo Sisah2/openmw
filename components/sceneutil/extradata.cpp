@@ -20,12 +20,15 @@ namespace SceneUtil
         if (!mSceneMgr->getSoftParticles())
             return;
 
+        const int unitPosPass
+            = mSceneMgr->getShaderManager().reserveGlobalTextureUnits(Shader::ShaderManager::Slot::DepthTexture);
         const int unitSoftEffect
             = mSceneMgr->getShaderManager().reserveGlobalTextureUnits(Shader::ShaderManager::Slot::OpaqueDepthTexture);
         static const osg::ref_ptr<SceneUtil::AutoDepth> depth = new SceneUtil::AutoDepth(osg::Depth::LESS, 0, 1, false);
 
         osg::StateSet* stateset = node.getOrCreateStateSet();
 
+        stateset->addUniform(new osg::Uniform("depthTex", unitPosPass));
         stateset->addUniform(new osg::Uniform("opaqueDepthTex", unitSoftEffect));
         stateset->addUniform(new osg::Uniform("particleSize", size));
         stateset->addUniform(new osg::Uniform("particleFade", falloff));

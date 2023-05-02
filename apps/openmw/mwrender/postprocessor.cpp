@@ -165,6 +165,14 @@ namespace MWRender
                 else
                     mTextures[i][Tex_OpaqueDepth] = new osg::Texture2D;
             }
+
+            for (int i = 0; i < 2; ++i)
+            {
+                if (Stereo::getMultiview())
+                    mTextures[i][Tex_Depth] = new osg::Texture2DArray;
+                else
+                    mTextures[i][Tex_Depth] = new osg::Texture2D;
+            }
         }
 
         mGLSLVersion = ext->glslLanguageVersion * 100;
@@ -240,10 +248,6 @@ namespace MWRender
 
         mDisableDepthPasses = !mSoftParticles && !postPass;
 
-#ifdef ANDROID
- //       mDisableDepthPasses = true;
-#endif
-
         if (!mDisableDepthPasses)
         {
             mTransparentDepthPostPass = new TransparentDepthBinCallback(
@@ -285,7 +289,7 @@ namespace MWRender
 
             mViewer->getCamera()->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER);
             mViewer->getCamera()->getGraphicsContext()->setResizedCallback(nullptr);
-            mViewer->getCamera()->setUserData(nullptr);
+            //mViewer->getCamera()->setUserData(nullptr);
 
             mEnabled = false;
         }
@@ -444,10 +448,10 @@ namespace MWRender
 
             mViewer->stopThreading();
 
-            auto& shaderManager = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getShaderManager();
-            auto defines = shaderManager.getGlobalDefines();
-            defines["disableNormals"] = mNormals ? "0" : "1";
-            shaderManager.setGlobalDefines(defines);
+            //auto& shaderManager = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getShaderManager();
+            //auto defines = shaderManager.getGlobalDefines();
+            //defines["disableNormals"] = mNormals ? "0" : "1";
+            //shaderManager.setGlobalDefines(defines);
 
             mRendering.getLightRoot()->setCollectPPLights(mPassLights);
             mStateUpdater->bindPointLights(mPassLights ? mRendering.getLightRoot()->getPPLightsBuffer() : nullptr);
@@ -486,7 +490,10 @@ namespace MWRender
             fbos[FBO_Primary]->setAttachment(
                 osg::Camera::COLOR_BUFFER1, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
         fbos[FBO_Primary]->setAttachment(
-            osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(mSoftParticles ? textures[Tex_OpaqueDepth] : textures[Tex_Depth]));
+            osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(
+                //mSoftParticles ? textures[Tex_OpaqueDepth] : textures[Tex_Depth]
+                textures[Tex_Depth]
+                ));
 
         fbos[FBO_FirstPerson] = new osg::FrameBufferObject;
 
@@ -532,7 +539,10 @@ namespace MWRender
         {
             fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
             fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
-                Stereo::createMultiviewCompatibleAttachment(mSoftParticles ? textures[Tex_Depth] : textures[Tex_OpaqueDepth]));
+                Stereo::createMultiviewCompatibleAttachment(
+                    //mSoftParticles ? textures[Tex_Depth] : textures[Tex_OpaqueDepth]
+                    textures[Tex_OpaqueDepth]
+                    ));
         }
 
 #ifdef __APPLE__

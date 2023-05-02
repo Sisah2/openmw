@@ -92,6 +92,9 @@ namespace MWRender
         PerViewUniformStateUpdater(Resource::SceneManager* sceneManager)
             : mSceneManager(sceneManager)
         {
+            mDepthTextureUnit = mSceneManager->getShaderManager().reserveGlobalTextureUnits(
+                Shader::ShaderManager::Slot::DepthTexture);
+
             mOpaqueTextureUnit = mSceneManager->getShaderManager().reserveGlobalTextureUnits(
                 Shader::ShaderManager::Slot::OpaqueDepthTexture);
         }
@@ -115,6 +118,9 @@ namespace MWRender
 
             stateset->setTextureAttribute(mOpaqueTextureUnit,
                 mSceneManager->getOpaqueDepthTex(nv->getTraversalNumber()), osg::StateAttribute::ON);
+
+            stateset->setTextureAttribute(mDepthTextureUnit,
+                mSceneManager->getDepthTex(nv->getTraversalNumber()), osg::StateAttribute::ON);
         }
 
         void applyLeft(osg::StateSet* stateset, osgUtil::CullVisitor* nv) override
@@ -149,6 +155,7 @@ namespace MWRender
 
         Resource::SceneManager* mSceneManager;
         int mOpaqueTextureUnit = -1;
+        int mDepthTextureUnit = -1;
     };
 
     class SharedUniformStateUpdater : public SceneUtil::StateSetUpdater
@@ -551,6 +558,9 @@ namespace MWRender
         rootNode->addCullCallback(mPerViewUniformStateUpdater);
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS());
+        resourceSystem->getSceneManager()->setDepthTex(
+            mPostProcessor->getTexture(PostProcessor::Tex_Depth, 0),
+            mPostProcessor->getTexture(PostProcessor::Tex_Depth, 1));
         resourceSystem->getSceneManager()->setOpaqueDepthTex(
             mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 0),
             mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 1));
@@ -1499,8 +1509,6 @@ namespace MWRender
             }
             else if (it->first == "Post Processing" && it->second == "enabled")
             {
-// Disabling make android crash
-/*
                 if (Settings::Manager::getBool("enabled", "Post Processing"))
                     mPostProcessor->enable();
                 else
@@ -1509,7 +1517,6 @@ namespace MWRender
                     if (auto* hud = MWBase::Environment::get().getWindowManager()->getPostProcessorHud())
                         hud->setVisible(false);
                 }
-*/
             }
         }
 

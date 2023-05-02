@@ -78,6 +78,7 @@ namespace Shader
 
         enum class Slot
         {
+            DepthTexture,
             OpaqueDepthTexture,
             SkyTexture,
             ShadowMaps,

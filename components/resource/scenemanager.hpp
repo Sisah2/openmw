@@ -134,6 +134,10 @@ namespace Resource
 
         osg::ref_ptr<osg::Texture> getOpaqueDepthTex(size_t frame);
 
+        void setDepthTex(osg::ref_ptr<osg::Texture> texturePing, osg::ref_ptr<osg::Texture> texturePong);
+
+        osg::ref_ptr<osg::Texture> getDepthTex(size_t frame);
+
         enum class UBOBinding
         {
             // If we add more UBO's, we should probably assign their bindings dynamically according to the current count
@@ -245,6 +249,7 @@ namespace Resource
         bool mConvertAlphaTestToAlphaToCoverage;
         bool mAdjustCoverageForAlphaTest;
         bool mSupportsNormalsRT;
+        std::array<osg::ref_ptr<osg::Texture>, 2> mDepthTex;
         std::array<osg::ref_ptr<osg::Texture>, 2> mOpaqueDepthTex;
         bool mSoftParticles = false;
 
