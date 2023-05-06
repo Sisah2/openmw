@@ -5,8 +5,8 @@ varying vec2 diffuseMapUV;
 varying float alphaPassthrough;
 
 uniform int colorMode;
-uniform bool useDiffuseMapForShadowAlpha = true;
-uniform bool alphaTestShadows = true;
+uniform bool useDiffuseMapForShadowAlpha;// = true;
+uniform bool alphaTestShadows;// = true;
 
 void main(void)
 {
