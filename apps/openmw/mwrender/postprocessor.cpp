@@ -330,18 +330,10 @@ namespace MWRender
         mPingPongCanvas->setNormalsTexture(frameId, mNormals ? getTexture(Tex_Normal, frameId) : nullptr);
         mPingPongCanvas->setMask(frameId, mUnderwater, mExteriorFlag);
         mPingPongCanvas->setHDR(frameId, getHDR());
-
         mPingPongCanvas->setSceneTexture(frameId, getTexture(Tex_Scene, frameId));
-        /*
-        if (mDisableDepthPasses)
-            mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
-        else
-            mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
-*/
         mPingPongCanvas->setLDRSceneTexture(frameId, getTexture(Tex_Scene_LDR, frameId));
-
-        
         mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
+
         if (!mDisableDepthPasses)
             mPingPongCanvas->setPostPassDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
         
@@ -490,10 +482,7 @@ namespace MWRender
             fbos[FBO_Primary]->setAttachment(
                 osg::Camera::COLOR_BUFFER1, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
         fbos[FBO_Primary]->setAttachment(
-            osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(
-                //mSoftParticles ? textures[Tex_OpaqueDepth] : textures[Tex_Depth]
-                textures[Tex_Depth]
-                ));
+            osg::Camera::PACKED_DEPTH_STENCIL_BUFFER, Stereo::createMultiviewCompatibleAttachment(textures[Tex_Depth]));
 
         fbos[FBO_FirstPerson] = new osg::FrameBufferObject;
 
@@ -539,10 +528,7 @@ namespace MWRender
         {
             fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
             fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
-                Stereo::createMultiviewCompatibleAttachment(
-                    //mSoftParticles ? textures[Tex_Depth] : textures[Tex_OpaqueDepth]
-                    textures[Tex_OpaqueDepth]
-                    ));
+                Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
         }
 
 #ifdef __APPLE__

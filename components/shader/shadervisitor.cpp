@@ -709,7 +709,7 @@ namespace Shader
             updateRemovedState(*writableUserData, removedState);
         }
 
-        if (reqs.mAlphaBlend && Settings::Manager::getBool("disable depth writes", "Post Processing"))
+        if (reqs.mAlphaBlend && Settings::Manager::getBool("transparent postpass", "Post Processing") && Settings::Manager::getBool("disable depth writes", "Post Processing"))
         {
             osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
             depth->setWriteMask(false);

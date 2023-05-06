@@ -95,7 +95,7 @@ varying vec3 passNormal;
 #if @softParticles
 #include "lib/particle/soft.glsl"
 
-uniform sampler2D opaqueDepthTex;
+uniform sampler2D depthTex;
 uniform float particleSize;
 uniform bool particleFade;
 #endif
@@ -256,7 +256,7 @@ vec3 viewNormal = normalize(gl_NormalMatrix * normal);
         viewNormal,
         near,
         far,
-        texture2D(opaqueDepthTex, screenCoords).x,
+        texture2D(depthTex, screenCoords).x,
         particleSize,
         particleFade
     );
