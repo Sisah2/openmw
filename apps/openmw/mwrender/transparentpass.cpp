@@ -104,7 +104,7 @@ namespace MWRender
         if (!mPostPass)
             return;
 
-        opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        //opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 
         // draw transparent post-pass to populate a postprocess friendly depth texture with alpha-clipped geometry
 
