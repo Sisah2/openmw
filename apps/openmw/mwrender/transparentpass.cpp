@@ -89,8 +89,8 @@ namespace MWRender
         }
         else
         {
-            //opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
-            //glClear(GL_DEPTH_BUFFER_BIT);
+            opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+            glClear(GL_DEPTH_BUFFER_BIT);
             //ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(),
                 //tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         }
@@ -104,7 +104,7 @@ namespace MWRender
         if (!mPostPass)
             return;
 
-        //opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 
         // draw transparent post-pass to populate a postprocess friendly depth texture with alpha-clipped geometry
 
