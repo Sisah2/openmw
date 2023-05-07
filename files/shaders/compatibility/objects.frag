@@ -95,7 +95,7 @@ varying vec3 passNormal;
 #if @softParticles
 #include "lib/particle/soft.glsl"
 
-uniform sampler2D depthTex;
+uniform highp sampler2D depthTex;
 uniform float particleSize;
 uniform bool particleFade;
 #endif
