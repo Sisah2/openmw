@@ -651,9 +651,12 @@ namespace MWRender
             {
                 stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
                 stateset->setRenderBinDetails(MWRender::RenderBin_Water, "RenderBin");
-                osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
-                depth->setWriteMask(false);
-                stateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
+                if (!Settings::Manager::getBool("soft particles", "Shaders"))
+                {
+                    osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
+                    depth->setWriteMask(false);
+                    stateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
+                }
             }
             if (mRipples)
             {
