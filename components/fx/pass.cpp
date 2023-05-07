@@ -162,8 +162,8 @@ mat4 omw_InvProjectionMatrix()
 #endif
 
 #if OMW_TRANSPARENT_POST_PASS
-        float depth2 = texture2D(omw_SamplerPostPassDepth, uv).r;
-        depth = min(depth, depth2);
+      //  float depth2 = texture2D(omw_SamplerPostPassDepth, uv).r;
+      //  depth = min(depth, depth2);
 #endif
         return depth;
     }
