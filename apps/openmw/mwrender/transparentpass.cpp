@@ -55,7 +55,7 @@ namespace MWRender
         const auto& fbo = mFbo[frameId];
         const auto& msaaFbo = mMsaaFbo[frameId];
         const auto& opaqueFbo = mOpaqueFbo[frameId];
-
+/*
         if (bin->getStage()->getMultisampleResolveFramebufferObject()
             && bin->getStage()->getMultisampleResolveFramebufferObject() == fbo)
             validFbo = true;
@@ -72,7 +72,7 @@ namespace MWRender
         const osg::Texture* tex
             = opaqueFbo->getAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER)
                   .getTexture();
-
+*/
         if (Stereo::getMultiview())
         {
             if (!mMultiviewResolve[frameId])
