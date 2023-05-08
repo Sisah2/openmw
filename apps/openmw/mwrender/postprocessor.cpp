@@ -165,6 +165,15 @@ namespace MWRender
                 else
                     mTextures[i][Tex_OpaqueDepth] = new osg::Texture2D;
             }
+
+            for (int i = 0; i < 2; ++i)
+            {
+                if (Stereo::getMultiview())
+                    mTextures[i][Tex_Depth] = new osg::Texture2DArray;
+                else
+                    mTextures[i][Tex_Depth] = new osg::Texture2D;
+            }
+
         }
 
         mGLSLVersion = ext->glslLanguageVersion * 100;
@@ -241,7 +250,7 @@ namespace MWRender
         mDisableDepthPasses = !mSoftParticles && !postPass;
 
 #ifdef ANDROID
-        mDisableDepthPasses = true;
+       // mDisableDepthPasses = true;
 #endif
 
         if (!mDisableDepthPasses)
@@ -328,10 +337,7 @@ namespace MWRender
         mPingPongCanvas->setHDR(frameId, getHDR());
 
         mPingPongCanvas->setSceneTexture(frameId, getTexture(Tex_Scene, frameId));
-        if (mDisableDepthPasses)
-            mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
-        else
-            mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_OpaqueDepth, frameId));
+        mPingPongCanvas->setDepthTexture(frameId, getTexture(Tex_Depth, frameId));
 
         mPingPongCanvas->setLDRSceneTexture(frameId, getTexture(Tex_Scene_LDR, frameId));
 
@@ -759,6 +765,8 @@ namespace MWRender
         };
 
         setupDepth(textures[Tex_Depth]);
+
+//        textures[Tex_OpaqueDepth] = nullptr;
 
         if (mDisableDepthPasses)
         {

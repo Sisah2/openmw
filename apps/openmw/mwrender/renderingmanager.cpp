@@ -549,8 +549,8 @@ namespace MWRender
 
         mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS());
         resourceSystem->getSceneManager()->setOpaqueDepthTex(
-            mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 0),
-            mPostProcessor->getTexture(PostProcessor::Tex_OpaqueDepth, 1));
+            mPostProcessor->getTexture(PostProcessor::Tex_Depth, 0),
+            mPostProcessor->getTexture(PostProcessor::Tex_Depth, 1));
         resourceSystem->getSceneManager()->setSoftParticles(mPostProcessor->softParticlesEnabled());
         resourceSystem->getSceneManager()->setSupportsNormalsRT(mPostProcessor->getSupportsNormalsRT());
 
