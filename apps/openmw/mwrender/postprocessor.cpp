@@ -285,7 +285,7 @@ namespace MWRender
 
             mViewer->getCamera()->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER);
             mViewer->getCamera()->getGraphicsContext()->setResizedCallback(nullptr);
-            mViewer->getCamera()->setUserData(nullptr);
+            //mViewer->getCamera()->setUserData(nullptr);
 
             mEnabled = false;
         }
@@ -438,10 +438,10 @@ namespace MWRender
 
             mViewer->stopThreading();
 
-            auto& shaderManager = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getShaderManager();
-            auto defines = shaderManager.getGlobalDefines();
-            defines["disableNormals"] = mNormals ? "0" : "1";
-            shaderManager.setGlobalDefines(defines);
+            //auto& shaderManager = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getShaderManager();
+            //auto defines = shaderManager.getGlobalDefines();
+            //defines["disableNormals"] = mNormals ? "0" : "1";
+            //shaderManager.setGlobalDefines(defines);
 
             mRendering.getLightRoot()->setCollectPPLights(mPassLights);
             mStateUpdater->bindPointLights(mPassLights ? mRendering.getLightRoot()->getPPLightsBuffer() : nullptr);

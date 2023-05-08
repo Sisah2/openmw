@@ -1496,8 +1496,6 @@ namespace MWRender
             }
             else if (it->first == "Post Processing" && it->second == "enabled")
             {
-// Disabling make android crash
-/*
                 if (Settings::Manager::getBool("enabled", "Post Processing"))
                     mPostProcessor->enable();
                 else
@@ -1506,7 +1504,6 @@ namespace MWRender
                     if (auto* hud = MWBase::Environment::get().getWindowManager()->getPostProcessorHud())
                         hud->setVisible(false);
                 }
-*/
             }
         }
 
