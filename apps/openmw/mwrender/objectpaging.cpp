@@ -501,8 +501,8 @@ namespace MWRender
     {
         if (mGroundcover)
         {
-            mMergeFactor = Settings::Manager::getFloat("merge factor", "Groundcover");
-            mGroundcoverDensity = Settings::Manager::getFloat("density", "Groundcover")/100.f;
+            mMergeFactor = Settings::groundcover().mMergeFactor;
+            mGroundcoverDensity = Settings::groundcover().mDensity/100.f;
             mMinSize = 0.01;
         }
     }

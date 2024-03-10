@@ -304,8 +304,8 @@ namespace Terrain
         }
     }
 
-    QuadTreeWorld::QuadTreeWorld(osg::Group *parent, Storage *storage, int nodeMask, float lodFactor, float chunkSize)
-        : TerrainGrid(parent, storage, nodeMask)
+    QuadTreeWorld::QuadTreeWorld(osg::Group *parent, Storage *storage, ESM::RefId worldspace, int nodeMask, float lodFactor, float chunkSize)
+        : TerrainGrid(parent, storage, worldspace, nodeMask)
         , mViewDataMap(new ViewDataMap)
         , mQuadTreeBuilt(false)
         , mLodFactor(lodFactor)

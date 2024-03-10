@@ -456,6 +456,12 @@ namespace MWRender
         mGroundcover = chunkMgr.mGroundcover.get();
         mObjectPaging = chunkMgr.mObjectPaging.get();
 
+        if(Settings::groundcover().mPaging)
+        {
+            mGroundcoverWorld = chunkMgr.mGroundcoverWorld.get();
+            mGroundcoverPaging = chunkMgr.mGroundcoverPaging.get();
+        }
+
         mStateUpdater = new StateUpdater;
         sceneRoot->addUpdateCallback(mStateUpdater);
 
@@ -734,6 +740,9 @@ namespace MWRender
         {
             enableTerrain(true, store->getCell()->getWorldSpace());
             mTerrain->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+
+            if (mGroundcoverWorld)
+                mGroundcoverWorld->loadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
     }
     void RenderingManager::removeCell(const MWWorld::CellStore* store)
@@ -746,6 +755,10 @@ namespace MWRender
         {
             getWorldspaceChunkMgr(store->getCell()->getWorldSpace())
                 .mTerrain->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
+
+            if (mGroundcoverWorld)
+                getWorldspaceChunkMgr(store->getCell()->getWorldSpace())
+                    .mGroundcoverWorld->unloadCell(store->getCell()->getGridX(), store->getCell()->getGridY());
         }
 
         mWater->removeCell(store);
@@ -765,8 +778,18 @@ namespace MWRender
                 mGroundcover = newChunks.mGroundcover.get();
                 mObjectPaging = newChunks.mObjectPaging.get();
             }
+
+            if (newChunks.mGroundcoverWorld.get() != mGroundcoverWorld)
+            {
+                mGroundcoverWorld->enable(false);
+                mGroundcoverWorld = newChunks.mGroundcoverWorld.get();
+                mGroundcoverPaging = newChunks.mGroundcoverPaging.get();
+            }
         }
         mTerrain->enable(enable);
+
+        if (mGroundcoverWorld)
+            mGroundcoverWorld->enable(enable);
     }
 
     void RenderingManager::setSkyEnabled(bool enabled)
@@ -1341,7 +1364,7 @@ namespace MWRender
             if (Settings::terrain().mObjectPaging)
             {
                 newChunkMgr.mObjectPaging
-                    = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), worldspace, false, groundcoverStore);
+                    = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), worldspace, false, mGroundCoverStore);
                 quadTreeWorld->addChunkManager(newChunkMgr.mObjectPaging.get());
                 mResourceSystem->addResourceManager(newChunkMgr.mObjectPaging.get());
             }
@@ -1360,9 +1383,9 @@ namespace MWRender
                 osg::ref_ptr<osg::Group> groundcoverRoot = new osg::Group;
                 groundcoverRoot->setNodeMask(Mask_Groundcover);
                 groundcoverRoot->setName("Groundcover Root");
-                sceneRoot->addChild(groundcoverRoot);
+                mSceneRoot->addChild(groundcoverRoot);
 
-                float chunkSize = Settings::Manager::getFloat("min chunk size", "Groundcover");
+                float chunkSize = Settings::groundcover().mMinChunkSize;
                 if (chunkSize >= 1.0f)
                     chunkSize = 1.0f;
                 else if (chunkSize >= 0.5f)
@@ -1372,12 +1395,14 @@ namespace MWRender
                 else if (chunkSize != 0.125f)
                     chunkSize = 0.125f;
 
-                newChunkMgr.mGroundcoverWorld = std::make_unique<Terrain::QuadTreeWorld>(groundcoverRoot, mTerrainStorage.get(), Mask_Groundcover, lodFactor, chunkSize);//,,,,,,,,,,,,,,,,
-                newChunkMgr.mGroundcoverPaging = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), true, groundcoverStore);
-                static_cast<Terrain::QuadTreeWorld*>(mGroundcoverWorld.get())->addChunkManager(mGroundcoverPaging.get());
-                mResourceSystem->addResourceManager(mGroundcoverPaging.get());
+                auto groundcoverWorld = std::make_unique<Terrain::QuadTreeWorld>(groundcoverRoot, mTerrainStorage.get(), worldspace, Mask_Groundcover, lodFactor, chunkSize);
+                newChunkMgr.mGroundcoverPaging = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), worldspace, true, mGroundCoverStore);
+                static_cast<Terrain::QuadTreeWorld*>(groundcoverWorld.get())->addChunkManager(newChunkMgr.mGroundcoverPaging.get());
+                mResourceSystem->addResourceManager(newChunkMgr.mGroundcoverPaging.get());
 
-                newChunkMgr.mGroundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
+                groundcoverWorld->setActiveGrid(osg::Vec4i(0, 0, 0, 0));
+
+                newChunkMgr.mGroundcoverWorld = std::move(groundcoverWorld);
             }
 
             newChunkMgr.mTerrain = std::move(quadTreeWorld);
