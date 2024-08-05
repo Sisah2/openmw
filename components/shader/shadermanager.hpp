@@ -76,6 +76,9 @@ namespace Shader
         int getMaxTextureUnits() const { return mMaxTextureUnits; }
         int getAvailableTextureUnits() const { return mMaxTextureUnits - mReservedTextureUnits; }
 
+        void setGLRendererString(std::string rendererString) { mGLRendererString = rendererString; }
+        std::string getGLRendererString() const { return mGLRendererString; }
+
         enum class Slot
         {
             OpaqueDepthTexture,
@@ -121,6 +124,8 @@ namespace Shader
 
         int mMaxTextureUnits = 0;
         int mReservedTextureUnits = 0;
+        std::string mGLRendererString = "";
+
         std::unique_ptr<HotReloadManager> mHotReloadManager;
         struct ReservedTextureUnits
         {

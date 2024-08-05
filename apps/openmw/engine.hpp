@@ -265,6 +265,7 @@ namespace OMW
     private:
         Files::ConfigurationManager& mCfgMgr;
         int mGlMaxTextureImageUnits;
+        std::string mGl_Renderer;
     };
 }
 

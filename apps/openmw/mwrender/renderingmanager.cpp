@@ -466,6 +466,10 @@ namespace MWRender
         globalDefines["shadowMapSize"] = std::to_string(Settings::shadows().mShadowMapResolution);
         globalDefines["PCFSamples"] = std::to_string(Settings::shadows().mPercentageCloserFiltering);
 
+        globalDefines["isGL4ES"] = "0";
+        if(mResourceSystem->getSceneManager()->getShaderManager().getGLRendererString() == "GL4ES wrapper")      
+            globalDefines["isGL4ES"] = "1";
+
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 

@@ -153,6 +153,7 @@ namespace
             Log(Debug::Info) << "OpenGL Renderer: " << glGetString(GL_RENDERER);
             Log(Debug::Info) << "OpenGL Version: " << glGetString(GL_VERSION);
             glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &mMaxTextureImageUnits);
+            mGL_Renderer = (const char *)glGetString(GL_RENDERER);
         }
 
         int getMaxTextureImageUnits() const
@@ -162,8 +163,14 @@ namespace
             return mMaxTextureImageUnits;
         }
 
+        std::string getGL_Renderer() const
+        {
+            return mGL_Renderer;
+        }
+
     private:
         int mMaxTextureImageUnits = 0;
+        std::string mGL_Renderer = "";
     };
 
     void reportStats(unsigned frameNumber, osgViewer::Viewer& viewer, std::ostream& stream)
@@ -378,6 +385,7 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
     , mNewGame(false)
     , mCfgMgr(configurationManager)
     , mGlMaxTextureImageUnits(0)
+    , mGl_Renderer("")
 {
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0"); // We use only gamepads
 
@@ -683,6 +691,7 @@ void OMW::Engine::createWindow()
 
     mViewer->realize();
     mGlMaxTextureImageUnits = identifyOp->getMaxTextureImageUnits();
+    mGl_Renderer = identifyOp->getGL_Renderer();
 
     mViewer->getEventQueue()->getCurrentEventState()->setWindowRectangle(
         0, 0, graphicsWindow->getTraits()->width, graphicsWindow->getTraits()->height);
@@ -737,6 +746,7 @@ void OMW::Engine::prepareEngine()
     mResourceSystem = std::make_unique<Resource::ResourceSystem>(
         mVFS.get(), Settings::cells().mCacheExpiryDelay, &mEncoder.get()->getStatelessEncoder());
     mResourceSystem->getSceneManager()->getShaderManager().setMaxTextureUnits(mGlMaxTextureImageUnits);
+    mResourceSystem->getSceneManager()->getShaderManager().setGLRendererString(mGl_Renderer);
     mResourceSystem->getSceneManager()->setUnRefImageDataAfterApply(
         false); // keep to Off for now to allow better state sharing
     mResourceSystem->getSceneManager()->setFilterSettings(Settings::general().mTextureMagFilter,
