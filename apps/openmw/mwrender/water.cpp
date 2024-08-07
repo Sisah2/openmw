@@ -424,12 +424,12 @@ namespace MWRender
         {
             static bool supported = osg::isGLExtensionOrVersionSupported(
                 renderInfo.getState()->getContextID(), "GL_ARB_depth_clamp", 3.3);
-            if (!supported)
+         /*   if (!supported)
             {
                 drawable->drawImplementation(renderInfo);
                 return;
             }
-
+*/
             glEnable(GL_DEPTH_CLAMP);
 
             drawable->drawImplementation(renderInfo);
