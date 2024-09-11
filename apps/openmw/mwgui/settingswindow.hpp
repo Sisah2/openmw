@@ -2,6 +2,7 @@
 #define MWGUI_SETTINGS_H
 
 #include <components/lua_ui/adapter.hpp>
+#include <components/files/configurationmanager.hpp>
 
 #include "windowbase.hpp"
 
@@ -10,7 +11,7 @@ namespace MWGui
     class SettingsWindow : public WindowBase
     {
     public:
-        SettingsWindow();
+        SettingsWindow(Files::ConfigurationManager& cfgMgr);
 
         void onOpen() override;
 
@@ -126,6 +127,7 @@ namespace MWGui
 
     private:
         void resetScrollbars();
+        Files::ConfigurationManager& mCfgMgr;
     };
 }
 

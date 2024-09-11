@@ -32,7 +32,6 @@
 #include "../mwbase/world.hpp"
 
 #include <components/files/configurationmanager.hpp>
-extern Files::ConfigurationManager *g_cfgMgr;
 
 namespace MWGui
 {
@@ -45,8 +44,9 @@ namespace MWGui
         MyGUI::ListBox::onKeyButtonPressed(key, ch);
     }
 
-    PostProcessorHud::PostProcessorHud()
+    PostProcessorHud::PostProcessorHud(Files::ConfigurationManager& cfgMgr)
         : WindowBase("openmw_postprocessor_hud.layout")
+        , mCfgMgr(cfgMgr)
     {
         getWidget(mActiveList, "ActiveList");
         getWidget(mInactiveList, "InactiveList");
@@ -239,7 +239,7 @@ namespace MWGui
     void PostProcessorHud::onClose()
     {
         Settings::ShaderManager::get().save();
-        Settings::Manager::saveUser(g_cfgMgr->getUserConfigPath() / "settings.cfg");
+        Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
         toggleMode(Settings::ShaderManager::Mode::Normal);
     }
 

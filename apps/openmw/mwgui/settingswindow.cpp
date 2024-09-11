@@ -151,8 +151,6 @@ namespace
     }
 }
 
-extern Files::ConfigurationManager *g_cfgMgr;
-
 namespace MWGui
 {
     void SettingsWindow::configureWidgets(MyGUI::Widget* widget, bool init)
@@ -250,10 +248,11 @@ namespace MWGui
         }
     }
 
-    SettingsWindow::SettingsWindow()
+    SettingsWindow::SettingsWindow(Files::ConfigurationManager& cfgMgr)
         : WindowBase("openmw_settings_window.layout")
         , mKeyboardMode(true)
         , mCurrentPage(-1)
+        , mCfgMgr(cfgMgr)
     {
         const bool terrain = Settings::terrain().mDistantTerrain;
         const std::string_view widgetName = terrain ? "RenderingDistanceSlider" : "LargeRenderingDistanceSlider";
@@ -1113,8 +1112,8 @@ namespace MWGui
     void SettingsWindow::onClose()
     {
         // Save user settings
-        Settings::Manager::saveUser(g_cfgMgr->getUserConfigPath() / "settings.cfg");
-        MWBase::Environment::get().getLuaManager()->savePermanentStorage(g_cfgMgr->getUserConfigPath());
+        Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
+        MWBase::Environment::get().getLuaManager()->savePermanentStorage(mCfgMgr.getUserConfigPath());
     }
 
     void SettingsWindow::onWindowResize(MyGUI::Window* _sender)
