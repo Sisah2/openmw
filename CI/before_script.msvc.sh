@@ -676,12 +676,87 @@ printf "Qt ${QT_VER}... "
 	QT_MINOR_VER=$(echo "${QT_VER}" | awk -F '[.]' '{printf "%d", $2}')
 
 	cd $QT_SDK
+<<<<<<< HEAD
+=======
+	add_cmake_opts -DQT_QMAKE_EXECUTABLE="${QT_SDK}/bin/qmake.exe"
+>>>>>>> parent of 4487113d40... Revert "Use SDL2 generate cmake files to find the package"
 	for CONFIGURATION in ${CONFIGURATIONS[@]}; do
 		if [ $CONFIGURATION == "Debug" ]; then
 			DLLSUFFIX="d"
 		else
 			DLLSUFFIX=""
 		fi
+<<<<<<< HEAD
+=======
+		if [ "${QT_VER:0:1}" -eq "6" ]; then
+			add_runtime_dlls $CONFIGURATION "$(pwd)/bin/Qt${QT_VER:0:1}"{Core,Gui,Network,OpenGL,OpenGLWidgets,Widgets}${DLLSUFFIX}.dll
+		else
+			add_runtime_dlls $CONFIGURATION "$(pwd)/bin/Qt${QT_VER:0:1}"{Core,Gui,Network,OpenGL,Widgets}${DLLSUFFIX}.dll
+		fi
+		add_qt_platform_dlls $CONFIGURATION "$(pwd)/plugins/platforms/qwindows${DLLSUFFIX}.dll"
+		add_qt_style_dlls $CONFIGURATION "$(pwd)/plugins/styles/qwindowsvistastyle${DLLSUFFIX}.dll"
+	done
+	echo Done.
+}
+cd $DEPS
+echo
+printf "SDL 2.24.0... "
+{
+	if [ -d SDL2-2.24.0 ]; then
+		printf "Exists. "
+	elif [ -z $SKIP_EXTRACT ]; then
+		rm -rf SDL2-2.24.0
+		eval 7z x -y SDL2-devel-2.24.0-VC.zip $STRIP
+	fi
+	SDL2DIR="$(real_pwd)/SDL2-2.24.0"
+	for config in ${CONFIGURATIONS[@]}; do
+		add_runtime_dlls $config "$(pwd)/SDL2-2.24.0/lib/x${ARCHSUFFIX}/SDL2.dll"
+	done
+	echo Done.
+}
+cd $DEPS
+echo
+printf "LZ4 ${LZ4_VER}... "
+{
+	if [ -d LZ4_${LZ4_VER} ]; then
+		printf "Exists. "
+	elif [ -z $SKIP_EXTRACT ]; then
+		rm -rf LZ4_${LZ4_VER}
+		eval 7z x -y lz4_win${BITS}_v${LZ4_VER//./_}.7z -o$(real_pwd)/LZ4_${LZ4_VER} $STRIP
+	fi
+	export LZ4DIR="$(real_pwd)/LZ4_${LZ4_VER}"
+	add_cmake_opts -DLZ4_INCLUDE_DIR="${LZ4DIR}/include" \
+		-DLZ4_LIBRARY="${LZ4DIR}/lib/liblz4.lib"
+	for CONFIGURATION in ${CONFIGURATIONS[@]}; do
+		if [ $CONFIGURATION == "Debug" ]; then
+			LZ4_CONFIGURATION="Debug"
+		else
+			SUFFIX=""
+			LZ4_CONFIGURATION="Release"
+		fi
+		add_runtime_dlls $CONFIGURATION "$(pwd)/LZ4_${LZ4_VER}/bin/${LZ4_CONFIGURATION}/liblz4.dll"
+	done
+	echo Done.
+}
+cd $DEPS
+echo
+printf "LuaJIT ${LUAJIT_VER}... "
+{
+	if [ -d LuaJIT ]; then
+		printf "Exists. "
+	elif [ -z $SKIP_EXTRACT ]; then
+		rm -rf LuaJIT
+		eval 7z x -y LuaJIT-${LUAJIT_VER}-msvc${LUA_MSVC_YEAR}-win${BITS}.7z -o$(real_pwd)/LuaJIT $STRIP
+	fi
+	export LUAJIT_DIR="$(real_pwd)/LuaJIT"
+	add_cmake_opts -DLuaJit_INCLUDE_DIR="${LUAJIT_DIR}/include" \
+		-DLuaJit_LIBRARY="${LUAJIT_DIR}/lib/lua51.lib"
+	for CONFIGURATION in ${CONFIGURATIONS[@]}; do
+		add_runtime_dlls $CONFIGURATION "$(pwd)/LuaJIT/bin/lua51.dll"
+	done
+	echo Done.
+}
+>>>>>>> parent of 4487113d40... Revert "Use SDL2 generate cmake files to find the package"
 
 		if [ "${QT_MAJOR_VER}" -eq 6 ]; then
 			add_runtime_dlls $CONFIGURATION "$(pwd)/bin/Qt${QT_MAJOR_VER}"{Core,Gui,Network,OpenGL,OpenGLWidgets,Widgets,Svg}${DLLSUFFIX}.dll
@@ -704,7 +779,11 @@ printf "Qt ${QT_VER}... "
 	echo Done.
 }
 
+<<<<<<< HEAD
 add_cmake_opts -DCMAKE_PREFIX_PATH="\"${QT_SDK}\""
+=======
+add_cmake_opts -DCMAKE_PREFIX_PATH="\"${QT_SDK};${SDL2DIR}\""
+>>>>>>> parent of 4487113d40... Revert "Use SDL2 generate cmake files to find the package"
 
 echo
 cd $DEPS_INSTALL/..
