@@ -1075,6 +1075,7 @@ void OMW::Engine::go()
     Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
     Settings::ShaderManager::get().save();
     mLuaManager->savePermanentStorage(mCfgMgr.getUserConfigPath());
+    MWBase::Environment::get().getInputManager()->saveBindings();
 
     Log(Debug::Info) << "Quitting peacefully.";
 }

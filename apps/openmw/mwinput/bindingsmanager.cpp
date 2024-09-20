@@ -196,7 +196,6 @@ namespace MWInput
 
     BindingsManager::~BindingsManager()
     {
-        saveBindings();
     }
 
     void BindingsManager::update(float dt)
