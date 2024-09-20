@@ -194,9 +194,7 @@ namespace MWInput
         mDragDrop = dragDrop;
     }
 
-    BindingsManager::~BindingsManager()
-    {
-    }
+    BindingsManager::~BindingsManager() = default;
 
     void BindingsManager::update(float dt)
     {
