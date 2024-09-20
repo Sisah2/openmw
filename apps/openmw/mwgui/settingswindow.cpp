@@ -1116,6 +1116,7 @@ namespace MWGui
         // Save user settings
         Settings::Manager::saveUser(g_cfgMgr->getUserConfigPath() / "settings.cfg");
         MWBase::Environment::get().getLuaManager()->savePermanentStorage(g_cfgMgr->getUserConfigPath());
+        MWBase::Environment::get().getInputManager()->saveBindings();
     }
 
     void SettingsWindow::onWindowResize(MyGUI::Window* _sender)
