@@ -65,6 +65,8 @@ set(SHADER_FILES
     compatibility/bs/nolighting.frag
     compatibility/luminance/resolve.frag
     compatibility/luminance/luminance.frag
+    compatibility/normal.vert
+    compatibility/normal.frag
     core/ripples_blobber.comp
     core/ripples_simulate.comp
     core/gui.frag

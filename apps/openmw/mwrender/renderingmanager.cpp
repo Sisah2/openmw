@@ -173,6 +173,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("skyBlendingStart", 0.f));
             stateset->addUniform(new osg::Uniform("screenRes", osg::Vec2f{}));
             stateset->addUniform(new osg::Uniform("isReflection", false));
+            stateset->addUniform(new osg::Uniform("isNormalsFallback", false));
             stateset->addUniform(new osg::Uniform("windSpeed", 0.0f));
             stateset->addUniform(new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f)));
             stateset->addUniform(new osg::Uniform("useTreeAnim", false));
@@ -518,7 +519,7 @@ namespace MWRender
         mPerViewUniformStateUpdater = new PerViewUniformStateUpdater(mResourceSystem->getSceneManager());
         rootNode->addCullCallback(mPerViewUniformStateUpdater);
 
-        mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS());
+        mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS(), sceneRoot);
         resourceSystem->getSceneManager()->setOpaqueDepthTex(
             mPostProcessor->getTexture(PostProcessor::Tex_Depth, 0),
             mPostProcessor->getTexture(PostProcessor::Tex_Depth, 1));

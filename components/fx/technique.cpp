@@ -247,7 +247,7 @@ namespace fx
             else if (key == "hdr")
                 mHDR = parseBool();
             else if (key == "pass_normals")
-                mNormals = parseBool() && mSupportsNormals;
+                mNormals = parseBool()/* && mSupportsNormals*/;
             else if (key == "pass_lights")
                 mLights = parseBool();
             else if (key == "glsl_profile")

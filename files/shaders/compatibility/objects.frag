@@ -67,6 +67,7 @@ uniform float near;
 uniform float far;
 uniform float alphaRef;
 uniform float distortionStrength;
+uniform bool isNormalsFallback;
 
 #define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
 
@@ -114,6 +115,7 @@ varying vec3 orthoDepthMapCoord;
 #endif
 
 uniform highp sampler2D opaqueDepthTex;
+varying float alphaPassthrough;
 
 void main()
 {
@@ -146,6 +148,14 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
     gl_FragData[0] = applyDistortion(gl_FragData[0], distortionStrength, gl_FragCoord.z, texture2D(opaqueDepthTex, screenCoords / @distorionRTRatio).x);
     return;
 #endif
+
+    if (isNormalsFallback)
+    {
+        float alpha = gl_FragData[0].a * alphaPassthrough;
+        const float alphaRef = 0.499;
+        if (alpha < alphaRef)
+            discard;
+    }
 
 #if @diffuseParallax
     gl_FragData[0].a = 1.0;
@@ -270,8 +280,12 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
     gl_FragData[0].a = 1.0;
 #endif
 
-#if !defined(FORCE_OPAQUE) && !@disableNormals
+#if !defined(FORCE_OPAQUE)
+#if !@disableNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
+#endif
+    if (isNormalsFallback)
+        gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
 #endif
 
     applyShadowDebugOverlay();

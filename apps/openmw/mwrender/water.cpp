@@ -646,7 +646,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("normalMap", 0));
             stateset->setTextureAttributeAndModes(0, mNormalMap, osg::StateAttribute::ON);
             stateset->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
-            stateset->setAttributeAndModes(mProgram, osg::StateAttribute::ON);
+            stateset->setAttributeAndModes(mProgram, osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
 
             stateset->addUniform(new osg::Uniform("reflectionMap", 1));
             if (mRefraction)

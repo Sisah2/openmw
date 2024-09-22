@@ -79,6 +79,8 @@ uniform mat4 depthSpaceMatrix;
 uniform mat4 osg_ViewMatrixInverse;
 #endif
 
+varying float alphaPassthrough;
+
 void main(void)
 {
 #if @particleOcclusion
@@ -94,6 +96,11 @@ void main(void)
     passViewPos = viewPos.xyz;
     passNormal = gl_Normal.xyz;
     normalToViewMatrix = gl_NormalMatrix;
+
+    if (colorMode == 2)
+        alphaPassthrough = gl_Color.a;
+    else
+        alphaPassthrough = gl_FrontMaterial.diffuse.a;
 
 #if @normalMap || @diffuseParallax
     passTangent = gl_MultiTexCoord7.xyzw;

@@ -268,7 +268,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                   { "@builtinSampler", Stereo::getMultiview() ? "sampler2DArray" : "sampler2D" },
                   { "@profile", technique.getGLSLProfile() }, { "@extensions", extBlock.str() },
                   { "@uboStruct", StateUpdater::getStructDefinition() }, { "@ubo", mUBO ? "1" : "0" },
-                  { "@normals", technique.getNormals() ? "1" : "0" },
+                  { "@normals", "1"/*technique.getNormals() ? "1" : "0"*/ },
                   { "@reverseZ", SceneUtil::AutoDepth::isReversed() ? "1" : "0" },
                   { "@radialFog", Settings::fog().mRadialFog ? "1" : "0" },
                   { "@exponentialFog", Settings::fog().mExponentialFog ? "1" : "0" },

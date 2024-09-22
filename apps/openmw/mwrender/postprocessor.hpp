@@ -43,6 +43,10 @@ namespace Shader
 {
     class ShaderManager;
 }
+namespace SceneUtil
+{
+    class LightManager;
+}
 
 namespace MWRender
 {
@@ -51,6 +55,7 @@ namespace MWRender
     class PingPongCanvas;
     class TransparentDepthBinCallback;
     class DistortionCallback;
+    class NormalsFallback;
 
     class PostProcessor : public osg::Group
     {
@@ -98,7 +103,7 @@ namespace MWRender
         };
 
         PostProcessor(
-            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs);
+            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs, osg::ref_ptr<SceneUtil::LightManager> sceneRoot);
 
         ~PostProcessor();
 
@@ -200,6 +205,9 @@ namespace MWRender
 
         void loadChain();
         void saveChain();
+
+        void setNormalsTex(osg::Texture* tex);
+        std::unique_ptr<NormalsFallback> mNormalsFallback;
 
     private:
         void populateTechniqueFiles();

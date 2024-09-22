@@ -36,6 +36,7 @@ varying vec3 passNormal;
 
 uniform vec2 screenRes;
 uniform float far;
+uniform bool isNormalsFallback;
 
 #include "vertexcolors.glsl"
 #include "shadows_fragment.glsl"
@@ -100,6 +101,9 @@ void main()
 #if !@disableNormals && @writeNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
+
+    if (isNormalsFallback)
+        gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
 
     applyShadowDebugOverlay();
 }

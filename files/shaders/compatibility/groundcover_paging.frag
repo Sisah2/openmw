@@ -29,6 +29,7 @@ varying float linearDepth;
 uniform vec2 screenRes;
 uniform float far;
 uniform float alphaRef;
+uniform bool isNormalsFallback;
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passViewPos;
@@ -84,6 +85,9 @@ void main()
 #if !@disableNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
+
+    if (isNormalsFallback)
+        gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
 
     if(gl_FrontMaterial.emission.xyz != vec3(0.0))
         gl_FragData[0].xyz += gl_FrontMaterial.emission.xyz;

@@ -138,7 +138,7 @@ namespace fx
 
         bool getHDR() const { return mHDR; }
 
-        bool getNormals() const { return mNormals && mSupportsNormals; }
+        bool getNormals() const { return mNormals;/* && mSupportsNormals;*/ }
 
         bool getLights() const { return mLights; }
 

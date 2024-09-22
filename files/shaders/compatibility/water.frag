@@ -79,6 +79,7 @@ uniform float far;
 
 uniform float rainIntensity;
 uniform bool enableRainRipples;
+uniform bool isNormalsFallback;
 
 uniform vec2 screenRes;
 
@@ -242,6 +243,9 @@ void main(void)
 #if !@disableNormals
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 #endif
+
+    if (isNormalsFallback)
+        gl_FragData[0].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 
     applyShadowDebugOverlay();
 }

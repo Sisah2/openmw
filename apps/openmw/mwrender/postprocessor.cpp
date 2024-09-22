@@ -18,6 +18,7 @@
 #include <components/sceneutil/color.hpp>
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/nodecallback.hpp>
+#include <components/sceneutil/lightmanager.hpp>
 #include <components/settings/values.hpp>
 #include <components/shader/shadermanager.hpp>
 #include <components/stereo/multiview.hpp>
@@ -37,6 +38,7 @@
 #include "sky.hpp"
 #include "transparentpass.hpp"
 #include "vismask.hpp"
+#include "normalsfallback.hpp"
 
 namespace
 {
@@ -113,7 +115,7 @@ namespace
 namespace MWRender
 {
     PostProcessor::PostProcessor(
-        RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs)
+        RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs, osg::ref_ptr<SceneUtil::LightManager> sceneRoot)
         : osg::Group()
         , mRootNode(rootNode)
         , mHUDCamera(new osg::Camera)
@@ -202,7 +204,7 @@ namespace MWRender
         if (ext->glDisablei)
             mNormalsSupported = true;
         else
-            Log(Debug::Error) << "'glDisablei' unsupported, pass normals will not be available to shaders.";
+            Log(Debug::Error) << "'glDisablei' unsupported, pass normals will use slow fallback.";
 
         mGLSLVersion = ext->glslLanguageVersion * 100;
         mUBO = ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
@@ -220,6 +222,10 @@ namespace MWRender
 
         if (mUsePostProcessing)
             enable();
+
+        if (!mNormalsSupported)
+            mNormalsFallback = std::make_unique<NormalsFallback>(
+                sceneRoot->getParent(0), sceneRoot, this);
     }
 
     PostProcessor::~PostProcessor()
@@ -404,7 +410,7 @@ namespace MWRender
             mCanvases[frameId]->setPasses(fx::DispatchArray(mTemplateData));
         }
 
-        if ((mNormalsSupported && mNormals != mPrevNormals) || (mPassLights != mPrevPassLights))
+        if ((mNormals != mPrevNormals) || (mPassLights != mPrevPassLights))
         {
             mPrevNormals = mNormals;
             mPrevPassLights = mPassLights;
@@ -418,6 +424,13 @@ namespace MWRender
                 auto defines = shaderManager.getGlobalDefines();
                 defines["disableNormals"] = mNormals ? "0" : "1";
                 shaderManager.setGlobalDefines(defines);
+            }
+            else if (!mNormalsSupported)
+            {
+                if (mNormals)
+                    mNormalsFallback->enable();
+                else
+                    mNormalsFallback->disable();
             }
 
             mRendering.getLightRoot()->setCollectPPLights(mPassLights);
@@ -848,5 +861,13 @@ namespace MWRender
     void PostProcessor::triggerShaderReload()
     {
         mTriggerShaderReload = true;
+    }
+
+    void PostProcessor::setNormalsTex(osg::Texture* tex)
+    {
+        size_t frameId = frame() % 2;
+        mTextures[0][Tex_Normal] = tex;
+        mTextures[1][Tex_Normal] = tex;
+        mCanvases[frameId]->setTextureNormals(tex);
     }
 }
