@@ -241,7 +241,9 @@ namespace MWRender
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_EyeAdaptation,
                     mLuminanceCalculator->getLuminanceTexture(frameId));
 
-            if (mTextureNormals)
+            if (mExternalTextureNormals)
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mExternalTextureNormals);
+            else if (mTextureNormals)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mTextureNormals);
 
             if (mTextureDistortion)

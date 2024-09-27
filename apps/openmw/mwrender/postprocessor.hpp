@@ -206,7 +206,7 @@ namespace MWRender
         void loadChain();
         void saveChain();
 
-        void setNormalsTex(osg::Texture* tex);
+        void setExternalNormalsTexture(osg::ref_ptr<osg::Texture> tex);
         std::unique_ptr<NormalsFallback> mNormalsFallback;
 
     private:

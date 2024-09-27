@@ -43,8 +43,8 @@ namespace MWRender
         NormalsFallbackCamera(osg::ref_ptr<PostProcessor> postProcessor, osg::Node* scene)
             : RTTNode(postProcessor->renderWidth(), postProcessor->renderHeight(), 0, false, 0, StereoAwareness::Aware, shouldAddMSAAIntermediateTarget())
         {
+            setColorBufferInternalFormat(GL_RGB);
             setDepthBufferInternalFormat(GL_DEPTH24_STENCIL8);
-            mClipCullNode = new osg::Group;
             mPostProcessor = postProcessor;
             mScene = scene;
         }
@@ -54,21 +54,25 @@ namespace MWRender
             camera->setReferenceFrame(osg::Camera::RELATIVE_RF);
             camera->setSmallFeatureCullingPixelSize(Settings::camera().mSmallFeatureCullingPixelSize);
             camera->setName("Normals Fallback Camera");
-            camera->addCullCallback(new InheritViewPointCallback);
+//if (Settings::postProcessing().mTest3 == 0)
+//            camera->addCullCallback(new InheritViewPointCallback);
 
-            mClipCullNode->addChild(mScene);
-            camera->addChild(mClipCullNode);
+            camera->addChild(mScene);
             camera->setNodeMask(Mask_RenderToTexture);
             camera->setClearColor(osg::Vec4f(0.f, 0.f, 0.f, 1.f));
 
+if (Settings::postProcessing().mTest2 == 0)
             camera->getOrCreateStateSet()->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
-/*
-            std::map<std::string, std::string> defineMap;
-            Shader::ShaderManager& shaderMgr = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getShaderManager();
-            osg::ref_ptr<osg::Program> program = shaderMgr.getProgram("normal", defineMap);
-            camera->getOrCreateStateSet()->setAttributeAndModes(program.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-*/
-            camera->getOrCreateStateSet()->addUniform(new osg::Uniform("isNormalsFallback", true));
+
+            if (Settings::postProcessing().mTest1 == 0)
+            {
+                std::map<std::string, std::string> defineMap;
+                Shader::ShaderManager& shaderMgr = MWBase::Environment::get().getResourceSystem()->getSceneManager()->getShaderManager();
+                osg::ref_ptr<osg::Program> program = shaderMgr.getProgram("normal", defineMap);
+                camera->getOrCreateStateSet()->setAttributeAndModes(program.get(), osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+            }
+            else
+                camera->getOrCreateStateSet()->addUniform(new osg::Uniform("isNormalsFallback", true));
 
             SceneUtil::ShadowManager::instance().disableShadowsForStateSet(*camera->getOrCreateStateSet());
         }
@@ -76,17 +80,39 @@ namespace MWRender
         void apply(osg::Camera* camera) override
         {
             camera->setViewMatrix(osg::Matrix::identity());
-            camera->setCullMask(Mask_Effect | Mask_Scene | Mask_Object | Mask_Static
-            | Mask_Terrain | Mask_Actor | Mask_ParticleSystem | Mask_Player 
-            | Mask_Groundcover | Mask_Water | Mask_SimpleWater | Mask_FirstPerson);
+            camera->setCullMask(Mask_Scene | Mask_Object | Mask_Static
+            | Mask_Terrain | Mask_Actor | Mask_Player 
+            | Mask_Groundcover | Mask_Water | Mask_SimpleWater/* | Mask_FirstPerson*/);
 
-            osg::Texture* texture = camera->getBufferAttachmentMap()[osg::Camera::COLOR_BUFFER]._texture.get();
 
-            mPostProcessor->setNormalsTex(texture);
+            if (Settings::postProcessing().mNormalsFallbackRenderingDistance != 0){
+                const double width = mPostProcessor->renderWidth()/*Settings::video().mResolutionX*/;
+                const double height = mPostProcessor->renderWidth()/*Settings::video().mResolutionY*/;
+                double aspect = (height == 0.0) ? 1.0 : width / height;
+                camera->setProjectionMatrixAsPerspective(Settings::camera().mFieldOfView, aspect, Settings::camera().mNearClip,
+                    Settings::postProcessing().mNormalsFallbackRenderingDistance);
+
+
+                osg::Matrixf projectionMatrix;
+
+                if (SceneUtil::AutoDepth::isReversed())
+                    projectionMatrix = SceneUtil::getReversedZProjectionMatrixAsPerspective(Settings::camera().mFieldOfView,
+                        aspect, Settings::camera().mNearClip, Settings::postProcessing().mNormalsFallbackRenderingDistance);
+                else
+                    projectionMatrix = camera->getProjectionMatrix();
+        
+
+                camera->getOrCreateStateSet()->addUniform(new osg::Uniform("projectionMatrix", static_cast<osg::Matrixf>(projectionMatrix)),
+                    osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+
+                mPostProcessor->getStateUpdater()->setProjectionMatrix(projectionMatrix);
+
+            }
+
+            mPostProcessor->setExternalNormalsTexture(camera->getBufferAttachmentMap()[osg::Camera::COLOR_BUFFER]._texture);
         }
 
     private:
-        osg::ref_ptr<osg::Group> mClipCullNode;
         osg::ref_ptr<osg::Node> mScene;
         osg::ref_ptr<PostProcessor> mPostProcessor;
     };

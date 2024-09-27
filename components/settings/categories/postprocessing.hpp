@@ -23,6 +23,12 @@ namespace Settings
         SettingValue<float> mAutoExposureSpeed{ mIndex, "Post Processing", "auto exposure speed",
             makeMaxStrictSanitizerFloat(0.0001f) };
         SettingValue<bool> mTransparentPostpass{ mIndex, "Post Processing", "transparent postpass" };
+        SettingValue<int> mNormalsFallbackRenderingDistance{ mIndex, "Post Processing", "normals fallback view distance" };
+
+        SettingValue<int> mTest1{ mIndex, "Post Processing", "test1" };
+        SettingValue<int> mTest2{ mIndex, "Post Processing", "test2" };
+        SettingValue<int> mTest3{ mIndex, "Post Processing", "test3" };
+        SettingValue<int> mTest4{ mIndex, "Post Processing", "test4" };
     };
 }
 

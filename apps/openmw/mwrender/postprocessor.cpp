@@ -863,11 +863,13 @@ namespace MWRender
         mTriggerShaderReload = true;
     }
 
-    void PostProcessor::setNormalsTex(osg::Texture* tex)
+    void PostProcessor::setExternalNormalsTexture(osg::ref_ptr<osg::Texture> tex)
     {
         size_t frameId = frame() % 2;
-        mTextures[0][Tex_Normal] = tex;
-        mTextures[1][Tex_Normal] = tex;
-        mCanvases[frameId]->setTextureNormals(tex);
+        //mTextures[0][Tex_Normal] = tex;
+        //mTextures[1][Tex_Normal] = tex;
+        //mCanvases[frameId]->setTextureNormals(tex);
+
+        mCanvases[frameId]->setExternalTextureNormals(mNormals ? tex : nullptr);
     }
 }
