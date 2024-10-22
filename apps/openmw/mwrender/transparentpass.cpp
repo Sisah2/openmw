@@ -12,14 +12,18 @@
 #include <components/shader/shadermanager.hpp>
 #include <components/stereo/multiview.hpp>
 #include <components/stereo/stereomanager.hpp>
+#include <components/settings/values.hpp>
 
 #include "vismask.hpp"
+#include "postprocessor.hpp"
 
 namespace MWRender
 {
-    TransparentDepthBinCallback::TransparentDepthBinCallback(Shader::ShaderManager& shaderManager, bool postPass)
+    TransparentDepthBinCallback::TransparentDepthBinCallback(Shader::ShaderManager& shaderManager, bool postPass, osg::ref_ptr<PostProcessor> postProcessor)
         : mStateSet(new osg::StateSet)
+        , mNormalsFallbackStateSet(new osg::StateSet)
         , mPostPass(postPass)
+        , mPostProcessor(postProcessor)
     {
         osg::ref_ptr<osg::Image> image = new osg::Image;
         image->allocateImage(1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -43,6 +47,39 @@ namespace MWRender
 
         for (unsigned int unit = 1; unit < 8; ++unit)
             mStateSet->setTextureMode(unit, GL_TEXTURE_2D, modeOff);
+
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+        {
+            mNormalsFallbackGeometry = new osg::Geometry;
+            mNormalsFallbackGeometry->setUseDisplayList(false);
+            mNormalsFallbackGeometry->setUseVertexBufferObjects(true);
+
+            osg::ref_ptr<osg::Vec3Array> verts = new osg::Vec3Array;
+            verts->push_back(osg::Vec3f(-1, -1, 0));
+            verts->push_back(osg::Vec3f(-1, 3, 0));
+            verts->push_back(osg::Vec3f(3, -1, 0));
+
+            mNormalsFallbackGeometry->setVertexArray(verts);
+
+            mNormalsFallbackGeometry->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, 3));
+
+            mNormalsFallbackStateSet = mNormalsFallbackGeometry->getOrCreateStateSet();
+            mNormalsFallbackStateSet->setTextureAttributeAndModes(0, dummyTexture);
+            mNormalsFallbackStateSet->setTextureAttributeAndModes(1, dummyTexture);
+
+            mNormalsFallbackStateSet->setAttributeAndModes(shaderManager.getProgram("fullscreen_tri", defines), modeOn);
+            mNormalsFallbackStateSet->addUniform(new osg::Uniform("lastShader", 0));
+            mNormalsFallbackStateSet->addUniform(new osg::Uniform("externalNormals", 1));
+            mNormalsFallbackStateSet->addUniform(new osg::Uniform("scaling", osg::Vec2f(1, 1)));
+            mNormalsFallbackStateSet->setDefine("WRITE_NORMALS", "1", osg::StateAttribute::ON);
+
+            if (Settings::postProcessing().mTest4 != 0)
+               mNormalsFallbackStateSet->setRenderBinDetails(Settings::postProcessing().mTest4, "RenderBin_Default");
+
+            for (unsigned int unit = 2; unit < 8; ++unit)
+                mNormalsFallbackStateSet->setTextureMode(unit, GL_TEXTURE_2D, modeOff);
+
+        }
     }
 
     void TransparentDepthBinCallback::drawImplementation(
@@ -57,6 +94,44 @@ namespace MWRender
         const auto& fbo = mFbo[frameId];
         const auto& msaaFbo = mMsaaFbo[frameId];
         const auto& opaqueFbo = mOpaqueFbo[frameId];
+
+        // decode normals texture into opaqueFbo color attachment
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+        {
+
+            const osg::Texture* sceneTex
+                = fbo->getAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0)
+                      .getTexture();
+
+            osg::ref_ptr<osg::FrameBufferObject> currentFbo = bin->getStage()->getFrameBufferObject();
+
+
+            mNormalsFallbackStateSet->setTextureAttributeAndModes(0, mPostProcessor->getTexture(PostProcessor::Tex_Scene, frameId));
+            mNormalsFallbackStateSet->setTextureAttributeAndModes(1, mExternalTextureNormals);
+
+            state.pushStateSet(mNormalsFallbackStateSet);
+            state.apply();
+
+          //  state.applyTextureAttribute(0, mPostProcessor->getTexture(PostProcessor::Tex_Scene, frameId));
+
+
+            auto* resolveViewport = state.getCurrentViewport();
+            resolveViewport->apply(state);
+
+            glViewport(0, 0, mExternalTextureNormals->getTextureWidth(), mExternalTextureNormals->getTextureHeight());
+            state.haveAppliedAttribute(osg::StateAttribute::VIEWPORT);
+
+            fbo->apply(state, osg::FrameBufferObject::READ_FRAMEBUFFER);
+            opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+
+        //    glClear(GL_COLOR_BUFFER_BIT);
+
+            mNormalsFallbackGeometry->draw/*Implementation*/(renderInfo);
+
+            state.popStateSet();
+
+            currentFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        }
 
         if (bin->getStage()->getMultisampleResolveFramebufferObject()
             && bin->getStage()->getMultisampleResolveFramebufferObject() == fbo)
@@ -91,14 +166,22 @@ namespace MWRender
         }
         else
         {
-            opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+//            opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 //            ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(),
 //                tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-            glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+//            glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         }
 
         msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER)
                 : fbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+
+        // disable depth writes, so depth can be writen in postpass
+        if (mPostPass)
+        {
+            osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
+            depth->setWriteMask(false);
+            bin->getStateSet()->setAttributeAndModes(depth, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+        }
 
         // draws scene into primary attachments
         bin->drawImplementation(renderInfo, previous);
@@ -106,7 +189,7 @@ namespace MWRender
         if (!mPostPass)
             return;
 
-//        opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        opaqueFbo->apply(state, osg::FrameBufferObject::READ_DRAW_FRAMEBUFFER);
 
         // draw transparent post-pass to populate a postprocess friendly depth texture with alpha-clipped geometry
 
