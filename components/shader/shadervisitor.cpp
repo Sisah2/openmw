@@ -711,7 +711,8 @@ namespace Shader
         if (simpleLighting)
             defineMap["endLight"] = "0";
 
-        if (simpleLighting || dynamic_cast<osgParticle::ParticleSystem*>(&node))
+        bool isParticle = (dynamic_cast<osgParticle::ParticleSystem*>(&node)) ? 1 : 0;
+        if (simpleLighting || isParticle)
             defineMap["forcePPL"] = "0";
 
         bool particleOcclusion = false;
@@ -754,14 +755,12 @@ namespace Shader
             updateRemovedState(*writableUserData, removedState);
         }
 
-        if (reqs.mAlphaBlend && Settings::postProcessing().mTransparentPostpass && Settings::postProcessing().mEnabled)
-        {
-            osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
-            depth->setWriteMask(false);
-            writableStateSet->setAttributeAndModes(depth, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-        }
-
         defineMap["softParticles"] = reqs.mSoftParticles ? "1" : "0";
+
+        writableStateSet->setDefine("OBJECT", "1", osg::StateAttribute::ON);
+        writableStateSet->setDefine("PARTICLE", (isParticle) ? "1" : "0", osg::StateAttribute::ON);
+        writableStateSet->setDefine("DdifuseMap", defineMap["difuseMap"], osg::StateAttribute::ON);
+        writableStateSet->setDefine("DnormalMap", defineMap["normalMap"], osg::StateAttribute::ON);
 
         Stereo::shaderStereoDefines(defineMap);
 

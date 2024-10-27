@@ -6,6 +6,7 @@
 
 #include <osg/FrameBufferObject>
 #include <osg/StateSet>
+#include <osg/Geometry>
 
 #include <osgUtil/RenderBin>
 
@@ -21,10 +22,12 @@ namespace Stereo
 
 namespace MWRender
 {
+    class PostProcessor;
+
     class TransparentDepthBinCallback : public osgUtil::RenderBin::DrawCallback
     {
     public:
-        TransparentDepthBinCallback(Shader::ShaderManager& shaderManager, bool postPass);
+        TransparentDepthBinCallback(Shader::ShaderManager& shaderManager, bool postPass, osg::ref_ptr<PostProcessor> postProcessor);
 
         void drawImplementation(
             osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo, osgUtil::RenderLeaf*& previous) override;
@@ -35,9 +38,12 @@ namespace MWRender
 
         std::array<std::unique_ptr<Stereo::MultiviewFramebufferResolve>, 2> mMultiviewResolve;
 
+        void setPostPass(bool postPass) { mPostPass = postPass; }
+
     private:
         osg::ref_ptr<osg::StateSet> mStateSet;
         bool mPostPass;
+        osg::ref_ptr<PostProcessor> mPostProcessor;
     };
 
 }

@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(NORMALS_FALLBACK)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -8,6 +9,7 @@
     #extension GL_EXT_gpu_shader4: require
 #endif
 
+#include "lib/util/packcolors.glsl"
 #include "lib/core/fragment.h.glsl"
 
 // Inspired by Blender GLSL Water by martinsh ( https://devlog-martinsh.blogspot.de/2012/07/waterundewater-shader-wip.html )
@@ -79,7 +81,6 @@ uniform float far;
 
 uniform float rainIntensity;
 uniform bool enableRainRipples;
-uniform bool isNormalsFallback;
 
 uniform vec2 screenRes;
 
@@ -244,8 +245,25 @@ void main(void)
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 #endif
 
-    if (isNormalsFallback)
-        gl_FragData[0].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
+#if defined(NORMALS_FALLBACK) && NORMALS_FALLBACK
+    gl_FragData[0].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
+    gl_FragData[0].a = 1.0;
+#endif
+/*
+#if @packColors && !defined(NORMALS_FALLBACK)
+
+     vec4 norm = vec4(normalize(gl_NormalMatrix * normal) * 0.5 + 0.5, 0.0);
+     
+    vec4 x = gl_FragData[0] - ( floor(gl_LastFragData[0]) * 63.0) * 2.0;
+
+
+    gl_FragData[0].rgb = encode(gl_FragData[0],  gl_FragData[0].a * mix(norm,  gl_LastFragData[0] - floor(gl_LastFragData[0]), 1.0-gl_FragData[0].a)).rgb;
+#endif
+*/
+
+     vec4 norm = vec4(normalize(gl_NormalMatrix * normal) * 0.5 + 0.5, 0.0);
+     gl_FragData[0].rgb = encode(mix(floor(gl_LastFragData[0]) / 63.0,  gl_FragData[0], gl_FragData[0].a), norm).rgb;
+     gl_FragData[0].a = 1.0;
 
     applyShadowDebugOverlay();
 }

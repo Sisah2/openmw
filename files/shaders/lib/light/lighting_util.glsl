@@ -54,7 +54,12 @@ uniform LightBufferBinding
 |  att_c  |  att_l   |  att_q   |  radius/spec_a  |
  --------------------------------------------------
 */
-uniform mat4 LightBuffer[@maxLights];
+#if defined(MAX_LIGHTS)
+uniform mat4 LightBuffer[MAX_LIGHTS];
+#else
+uniform mat4 LightBuffer[8];
+#endif
+
 uniform int PointLightCount;
 
 #endif

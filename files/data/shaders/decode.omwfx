@@ -1,0 +1,20 @@
+fragment main {
+
+    omw_In vec2 omw_TexCoord;
+
+    void main()
+    {
+        vec4 scene, normal;
+        omw_FragColor = omw_GetLastShader(omw_TexCoord);
+        decode(omw_FragColor, scene, normal);
+        omw_FragColor.rgb = scene.rgb;
+    }
+}
+
+technique {
+    description = "Internal color decode shader";
+    version = "1.0";
+    author = "OpenMW";
+    passes = main;
+    flags = hidden;
+}

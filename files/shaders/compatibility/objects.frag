@@ -1,5 +1,5 @@
 #version 120
-#pragma import_defines(FORCE_OPAQUE, DISTORTION)
+#pragma import_defines(FORCE_OPAQUE, DISTORTION, NORMALS_FALLBACK, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, LOCAL_MAP, CHARACTER_PREVIEW, PARTICLE, SIMPLE_WATER)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -67,9 +67,12 @@ uniform float near;
 uniform float far;
 uniform float alphaRef;
 uniform float distortionStrength;
-uniform bool isNormalsFallback;
 
+#if defined(FORCE_PPL)
+#define PER_PIXEL_LIGHTING (@normalMap || @specularMap || FORCE_PPL)
+#else
 #define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
+#endif
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
@@ -94,6 +97,7 @@ varying vec4 passTangent;
 #include "lib/material/parallax.glsl"
 #include "lib/material/alpha.glsl"
 #include "lib/util/distortion.glsl"
+#include "lib/util/packcolors.glsl"
 
 #include "fog.glsl"
 #include "vertexcolors.glsl"
@@ -149,13 +153,12 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
     return;
 #endif
 
-    if (isNormalsFallback)
-    {
+#if defined(NORMALS_FALLBACK) && NORMALS_FALLBACK
         float alpha = gl_FragData[0].a * alphaPassthrough;
         const float alphaRef = 0.499;
         if (alpha < alphaRef)
             discard;
-    }
+#endif
 
 #if @diffuseParallax
     gl_FragData[0].a = 1.0;
@@ -284,9 +287,25 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
 #if !@disableNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
-    if (isNormalsFallback)
-        gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
+#if defined(NORMALS_FALLBACK) && NORMALS_FALLBACK
+    gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
 #endif
+#endif
+/*
+#if !defined(FORCE_PPL)
+gl_FragData[0].r = 1.0;
+#endif
+*/
 
+
+#if @packColors && !defined(LOCAL_MAP) && !defined(NORMALS_FALLBACK) && !defined(CHARACTER_PREVIEW)
+    gl_FragData[0].rgb = encode(gl_FragData[0], vec4(viewNormal * 0.5 + 0.5, 1.0)).rgb;
+#endif
+/*
+#if defined(PARTICLE) && PARTICLE
+gl_FragData[0].rgb = encode(gl_FragData[0], vec4(0.0)).rgb;
+gl_FragData[0].a = 1.0;
+#endif
+*/
     applyShadowDebugOverlay();
 }

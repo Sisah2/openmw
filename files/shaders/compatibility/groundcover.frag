@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(NORMALS_FALLBACK)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -29,7 +30,6 @@ varying float linearDepth;
 uniform vec2 screenRes;
 uniform float far;
 uniform float alphaRef;
-uniform bool isNormalsFallback;
 
 #if PER_PIXEL_LIGHTING
 varying vec3 passViewPos;
@@ -40,6 +40,7 @@ centroid varying vec3 shadowDiffuseLighting;
 
 varying vec3 passNormal;
 
+#include "lib/util/packcolors.glsl"
 #include "shadows_fragment.glsl"
 #include "lib/light/lighting.glsl"
 #include "lib/material/alpha.glsl"
@@ -90,8 +91,13 @@ void main()
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
 
-    if (isNormalsFallback)
-        gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
+#if defined(NORMALS_FALLBACK) && NORMALS_FALLBACK
+    gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
+#endif
+
+#if @packColors
+    gl_FragData[0] = encode(gl_FragData[0], vec4(viewNormal * 0.5 + 0.5, 1.0));
+#endif
 
     applyShadowDebugOverlay();
 }

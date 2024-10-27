@@ -36,7 +36,10 @@ uniform sampler2D sky;
 
 vec3 sampleSkyColor(vec2 uv)
 {
-    return texture2D(sky, uv).xyz;
+    vec4 scene, normals;
+    decode(texture2D(sky, uv), scene, normals);
+
+    return scene.xyz;
 }
 #endif
 

@@ -210,6 +210,8 @@ namespace
                 MWRender::shouldAddMSAAIntermediateTarget())
             , mEarlyRenderBinRoot(earlyRenderBinRoot)
         {
+            if (Settings::postProcessing().mNormalsFallbackMode == 2)
+  //              setColorBufferInternalFormat(GL_RGBA16F);
             setDepthBufferInternalFormat(GL_DEPTH24_STENCIL8);
         }
 

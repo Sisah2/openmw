@@ -24,16 +24,54 @@ uniform_bool uNormalsInWorldSpace {
     display_name = "#{OMWShaders:NormalsInWorldSpace}";
 }
 
+uniform_bool uNormalsFallbackDebug {
+    default = false;
+    display_name = "Show all cameras, depths and merged scene";
+}
+
+uniform_bool uaaa {
+    default = false;
+    display_name = "test blend";
+}
+
+uniform_float utest {
+    step = 0.001;
+    min = 0.0000001;
+    max = 1.0;
+    default = 0.0001;
+    display_name = "test";
+    description = "test";
+}
+
 fragment main {
 
     omw_In vec2 omw_TexCoord;
 
+/*
+uniform highp @builtinSampler omw_SamplerPacked;
+uniform highp @builtinSampler omw_SamplerNormalsDepth;
+uniform highp @builtinSampler omw_SamplerPackedNormals;
+uniform highp @builtinSampler omw_SamplerExternalNormals;
+*/
+
     void main()
     {
         omw_FragColor = omw_GetLastShader(omw_TexCoord);
+        float sceneDepth = omw_GetDepth(omw_TexCoord);
+        float normalsDepth = omw_Texture2D(omw_SamplerNormalsDepth, omw_TexCoord).r;
+
+#if (OMW_REVERSE_Z == 1)
+        sceneDepth = omw.near * omw.far / (omw.far + sceneDepth * (omw.near - omw.far));
+        normalsDepth = omw.near * omw.far / (omw.far + (1.0 - normalsDepth) * (omw.near - omw.far));
+#else
+        sceneDepth = 2.0 * omw.near * omw.far / (omw.far + omw.near - (sceneDepth * 2.0 - 1.0) * (omw.far - omw.near));
+        normalsDepth = 2.0 * omw.near * omw.far / (omw.far + omw.near - (normalsDepth * 2.0 - 1.0) * (omw.far - omw.near));
+#endif
+
+        float sceneAlpha = omw_FragColor.a;
 
         if (uDisplayDepth)
-            omw_FragColor = vec4(vec3(omw_GetLinearDepth(omw_TexCoord) / omw.far * uDepthFactor), 1.0);
+            omw_FragColor = vec4(vec3(sceneDepth / omw.far * uDepthFactor), 1.0);
 #if OMW_NORMALS
         if (uDisplayNormals && (!uDisplayDepth || omw_TexCoord.x < 0.5)) {
             if (uNormalsInWorldSpace)
@@ -41,6 +79,50 @@ fragment main {
             else
                 omw_FragColor.rgb = omw_GetNormals(omw_TexCoord) * 0.5 + 0.5;
         }
+#if OMW_NORMFALLBACKPACKTEXTURE
+        if (uNormalsFallbackDebug)
+        {
+            if (omw_TexCoord.x < 0.5 && uDisplayDepth)
+                omw_FragColor = vec4(vec3(normalsDepth / omw.far * uDepthFactor), 1.0);
+
+            if (uDisplayNormals && (!uDisplayDepth || omw_TexCoord.y > 0.2)) {
+                vec3 rerenderedScene, packedScene, combinedScene;
+
+                rerenderedScene = omw_Texture2D(omw_SamplerExternalNormals, omw_TexCoord).rgb;
+                if (uNormalsInWorldSpace)
+                    rerenderedScene = (vec4(rerenderedScene * 2.0 - 1.0, 0.0) * omw.viewMatrix).rgb * 0.5 + 0.5;
+
+                // vec4 scene, normals;
+                 vec4 normals = omw_Texture2D(omw_SamplerNormals/*omw_SamplerPacked*/, omw_TexCoord)* 2.0 - 1.0;
+                 //decode(encoded, scene, normals);
+
+                if (uNormalsInWorldSpace)
+                    packedScene = (normals * omw.viewMatrix).xyz * 0.5 + 0.5;
+                else
+                    packedScene = normals.xyz * 0.5 + 0.5;
+
+                combinedScene = packedScene;
+                if (sceneDepth + (sceneDepth * utest / 100.0) > normalsDepth/* && sceneAlpha != 1.0*/)
+                    combinedScene = rerenderedScene;
+             //   else if (sceneAlpha != 1.0)
+              //      combinedScene = computeNormalImproved(omw_TexCoord, uNormalsInWorldSpace) * 0.5 + 0.5;
+
+                if (uaaa) {
+                combinedScene = packedScene;
+                    if (sceneAlpha != 1.0)
+                        combinedScene = rerenderedScene;
+                }
+
+                if (omw_TexCoord.x < 0.33)
+                    omw_FragColor.rgb = rerenderedScene;
+                else if (omw_TexCoord.x < 0.66)
+                    omw_FragColor.rgb = packedScene;
+                else 
+                    omw_FragColor.rgb = combinedScene;
+
+            }
+        }
+#endif
 #endif
     }
 }

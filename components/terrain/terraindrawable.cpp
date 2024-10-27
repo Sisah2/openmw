@@ -4,6 +4,7 @@
 #include <osgUtil/CullVisitor>
 
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/settings/values.hpp>
 
 #include "compositemaprenderer.hpp"
 
@@ -98,11 +99,30 @@ namespace Terrain
             mCompositeMapRenderer = nullptr;
         }
 
+        if (cv->getCurrentCamera()->getName() == "Normals Fallback Camera")
+        {
+            float dist = (osg::Vec3f(cv->getEyePoint().x(), cv->getEyePoint().y(), 0.0) - osg::Vec3f(bb.center().x(), bb.center().y(), 0.0)).length() + bb.radius();
+
+            if (dist > Settings::postProcessing().mTest3)
+                return;
+/*
+            if (!Settings::shaders().mAutoUseTerrainNormalMaps)
+            {
+                cv->addDrawableAndDepth(this, &matrix, depth);
+                return;
+            }
+*/
+        }
+
         bool pushedLight = mLightListCallback && mLightListCallback->pushLightState(this, cv);
 
         osg::StateSet* stateset = getStateSet();
         if (stateset)
             cv->pushStateSet(stateset);
+
+        stateset->setDefine("FORCE_PPL", Settings::shaders().mForcePerPixelLighting ? "1" : "0", osg::StateAttribute::ON);
+        stateset->setDefine("CLASSIC_FALLOFF", Settings::shaders().mClassicFalloff ? "1" : "0", osg::StateAttribute::ON);
+        stateset->setDefine("MAX_LIGHTS", std::to_string(Settings::shaders().mMaxLights), osg::StateAttribute::ON);
 
         for (PassVector::const_iterator it = mPasses.begin(); it != mPasses.end(); ++it)
         {

@@ -9,6 +9,7 @@ namespace MWRender
     {
         RenderBin_Sky = -1,
         RenderBin_Default = 0, // osg::StateSet::OPAQUE_BIN
+        RenderBin_NormalsFallback = 8,
         RenderBin_Water = 9,
         RenderBin_DepthSorted = 10, // osg::StateSet::TRANSPARENT_BIN
         RenderBin_OcclusionQuery = 11,

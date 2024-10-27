@@ -5,6 +5,7 @@
 #include <components/shader/shadermanager.hpp>
 #include <components/stereo/multiview.hpp>
 #include <components/stereo/stereomanager.hpp>
+#include <components/settings/values.hpp>
 
 #include <osg/Texture2DArray>
 
@@ -67,6 +68,16 @@ namespace MWRender
         osg::FrameBufferObject* fbo, osg::Camera::BufferComponent component, osg::Texture* tex)
     {
         osg::ref_ptr<osg::Texture> clone = static_cast<osg::Texture*>(tex->clone(osg::CopyOp::SHALLOW_COPY));
+
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+        {
+            clone->setSourceFormat(GL_RGBA);
+            clone->setSourceType(GL_UNSIGNED_BYTE);
+            clone->setInternalFormat(GL_RGBA);
+            clone->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture::LINEAR);
+            clone->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture::LINEAR);
+        }
+
         fbo->setAttachment(component, Stereo::createMultiviewCompatibleAttachment(clone));
     }
 
@@ -235,20 +246,31 @@ namespace MWRender
         {
             const auto& node = mPasses[index];
 
-            node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_Depth, mTextureDepth);
+        //    if (mExternalTextureDepth && Settings::postProcessing().mNormalsFallbackMode == 1)
+        //        node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_Depth, mExternalTextureDepth);
+        //    else
+                node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_Depth, mTextureDepth);
+
+            if (mExternalTextureDepth && Settings::postProcessing().mNormalsFallbackMode == 2)
+                node.mRootStateSet->setTextureAttribute(PostProcessor::Unit_NormalsDepth, mExternalTextureDepth);
 
             if (mAvgLum)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_EyeAdaptation,
                     mLuminanceCalculator->getLuminanceTexture(frameId));
 
             if (mExternalTextureNormals)
-                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mExternalTextureNormals);
-            else if (mTextureNormals)
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_ExternalNormals, mExternalTextureNormals);
+
+            if (mTextureNormals)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mTextureNormals);
 
             if (mTextureDistortion)
                 node.mRootStateSet->setTextureAttribute(
                     PostProcessor::TextureUnits::Unit_Distortion, mTextureDistortion);
+
+           // node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Packed, mTextureScene);
+
+          //  node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_PackedNormals, mTexturePackedNormals);
 
             state.pushStateSet(node.mRootStateSet);
             state.apply();
@@ -271,7 +293,7 @@ namespace MWRender
                             .getTexture());
 
                 if (lastDraw == 0)
-                    pass.mStateSet->setTextureAttribute(PostProcessor::Unit_LastPass, mTextureScene);
+                    pass.mStateSet->setTextureAttribute(PostProcessor::Unit_LastShader, mTextureScene);
                 else
                     pass.mStateSet->setTextureAttribute(PostProcessor::Unit_LastPass,
                         (osg::Texture*)mFbos[lastDraw - GL_COLOR_ATTACHMENT0_EXT]

@@ -263,6 +263,7 @@ namespace MWRender
             camera->setName("RefractionCamera");
             camera->addCullCallback(new InheritViewPointCallback);
             camera->setComputeNearFarMode(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
+            camera->getOrCreateStateSet()->addUniform(new osg::Uniform("isReflection", true));
 
             // No need for fog here, we are already applying fog on the water surface itself as well as underwater fog
             // assign large value to effectively turn off fog
@@ -617,6 +618,7 @@ namespace MWRender
         node->setUpdateCallback(controller);
 
         stateset->setTextureAttributeAndModes(0, textures[0], osg::StateAttribute::ON);
+        stateset->setDefine("SIMPLE_WATER", "1", osg::StateAttribute::ON);
 
         // use a shader to render the simple water, ensuring that fog is applied per pixel as required.
         // this could be removed if a more detailed water mesh, using some sort of paging solution, is implemented.
@@ -708,6 +710,7 @@ namespace MWRender
         defineMap["sunlightScattering"] = Settings::water().mSunlightScattering ? "1" : "0";
         defineMap["wobblyShores"] = Settings::water().mWobblyShores ? "1" : "0";
         defineMap["shaderRipples"] = supportShaderWaterRipples ? "1" : "0";
+        defineMap["packColors"] = (Settings::postProcessing().mNormalsFallbackMode == 2) ? "1" : "0";
 
         Stereo::shaderStereoDefines(defineMap);
 

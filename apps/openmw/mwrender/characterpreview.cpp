@@ -264,6 +264,7 @@ namespace MWRender
         stateset->addUniform(new osg::Uniform("screenRes", osg::Vec2f{ 1, 1 }));
 
         stateset->addUniform(new osg::Uniform("emissiveMult", 1.f));
+        stateset->setDefine("CHARACTER_PREVIEW", "1", osg::StateAttribute::ON);
 
         // Opaque stuff must have 1 as its fragment alpha as the FBO is translucent, so having blending off isn't enough
         osg::ref_ptr<osg::TexEnvCombine> noBlendAlphaEnv = new osg::TexEnvCombine();

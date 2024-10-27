@@ -61,7 +61,6 @@ namespace MWGui
         MyGUI::Button* mResetControlsButton;
         MyGUI::Button* mKeyboardSwitch;
         MyGUI::Button* mControllerSwitch;
-        MyGUI::Button* mPerPixelLighting;
 
         bool mKeyboardMode; // if true, setting up the keyboard. Otherwise, it's controller
 
@@ -111,8 +110,6 @@ namespace MWGui
 
         void onScriptFilterChange(MyGUI::EditBox*);
         void onScriptListSelection(MyGUI::ListBox*, size_t index);
-
-        void onPerPixelLighting(MyGUI::Widget* _sender);
 
         void apply();
 

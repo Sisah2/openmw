@@ -13,6 +13,7 @@
 #include <components/sceneutil/util.hpp>
 #include <components/shader/shadermanager.hpp>
 #include <components/stereo/stereomanager.hpp>
+#include <components/settings/values.hpp>
 
 #include <mutex>
 
@@ -235,11 +236,12 @@ namespace Terrain
 
             osg::ref_ptr<osg::StateSet> stateset(new osg::StateSet);
 
-            if (!blendmaps.empty())
             {
-                stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
-                if (sceneManager->getSupportsNormalsRT())
-                    stateset->setAttribute(new osg::Disablei(GL_BLEND, 1));
+                stateset->setMode(GL_BLEND, osg::StateAttribute::OFF);
+              //  stateset->setMode(GL_BLEND, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+              //  if (sceneManager->getSupportsNormalsRT())
+               //     stateset->setAttribute(new osg::Disablei(GL_BLEND, 1));
+
                 stateset->setRenderBinDetails(firstLayer ? 0 : 1, "RenderBin");
                 if (!firstLayer)
                 {
@@ -304,6 +306,16 @@ namespace Terrain
                 defineMap["writeNormals"] = (it == layers.end() - 1) ? "1" : "0";
                 defineMap["reconstructNormalZ"] = reconstructNormalZ ? "1" : "0";
                 Stereo::shaderStereoDefines(defineMap);
+
+                stateset->setDefine("DnormalMap", (it->mNormalMap) ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("DblendMap", (!blendmaps.empty()) ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("Dparallax", parallax ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("TERRAIN", "1", osg::StateAttribute::ON);
+                stateset->setDefine("FIRST_LAYER", (it == layers.begin()) ? "1" : "0", osg::StateAttribute::ON);
+
+                stateset->setDefine("FORCE_PPL", Settings::shaders().mForcePerPixelLighting ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("CLASSIC_FALLOFF", Settings::shaders().mClassicFalloff ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("MAX_LIGHTS", std::to_string(Settings::shaders().mMaxLights), osg::StateAttribute::ON);
 
                 stateset->setAttributeAndModes(shaderManager.getProgram("terrain", defineMap));
                 stateset->addUniform(UniformCollection::value().mColorMode);

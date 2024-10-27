@@ -419,7 +419,7 @@ namespace Terrain
     void updateWaterCullingView(
         HeightCullCallback* callback, ViewData* vd, osgUtil::CullVisitor* cv, float cellworldsize, bool outofworld)
     {
-        if (!(cv->getTraversalMask() & callback->getCullMask()))
+     /*   if (!(cv->getTraversalMask() & callback->getCullMask()))
             return;
         float lowZ = std::numeric_limits<float>::max();
         float highZ = callback->getHighZ();
@@ -471,7 +471,7 @@ namespace Terrain
             drw->setStateSet(stateset);
             drw->accept(*cv);
         }
-        callback->setLowZ(lowZ);
+        callback->setLowZ(lowZ);*/
         cv->popCurrentMask();
     }
 

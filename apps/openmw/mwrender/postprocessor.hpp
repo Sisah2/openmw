@@ -91,6 +91,8 @@ namespace MWRender
             Unit_Depth,
             Unit_EyeAdaptation,
             Unit_Normals,
+            Unit_ExternalNormals,
+            Unit_NormalsDepth,
             Unit_Distortion,
             Unit_NextFree
         };
@@ -207,6 +209,7 @@ namespace MWRender
         void saveChain();
 
         void setExternalNormalsTexture(osg::ref_ptr<osg::Texture> tex);
+        void setExternalDepthTexture(osg::ref_ptr<osg::Texture> tex);
         std::unique_ptr<NormalsFallback> mNormalsFallback;
 
     private:

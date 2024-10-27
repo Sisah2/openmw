@@ -50,7 +50,11 @@ namespace MWRender
 
         void setExternalTextureNormals(osg::ref_ptr<osg::Texture> tex) { mExternalTextureNormals = tex; }
 
+        void setExternalTextureDepth(osg::ref_ptr<osg::Texture> tex) { mExternalTextureDepth = tex; }
+
         void setTextureDistortion(osg::ref_ptr<osg::Texture> tex) { mTextureDistortion = tex; }
+
+        void setTexturePackedNormals(osg::ref_ptr<osg::Texture> tex) { mTexturePackedNormals = tex; }
 
         void setCalculateAvgLum(bool enabled) { mAvgLum = enabled; }
 
@@ -76,6 +80,8 @@ namespace MWRender
         osg::ref_ptr<osg::Texture> mTextureDistortion;
 
         osg::ref_ptr<osg::Texture> mExternalTextureNormals;
+        osg::ref_ptr<osg::Texture> mTexturePackedNormals;
+        osg::ref_ptr<osg::Texture> mExternalTextureDepth;
 
         mutable bool mDirty = false;
         mutable std::vector<fx::Types::RenderTarget> mDirtyAttachments;

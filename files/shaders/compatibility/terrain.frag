@@ -1,4 +1,5 @@
 #version 120
+#pragma import_defines(NORMALS_FALLBACK, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, LOCAL_MAP, FIRST_LAYER)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -23,7 +24,11 @@ uniform sampler2D blendMap;
 varying float euclideanDepth;
 varying float linearDepth;
 
+#if defined(FORCE_PPL)
+#define PER_PIXEL_LIGHTING (@normalMap || @specularMap || FORCE_PPL)
+#else
 #define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
+#endif
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
@@ -36,12 +41,12 @@ varying vec3 passNormal;
 
 uniform vec2 screenRes;
 uniform float far;
-uniform bool isNormalsFallback;
 
 #include "vertexcolors.glsl"
 #include "shadows_fragment.glsl"
 #include "lib/light/lighting.glsl"
 #include "lib/material/parallax.glsl"
+#include "lib/util/packcolors.glsl"
 #include "fog.glsl"
 #include "compatibility/normals.glsl"
 
@@ -102,8 +107,18 @@ void main()
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
 
-    if (isNormalsFallback)
-        gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
+#if defined(NORMALS_FALLBACK) && NORMALS_FALLBACK
+    gl_FragData[0].rgb = viewNormal * 0.5 + 0.5;
+#endif
+
+
+#if !defined(FORCE_PPL)
+gl_FragData[0].r = 1.0;
+#endif
+
+#if @packColors && !defined(LOCAL_MAP) && !defined(NORMALS_FALLBACK)
+    gl_FragData[0].rgb = encode(gl_FragData[0], vec4(viewNormal * 0.5 + 0.5, 1.0)).rgb;
+#endif
 
     applyShadowDebugOverlay();
 }

@@ -123,6 +123,7 @@ set(BUILTIN_DATA_FILES
     shaders/bloomlinear.omwfx
     shaders/debug.omwfx
     shaders/internal_distortion.omwfx
+    shaders/decode.omwfx
 
     mygui/core.skin
     mygui/core.xml

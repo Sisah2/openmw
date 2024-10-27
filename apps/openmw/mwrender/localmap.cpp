@@ -743,7 +743,7 @@ namespace MWRender
         stateset->addUniform(new osg::Uniform("skyBlendingStart", 8000000.0f));
         stateset->addUniform(new osg::Uniform("sky", 0));
         stateset->addUniform(new osg::Uniform("screenRes", osg::Vec2f{ 1, 1 }));
-        stateset->addUniform(new osg::Uniform("isNormalsFallback", false));
+        stateset->setDefine("LOCAL_MAP", "1", osg::StateAttribute::ON);
 
         osg::ref_ptr<osg::LightModel> lightmodel = new osg::LightModel;
         lightmodel->setAmbientIntensity(osg::Vec4(0.3f, 0.3f, 0.3f, 1.f));

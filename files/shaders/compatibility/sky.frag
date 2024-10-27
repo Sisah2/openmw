@@ -12,6 +12,8 @@ uniform vec4 atmosphereFade;    // PASS_MOON
 varying vec2 diffuseMapUV;
 varying vec4 passColor;
 
+#include "lib/util/packcolors.glsl"
+
 void paintAtmosphere(inout vec4 color)
 {
     color = gl_FrontMaterial.emission;
@@ -86,4 +88,8 @@ void main()
     }
 
     gl_FragData[0] = color;
+
+#if @packColors
+    gl_FragData[0].rgb = encode(gl_FragData[0], vec4(0.0)).rgb;
+#endif
 }

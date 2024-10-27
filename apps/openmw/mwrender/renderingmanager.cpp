@@ -163,6 +163,9 @@ namespace MWRender
             , mWindSpeed(0.f)
             , mSkyBlendingStartCoef(Settings::fog().mSkyBlendingStart)
             , mGroundcoverFadeEnd(Settings::groundcover().mRenderingDistance)
+            , mPPL(Settings::shaders().mForcePerPixelLighting)
+            , mClassicFalloff(Settings::shaders().mClassicFalloff)
+            , mMaxLights(Settings::shaders().mMaxLights)
         {
         }
 
@@ -173,11 +176,14 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("skyBlendingStart", 0.f));
             stateset->addUniform(new osg::Uniform("screenRes", osg::Vec2f{}));
             stateset->addUniform(new osg::Uniform("isReflection", false));
-            stateset->addUniform(new osg::Uniform("isNormalsFallback", false));
+            stateset->addUniform(new osg::Uniform("isRefraction", false));
             stateset->addUniform(new osg::Uniform("windSpeed", 0.0f));
             stateset->addUniform(new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f)));
             stateset->addUniform(new osg::Uniform("useTreeAnim", false));
             stateset->addUniform(new osg::Uniform("groundcoverFadeEnd", 0.f));
+            stateset->setDefine("FORCE_PPL", (mPPL == true) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("CLASSIC_FALLOFF", (mClassicFalloff == true) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("MAX_LIGHTS", std::to_string(mMaxLights), osg::StateAttribute::ON);
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor* nv) override
@@ -189,6 +195,9 @@ namespace MWRender
             stateset->getUniform("windSpeed")->set(mWindSpeed);
             stateset->getUniform("playerPos")->set(mPlayerPos);
             stateset->getUniform("groundcoverFadeEnd")->set(mGroundcoverFadeEnd);
+            stateset->setDefine("FORCE_PPL", (mPPL == true) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("CLASSIC_FALLOFF", (mClassicFalloff == true) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("MAX_LIGHTS", std::to_string(mMaxLights), osg::StateAttribute::ON);
         }
 
         void setNear(float near) { mNear = near; }
@@ -201,6 +210,12 @@ namespace MWRender
 
         void setPlayerPos(osg::Vec3f playerPos) { mPlayerPos = playerPos; }
 
+        void setPPL(bool enabled) { mPPL = enabled; }
+
+        void setClassicFalloff(bool enabled) { mClassicFalloff = enabled; }
+
+        void setMaxLights(int maxLights) { mMaxLights = maxLights; }
+
     private:
         float mNear;
         float mFar;
@@ -209,6 +224,9 @@ namespace MWRender
         osg::Vec3f mPlayerPos;
         osg::Vec2f mScreenRes;
         float mGroundcoverFadeEnd;
+        bool mPPL;
+        bool mClassicFalloff;
+        int mMaxLights;
     };
 
     class StateUpdater : public SceneUtil::StateSetUpdater
@@ -452,6 +470,7 @@ namespace MWRender
         globalDefines["useOVR_multiview"] = "0";
         globalDefines["numViews"] = "1";
         globalDefines["disableNormals"] = "1";
+        globalDefines["packColors"] = (Settings::postProcessing().mNormalsFallbackMode == 2) ? "1" : "0";
 
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
@@ -1481,7 +1500,10 @@ namespace MWRender
 
     void RenderingManager::setFogColor(const osg::Vec4f& color)
     {
-        mViewer->getCamera()->setClearColor(color);
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+            mViewer->getCamera()->setClearColor(osg::Vec4f(color[0] * 63.0, color[1] * 63.0, color[2] * 63.0, color[3]));
+        else
+            mViewer->getCamera()->setClearColor(color);
 
         mStateUpdater->setFogColor(color);
     }
@@ -1613,19 +1635,21 @@ namespace MWRender
             else if (it->first == "Shaders"
                 && (it->second == "force per pixel lighting" || it->second == "classic falloff"))
             {
-/*
-                mViewer->stopThreading();
 
+                mViewer->stopThreading();
+/*
                 auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
                 defines["forcePPL"] = Settings::shaders().mForcePerPixelLighting ? "1" : "0";
                 defines["classicFalloff"] = Settings::shaders().mClassicFalloff ? "1" : "0";
                 mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
+*/
+                mSharedUniformStateUpdater->setPPL(Settings::shaders().mForcePerPixelLighting);
+                mSharedUniformStateUpdater->setClassicFalloff(Settings::shaders().mClassicFalloff);
 
                 if (MWMechanics::getPlayer().isInCell() && it->second == "classic falloff")
                     configureAmbient(*MWMechanics::getPlayer().getCell()->getCell());
 
                 mViewer->startThreading();
-*/
             }
             else if (it->first == "Shaders"
                 && (it->second == "light bounds multiplier" || it->second == "maximum light distance"
@@ -1638,20 +1662,22 @@ namespace MWRender
 
                 if (it->second == "max lights" && !lightManager->usingFFP())
                 {
-/*
+
                     mViewer->stopThreading();
 
                     lightManager->updateMaxLights(Settings::shaders().mMaxLights);
-
+/*
                     auto defines = mResourceSystem->getSceneManager()->getShaderManager().getGlobalDefines();
                     for (const auto& [name, key] : lightManager->getLightDefines())
+                        Log(Debug::Error) << name << key;
                         defines[name] = key;
                     mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
-
+*/
                     mStateUpdater->reset();
 
+                    mSharedUniformStateUpdater->setMaxLights(Settings::shaders().mMaxLights);
+
                     mViewer->startThreading();
-*/
                 }
 
             }

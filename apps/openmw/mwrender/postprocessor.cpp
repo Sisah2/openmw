@@ -149,10 +149,14 @@ namespace MWRender
         mHUDCamera->setCullCallback(new HUDCullCallback);
         mViewer->getCamera()->addCullCallback(mPingPongCull);
 
+       // if (!mNormalsSupported/* && Settings::postProcessing().mNormalsFallbackMode == 1*/)
+            mNormalsFallback = std::make_unique<NormalsFallback>(
+                sceneRoot->getParent(0), sceneRoot, rootNode, mViewer, this);
+
         // resolves the multisampled depth buffer and optionally draws an additional depth postpass
         mTransparentDepthPostPass
             = new TransparentDepthBinCallback(mRendering.getResourceSystem()->getSceneManager()->getShaderManager(),
-                Settings::postProcessing().mTransparentPostpass);
+                Settings::postProcessing().mTransparentPostpass, this);
         osgUtil::RenderBin::getRenderBinPrototype("DepthSortedBin")->setDrawCallback(mTransparentDepthPostPass);
 
         osg::ref_ptr<osgUtil::RenderBin> distortionRenderBin
@@ -182,6 +186,14 @@ namespace MWRender
         createObjectsForFrame(1);
 
         populateTechniqueFiles();
+
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+        {
+            auto decode = loadTechnique("decode");
+            decode->setInternal(true);
+            decode->setLocked(true);
+            mInternalTechniques.push_back(decode);
+        }
 
         auto distortion = loadTechnique("internal_distortion");
         distortion->setInternal(true);
@@ -221,12 +233,14 @@ namespace MWRender
         setCullCallback(mStateUpdater);
 
         if (mUsePostProcessing)
-            enable();
-
+		    enable();
+	/*
         if (!mNormalsSupported)
             mNormalsFallback = std::make_unique<NormalsFallback>(
                 sceneRoot->getParent(0), sceneRoot, this);
+*/
     }
+
 
     PostProcessor::~PostProcessor()
     {
@@ -313,6 +327,9 @@ namespace MWRender
         mTransparentDepthPostPass->mFbo[frameId] = mFbos[frameId][FBO_Primary];
         mTransparentDepthPostPass->mMsaaFbo[frameId] = mFbos[frameId][FBO_Multisample];
         mTransparentDepthPostPass->mOpaqueFbo[frameId] = mFbos[frameId][FBO_OpaqueDepth];
+
+        mNormalsFallback->setFBO(mFbos[frameId][FBO_OpaqueDepth], frameId);
+        mNormalsFallback->setOriginalFBO(mFbos[frameId][FBO_Primary], frameId);
 
         mDistortionCallback->setFBO(mFbos[frameId][FBO_Distortion], frameId);
         mDistortionCallback->setOriginalFBO(mFbos[frameId][FBO_Primary], frameId);
@@ -425,7 +442,7 @@ namespace MWRender
                 defines["disableNormals"] = mNormals ? "0" : "1";
                 shaderManager.setGlobalDefines(defines);
             }
-            else if (!mNormalsSupported)
+            else if (!mNormalsSupported/* && Settings::postProcessing().mNormalsFallbackMode == 1*/)
             {
                 if (mNormals)
                     mNormalsFallback->enable();
@@ -474,6 +491,19 @@ namespace MWRender
             Stereo::setMultiviewCompatibleTextureSize(texture, width, height);
             texture->dirtyTextureObject();
         }
+
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+        {
+            textures[Tex_Scene]->setSourceFormat(GL_RGBA);
+            textures[Tex_Scene]->setSourceType(GL_HALF_FLOAT);
+            textures[Tex_Scene]->setInternalFormat(GL_RGBA16F);
+            textures[Tex_Scene]->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture::NEAREST);
+            textures[Tex_Scene]->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture::NEAREST);
+/*
+            textures[Tex_Normal]->setInternalFormat(GL_RGBA16F);
+            textures[Tex_Normal]->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture::NEAREST);
+            textures[Tex_Normal]->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture::NEAREST);
+*/        }
 
         textures[Tex_Normal]->setSourceFormat(GL_RGB);
         textures[Tex_Normal]->setInternalFormat(GL_RGB);
@@ -547,9 +577,14 @@ namespace MWRender
                     Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
         }
 
-        fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
-        fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
-            Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
+        if (Settings::postProcessing().mNormalsFallbackMode == 2)
+        {
+            fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
+            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
+                Stereo::createMultiviewCompatibleAttachment(textures[Tex_Depth]));
+            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
+                Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
+        }
 
         fbos[FBO_Distortion] = new osg::FrameBufferObject;
         fbos[FBO_Distortion]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
@@ -621,7 +656,13 @@ namespace MWRender
             if (technique->getHDR())
                 node.mRootStateSet->addUniform(new osg::Uniform("omw_EyeAdaptation", Unit_EyeAdaptation));
 
-            node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerDistortion", Unit_Distortion));
+            if (Settings::postProcessing().mNormalsFallbackMode == 2)
+            {
+                node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerExternalNormals", Unit_ExternalNormals));
+            //    node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerPackedNormals", Unit_PackedNormals));
+           //     node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerPacked", Unit_Packed));
+                node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerNormalsDepth", Unit_NormalsDepth));
+            }
 
             int texUnit = Unit_NextFree;
 
@@ -866,10 +907,30 @@ namespace MWRender
     void PostProcessor::setExternalNormalsTexture(osg::ref_ptr<osg::Texture> tex)
     {
         size_t frameId = frame() % 2;
-        //mTextures[0][Tex_Normal] = tex;
-        //mTextures[1][Tex_Normal] = tex;
-        //mCanvases[frameId]->setTextureNormals(tex);
-
+/*
+        if (tex)
+        {
+            mFbos[frameId][FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
+                Stereo::createMultiviewCompatibleAttachment(tex));
+            mTransparentDepthPostPass->mOpaqueFbo[frameId] = mFbos[frameId][FBO_OpaqueDepth];
+        }
+*/
         mCanvases[frameId]->setExternalTextureNormals(mNormals ? tex : nullptr);
+    }
+
+    void PostProcessor::setExternalDepthTexture(osg::ref_ptr<osg::Texture> tex)
+    {
+        if (!Settings::postProcessing().mFallbackDepthTex && Settings::postProcessing().mNormalsFallbackMode != 2)
+            return;
+
+        size_t frameId = frame() % 2;
+
+        if (tex && Settings::postProcessing().mNormalsFallbackMode != 2)
+            mTransparentDepthPostPass->setPostPass(false);
+        else if (Settings::postProcessing().mTransparentPostpass && Settings::postProcessing().mNormalsFallbackMode != 2)
+            mTransparentDepthPostPass->setPostPass(true);
+
+        mCanvases[frameId]->setExternalTextureDepth(tex);
+
     }
 }

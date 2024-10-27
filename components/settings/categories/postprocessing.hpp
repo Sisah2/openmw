@@ -23,7 +23,11 @@ namespace Settings
         SettingValue<float> mAutoExposureSpeed{ mIndex, "Post Processing", "auto exposure speed",
             makeMaxStrictSanitizerFloat(0.0001f) };
         SettingValue<bool> mTransparentPostpass{ mIndex, "Post Processing", "transparent postpass" };
+        SettingValue<int> mNormalsFallbackMode{ mIndex, "Post Processing", "normals fallback mode" };
         SettingValue<int> mNormalsFallbackRenderingDistance{ mIndex, "Post Processing", "normals fallback view distance" };
+        SettingValue<bool> mUseSimplifiedShader{ mIndex, "Post Processing", "use simplified shader" };
+        SettingValue<bool> mDisableBlending{ mIndex, "Post Processing", "disable blending" };
+        SettingValue<bool> mFallbackDepthTex{ mIndex, "Post Processing", "use normals fallback depth texture" };
 
         SettingValue<int> mTest1{ mIndex, "Post Processing", "test1" };
         SettingValue<int> mTest2{ mIndex, "Post Processing", "test2" };
