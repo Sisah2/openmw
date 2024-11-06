@@ -19,6 +19,7 @@ namespace MWRender
 {
     TransparentDepthBinCallback::TransparentDepthBinCallback(Shader::ShaderManager& shaderManager, bool postPass)
         : mStateSet(new osg::StateSet)
+        , mDepthWrites(new SceneUtil::AutoDepth)
         , mPostPass(postPass)
     {
         osg::ref_ptr<osg::Image> image = new osg::Image;
@@ -40,6 +41,8 @@ namespace MWRender
         mStateSet->setAttributeAndModes(new osg::BlendFunc, modeOff);
         mStateSet->setAttributeAndModes(shaderManager.getProgram("depthclipped", defines), modeOn);
         mStateSet->setAttributeAndModes(new SceneUtil::AutoDepth, modeOn);
+
+        mDepthWrites->setWriteMask(false);
 
         for (unsigned int unit = 1; unit < 8; ++unit)
             mStateSet->setTextureMode(unit, GL_TEXTURE_2D, modeOff);
@@ -102,11 +105,7 @@ namespace MWRender
 
         // disable depth writes, so depth can be writen in postpass
         if (mPostPass)
-        {
-            osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
-            depth->setWriteMask(false);
-            bin->getStateSet()->setAttributeAndModes(depth, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-        }
+            bin->getStateSet()->setAttributeAndModes(mDepthWrites, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 
         // draws scene into primary attachments
         bin->drawImplementation(renderInfo, previous);
