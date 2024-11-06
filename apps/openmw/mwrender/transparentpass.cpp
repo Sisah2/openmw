@@ -100,6 +100,14 @@ namespace MWRender
         msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER)
                 : fbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 
+        // disable depth writes, so depth can be writen in postpass
+        if (mPostPass)
+        {
+            osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
+            depth->setWriteMask(false);
+            bin->getStateSet()->setAttributeAndModes(depth, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+        }
+
         // draws scene into primary attachments
         bin->drawImplementation(renderInfo, previous);
 

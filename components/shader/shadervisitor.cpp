@@ -760,13 +760,6 @@ namespace Shader
             updateRemovedState(*writableUserData, removedState);
         }
 
-        if (reqs.mAlphaBlend && Settings::postProcessing().mTransparentPostpass && Settings::postProcessing().mEnabled)
-        {
-            osg::ref_ptr<osg::Depth> depth = new SceneUtil::AutoDepth;
-            depth->setWriteMask(false);
-            writableStateSet->setAttributeAndModes(depth, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-        }
-
         defineMap["softParticles"] = reqs.mSoftParticles ? "1" : "0";
 
         Stereo::shaderStereoDefines(defineMap);
