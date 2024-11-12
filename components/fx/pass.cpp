@@ -91,6 +91,7 @@ uniform @builtinSampler omw_SamplerLastShader;
 uniform @builtinSampler omw_SamplerLastPass;
 uniform highp @builtinSampler omw_SamplerDepth;
 uniform @builtinSampler omw_SamplerNormals;
+uniform @builtinSampler omw_SamplerExternalNormals;
 uniform @builtinSampler omw_SamplerDistortion;
 
 uniform vec4 omw_PointLights[@pointLightCount];
@@ -280,7 +281,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                   { "@vertex", mLegacyGLSL ? "gl_Vertex" : "_omw_Vertex" },
                   { "@fragColor", mLegacyGLSL ? "gl_FragColor" : "_omw_FragColor" },
                   { "@useBindings", mLegacyGLSL ? "0" : "1" },
-                  { "@fragBinding", mLegacyGLSL ? "" : "out vec4 omw_FragColor;" } };
+                  { "@fragBinding", mLegacyGLSL ? "" : "out vec4 omw_FragColor;" }, };
 
         for (const auto& [define, value] : defines)
             for (size_t pos = header.find(define); pos != std::string::npos; pos = header.find(define))

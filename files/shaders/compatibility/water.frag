@@ -1,5 +1,5 @@
 #version 120
-#pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS)
+#pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS, ENCODE_NORMALS)
 
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
@@ -9,6 +9,7 @@
     #extension GL_EXT_gpu_shader4: require
 #endif
 
+#include "lib/util/packcolors.glsl"
 #include "lib/core/fragment.h.glsl"
 
 // Inspired by Blender GLSL Water by martinsh ( https://devlog-martinsh.blogspot.de/2012/07/waterundewater-shader-wip.html )
@@ -242,6 +243,10 @@ void main(void)
 
 #if !@disableNormals
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
+#endif
+
+#if defined(ENCODE_NORMALS) && ENCODE_NORMALS
+    gl_FragData[0].rgb = encode(gl_FragData[0], vec4(normalize(gl_NormalMatrix * normal) * 0.5 + 0.5, 1.0)).rgb;
 #endif
 
     applyShadowDebugOverlay();

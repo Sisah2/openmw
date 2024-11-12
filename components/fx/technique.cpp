@@ -155,6 +155,9 @@ namespace fx
                     mGLSLExtensions.insert("GL_EXT_texture_array");
                 }
 
+                // if android
+                mGLSLExtensions.insert("GL_EXT_shader_non_constant_global_initializers");
+
                 it->second->compile(*this, mShared);
 
                 if (!it->second->mTarget.empty())
@@ -247,7 +250,7 @@ namespace fx
             else if (key == "hdr")
                 mHDR = parseBool();
             else if (key == "pass_normals")
-                mNormals = parseBool() && mSupportsNormals;
+                mNormals = parseBool()/* && mSupportsNormals*/;
             else if (key == "pass_lights")
                 mLights = parseBool();
             else if (key == "glsl_profile")

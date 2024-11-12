@@ -762,6 +762,11 @@ namespace Shader
 
         defineMap["softParticles"] = reqs.mSoftParticles ? "1" : "0";
 
+        writableStateSet->setDefine("OBJECT", "1", osg::StateAttribute::ON);
+        writableStateSet->setDefine("Dparallax", reqs.mNormalHeight ? "1" : "0", osg::StateAttribute::ON);
+        writableStateSet->setDefine("DdifuseMap", defineMap["difuseMap"], osg::StateAttribute::ON);
+        writableStateSet->setDefine("DnormalMap", defineMap["normalMap"], osg::StateAttribute::ON);
+
         Stereo::shaderStereoDefines(defineMap);
 
         std::string shaderPrefix;

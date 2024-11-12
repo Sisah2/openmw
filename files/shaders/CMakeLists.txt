@@ -17,6 +17,7 @@ set(SHADER_FILES
     lib/util/quickstep.glsl
     lib/util/coordinates.glsl
     lib/util/distortion.glsl
+    lib/util/packcolors.glsl
     lib/core/fragment.glsl
     lib/core/fragment.h.glsl
     lib/core/fragment_multiview.glsl
@@ -59,6 +60,8 @@ set(SHADER_FILES
     compatibility/sky.frag
     compatibility/fullscreen_tri.vert
     compatibility/fullscreen_tri.frag
+    compatibility/normal.vert
+    compatibility/normal.frag
     compatibility/bs/default.vert
     compatibility/bs/default.frag
     compatibility/bs/nolighting.vert

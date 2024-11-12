@@ -35,8 +35,7 @@ namespace MWRender
         Shader::ShaderManager::DefineMap defines;
         Stereo::shaderStereoDefines(defines);
 
-        mFallbackProgram = shaderManager.getProgram("fullscreen_tri");
-
+        mFallbackProgram = shaderManager.getProgram("fullscreen_tri", defines);
         mFallbackStateSet->setAttributeAndModes(mFallbackProgram);
         mFallbackStateSet->addUniform(new osg::Uniform("lastShader", 0));
         mFallbackStateSet->addUniform(new osg::Uniform("scaling", osg::Vec2f(1, 1)));
@@ -241,6 +240,9 @@ namespace MWRender
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_EyeAdaptation,
                     mLuminanceCalculator->getLuminanceTexture(frameId));
 
+            if (mExternalTextureNormals)
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mExternalTextureNormals);
+            else
             if (mTextureNormals)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mTextureNormals);
 

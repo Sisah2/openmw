@@ -2,6 +2,26 @@ fragment main {
 
     omw_In vec2 omw_TexCoord;
 
+    void fromFloat(float encoded, inout float a, inout float b)
+    {
+        a = floor(encoded) / 63.0;
+        b = encoded - floor(encoded);
+    }
+
+    void decode(vec4 encoded, inout vec4 scene, inout vec4 normals)
+    {
+        if (encoded.r < 0.0 && encoded.g < 0.0 && encoded.b < 0.0)
+        {
+            encoded *= -1.0;
+            fromFloat(encoded.r, scene.r, normals.r);
+            fromFloat(encoded.g, scene.g, normals.g);
+            fromFloat(encoded.b, scene.b, normals.b);
+            fromFloat(encoded.a, scene.a, normals.a);
+        }
+        else
+            scene = clamp(encoded, 0.0, 1.0);
+    }
+
     void main()
     {
         const float multiplier = 0.14;
@@ -12,7 +32,16 @@ fragment main {
 
         float occlusionFactor = omw_Texture2D(omw_SamplerDistortion, omw_TexCoord+offset).b;
 
-        omw_FragColor = mix(omw_GetLastShader(omw_TexCoord + offset), omw_GetLastShader(omw_TexCoord), occlusionFactor);
+        vec4 color1 = omw_GetLastShader(omw_TexCoord + offset);
+        vec4 color2 = omw_GetLastShader(omw_TexCoord);
+
+        vec4 scene, normals;
+        decode(color1, scene, normals);
+        color1 = scene;
+        decode(color2, scene, normals);
+        color2 = scene;
+
+        omw_FragColor = mix(color1, color2, occlusionFactor);
     }
 }
 

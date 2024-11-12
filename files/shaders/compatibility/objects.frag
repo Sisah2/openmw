@@ -1,6 +1,6 @@
 #version 120
-#pragma import_defines(FORCE_OPAQUE, DISTORTION, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
-
+#pragma import_defines(FORCE_OPAQUE, DISTORTION, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, ENCODE_NORMALS, TRANSPARENT)
+/*
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
 #endif
@@ -8,7 +8,7 @@
 #if @useGPUShader4
     #extension GL_EXT_gpu_shader4: require
 #endif
-
+*/
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
@@ -93,6 +93,7 @@ varying vec4 passTangent;
 #define ADDITIVE_BLENDING
 #endif
 
+#include "lib/util/packcolors.glsl"
 #include "lib/light/lighting.glsl"
 #include "lib/material/parallax.glsl"
 #include "lib/material/alpha.glsl"
@@ -276,6 +277,10 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
 
 #if !defined(FORCE_OPAQUE) && !@disableNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
+#endif
+
+#if !defined(FORCE_OPAQUE) && defined(ENCODE_NORMALS) && ENCODE_NORMALS && !defined(TRANSPARENT)
+    gl_FragData[0].rgb = encode(gl_FragData[0], vec4(viewNormal * 0.5 + 0.5, 1.0)).rgb;
 #endif
 
     applyShadowDebugOverlay();

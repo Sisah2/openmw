@@ -111,6 +111,43 @@ namespace Terrain
             cv->popStateSet();
         }
 
+/*
+        if (cv->getCurrentCamera()->getName() == "SceneCam")
+        {
+            PostProcessor* postProcessor = dynamic_cast<PostProcessor*>(cv->getCurrentCamera()->getUserData());
+
+            float dist = (osg::Vec3f(cv->getEyePoint().x(), cv->getEyePoint().y(), 0.0) - osg::Vec3f(bb.center().x(), bb.center().y(), 0.0)).length() + bb.radius();
+
+
+            if (!Settings::shaders().mAutoUseTerrainNormalMaps)
+            {
+                cv->addDrawableAndDepth(this, &matrix, depth);
+                return;
+            }
+
+            if (postProcessor && dist < 10000)
+            {
+                const auto& fbo = postProcessor->getFbo(PostProcessor::FBO_Primary, frameId);
+                const auto& opaqueFbo = postProcessor->getFbo(PostProcessor::FBO_OpaqueDepth, frameId);
+
+                opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+
+                cv->pushStateSet(stateset);
+
+                for (PassVector::const_iterator it = mPasses.begin(); it != mPasses.end(); ++it)
+                {
+                    cv->pushStateSet(*it);
+                    cv->addDrawableAndDepth(this, &matrix, depth);
+                    cv->popStateSet();
+                }
+
+                cv->popStateSet();
+
+                fbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+            }
+
+        }
+*/
         if (stateset)
             cv->popStateSet();
         if (pushedLight)

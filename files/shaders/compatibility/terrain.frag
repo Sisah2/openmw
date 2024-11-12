@@ -1,6 +1,6 @@
 #version 120
-#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
-
+#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, ENCODE_NORMALS)
+/*
 #if @useUBO
     #extension GL_ARB_uniform_buffer_object : require
 #endif
@@ -8,7 +8,7 @@
 #if @useGPUShader4
     #extension GL_EXT_gpu_shader4: require
 #endif
-
+*/
 varying vec2 uv;
 
 uniform sampler2D diffuseMap;
@@ -42,6 +42,7 @@ varying vec3 passNormal;
 uniform vec2 screenRes;
 uniform float far;
 
+#include "lib/util/packcolors.glsl"
 #include "vertexcolors.glsl"
 #include "shadows_fragment.glsl"
 #include "lib/light/lighting.glsl"
@@ -104,6 +105,10 @@ void main()
 
 #if !@disableNormals && @writeNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
+#endif
+
+#if defined(ENCODE_NORMALS) && ENCODE_NORMALS
+    gl_FragData[0].rgb = encode(gl_FragData[0], vec4(viewNormal * 0.5 + 0.5, 1.0)).rgb;
 #endif
 
     applyShadowDebugOverlay();

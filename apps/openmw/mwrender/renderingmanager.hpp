@@ -276,6 +276,8 @@ namespace MWRender
 
         void setNavMeshMode(Settings::NavMeshRenderMode value);
 
+        void setEncodeNormals(bool enabled);
+
     private:
         void updateTextureFiltering();
         void updateAmbient();

@@ -21,6 +21,7 @@
 
 #include "pingpongcanvas.hpp"
 #include "transparentpass.hpp"
+#include "normalsfallback.hpp"
 
 #include <memory>
 
@@ -51,6 +52,7 @@ namespace MWRender
     class PingPongCanvas;
     class TransparentDepthBinCallback;
     class DistortionCallback;
+    class NormalsFallback;
 
     class PostProcessor : public osg::Group
     {
@@ -86,6 +88,7 @@ namespace MWRender
             Unit_Depth,
             Unit_EyeAdaptation,
             Unit_Normals,
+            Unit_ExternalNormals,
             Unit_Distortion,
             Unit_NextFree
         };
@@ -97,8 +100,15 @@ namespace MWRender
             Status_Unchanged
         };
 
+        enum NormalsMode
+        {
+            NormalsMode_MRT = 0,
+            NormalsMode_Camera,
+            NormalsMode_PackedTexture
+        };
+
         PostProcessor(
-            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs);
+            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs, osg::ref_ptr<SceneUtil::LightManager> sceneRoot);
 
         ~PostProcessor();
 
@@ -136,6 +146,8 @@ namespace MWRender
         Status disableTechnique(std::shared_ptr<fx::Technique> technique, bool dirty = true);
 
         bool getSupportsNormalsRT() const { return mNormalsSupported; }
+
+        int getNormalsMode() const { return mNormalsMode; }
 
         template <class T>
         void setUniform(std::shared_ptr<fx::Technique> technique, const std::string& name, const T& value)
@@ -201,6 +213,9 @@ namespace MWRender
         void loadChain();
         void saveChain();
 
+        void setExternalNormalsTexture(osg::Texture* tex);
+        std::unique_ptr<NormalsFallback> mNormalsFallback;
+
     private:
         void populateTechniqueFiles();
 
@@ -243,6 +258,7 @@ namespace MWRender
         bool mReload = true;
         bool mTriggerShaderReload = false;
         bool mUsePostProcessing = false;
+        bool mUseCameraFallback = false;
 
         bool mUBO = false;
         bool mHDR = false;
@@ -258,6 +274,7 @@ namespace MWRender
         int mWidth;
         int mHeight;
         int mSamples;
+        int mNormalsMode;
 
         osg::ref_ptr<fx::StateUpdater> mStateUpdater;
         osg::ref_ptr<PingPongCull> mPingPongCull;

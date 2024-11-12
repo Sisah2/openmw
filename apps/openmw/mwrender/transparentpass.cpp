@@ -19,7 +19,6 @@ namespace MWRender
 {
     TransparentDepthBinCallback::TransparentDepthBinCallback(Shader::ShaderManager& shaderManager, bool postPass)
         : mStateSet(new osg::StateSet)
-        , mDepthWrites(new SceneUtil::AutoDepth)
         , mPostPass(postPass)
     {
         osg::ref_ptr<osg::Image> image = new osg::Image;
@@ -41,8 +40,6 @@ namespace MWRender
         mStateSet->setAttributeAndModes(new osg::BlendFunc, modeOff);
         mStateSet->setAttributeAndModes(shaderManager.getProgram("depthclipped", defines), modeOn);
         mStateSet->setAttributeAndModes(new SceneUtil::AutoDepth, modeOn);
-
-        mDepthWrites->setWriteMask(false);
 
         for (unsigned int unit = 1; unit < 8; ++unit)
             mStateSet->setTextureMode(unit, GL_TEXTURE_2D, modeOff);
@@ -94,10 +91,10 @@ namespace MWRender
         }
         else
         {
-            opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
-//            ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(),
-//                tex->getTextureHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-            glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+         /*   opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+            glClear(GL_COLOR_BUFFER_BIT);
+            ext->glBlitFramebuffer(0, 0, tex->getTextureWidth(), tex->getTextureHeight(), 0, 0, tex->getTextureWidth(),
+                tex->getTextureHeight(), GL_COLOR_BUFFER_BIT, GL_NEAREST);*/
         }
 
         msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER)
@@ -105,7 +102,11 @@ namespace MWRender
 
         // disable depth writes, so depth can be writen in postpass
         if (mPostPass)
-            bin->getStateSet()->setAttributeAndModes(mDepthWrites, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+        {
+            osg::ref_ptr<osg::Depth> mDepth = new SceneUtil::AutoDepth;
+            mDepth->setWriteMask(false);
+            bin->getStateSet()->setAttributeAndModes(mDepth, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+        }
 
         // draws scene into primary attachments
         bin->drawImplementation(renderInfo, previous);
@@ -113,7 +114,7 @@ namespace MWRender
         if (!mPostPass)
             return;
 
-//        opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        opaqueFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 
         // draw transparent post-pass to populate a postprocess friendly depth texture with alpha-clipped geometry
 
