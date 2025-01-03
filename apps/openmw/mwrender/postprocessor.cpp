@@ -113,7 +113,7 @@ namespace
 namespace MWRender
 {
     PostProcessor::PostProcessor(
-        RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs)
+        RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs, osg::ref_ptr<SceneUtil::LightManager> sceneRoot)
         : osg::Group()
         , mRootNode(rootNode)
         , mHUDCamera(new osg::Camera)
@@ -152,6 +152,7 @@ namespace MWRender
             = new TransparentDepthBinCallback(mRendering.getResourceSystem()->getSceneManager()->getShaderManager(),
                 Settings::postProcessing().mTransparentPostpass);
         osgUtil::RenderBin::getRenderBinPrototype("DepthSortedBin")->setDrawCallback(mTransparentDepthPostPass);
+        osgUtil::RenderBin::getRenderBinPrototype("DepthSortedBin")->getStateSet()->setDefine("TRANSPARENT", "1", osg::StateAttribute::ON);
 
         osg::ref_ptr<osgUtil::RenderBin> distortionRenderBin
             = new osgUtil::RenderBin(osgUtil::RenderBin::SORT_BACK_TO_FRONT);
@@ -181,11 +182,6 @@ namespace MWRender
 
         populateTechniqueFiles();
 
-        auto distortion = loadTechnique("internal_distortion");
-        distortion->setInternal(true);
-        distortion->setLocked(true);
-        mInternalTechniques.push_back(distortion);
-
         osg::GraphicsContext* gc = viewer->getCamera()->getGraphicsContext();
         osg::GLExtensions* ext = gc->getState()->get<osg::GLExtensions>();
 
@@ -200,9 +196,10 @@ namespace MWRender
 #endif
 
         if (ext->glDisablei)
+        {
             mNormalsSupported = true;
-        else
-            Log(Debug::Error) << "'glDisablei' unsupported, pass normals will not be available to shaders.";
+            mNormalsMode = NormalsMode_MRT;
+        }
 
         mGLSLVersion = ext->glslLanguageVersion * 100;
         mUBO = ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
@@ -217,6 +214,82 @@ namespace MWRender
         mViewer->getCamera()->setUserData(this);
 
         setCullCallback(mStateUpdater);
+
+        if (!mNormalsSupported)
+        {
+            bool supportHalfFloatTexture = osg::isGLExtensionSupported(ext->contextID, "GL_OES_texture_half_float");
+            bool supportHalfFloatAttachment = osg::isGLExtensionSupported(ext->contextID, "GL_EXT_color_buffer_half_float");
+            bool supportShaderFramebufferFetch = osg::isGLExtensionSupported(ext->contextID, "GL_EXT_shader_framebuffer_fetch");
+
+            mUseCameraFallback = (!supportHalfFloatTexture || !supportHalfFloatAttachment ||  Settings::postProcessing().mForceCameraNormalsFallback) ? true : false;
+
+            bool fetchOnly = false;
+
+            if (getenv("OPENMW_CAMERA") != nullptr)
+                mUseCameraFallback = true;
+
+            if (getenv("OPENMW_RERENDER") != nullptr)
+            {
+                mUseCameraFallback = false;
+                supportShaderFramebufferFetch = false;
+            }
+
+            if (getenv("OPENMW_NOBLEND") != nullptr)
+            {
+                mUseCameraFallback = false;
+                supportShaderFramebufferFetch = true;
+                fetchOnly = false;
+            }
+
+            if (getenv("OPENMW_FETCH") != nullptr)
+            {
+                mUseCameraFallback = false;
+                supportShaderFramebufferFetch = true;
+                fetchOnly = true;
+            }
+
+            if (mUseCameraFallback)
+            {
+                mNormalsMode = NormalsMode_Camera;
+                Log(Debug::Warning) << "'glDisablei' unsupported, pass normals use camera fallback.";
+            }
+            else
+            {
+                mNormalsMode = NormalsMode_PackedTextureRerender;
+                Log(Debug::Warning) << "'glDisablei' unsupported, pass normals use packed texture fallback.";
+
+                if (supportShaderFramebufferFetch)
+                {
+                    mNormalsMode = NormalsMode_PackedTextureFetch;
+                    Log(Debug::Warning) << "Shader framebuffer fetch supported.";
+
+                    if (fetchOnly)
+                    {
+                        mNormalsMode = NormalsMode_PackedTextureFetchOnly;
+                        Log(Debug::Warning) << "Forcing fetch only.";
+                    }
+                }
+            }
+
+            mNormalsFallback = std::make_unique<NormalsFallback>(
+                mRootNode, sceneRoot, this, mNormalsMode);
+
+            mTransparentDepthPostPass->setNormalsMode(mNormalsMode);
+
+            mCanvases[0]->setNormalsMode(mNormalsMode);
+            mCanvases[1]->setNormalsMode(mNormalsMode);
+
+            if (getenv("ONECAMERA") != nullptr)
+            {
+                mCanvases[0]->setExternalTextureNormals(mNormalsFallback->getNormalsTex());
+                mCanvases[1]->setExternalTextureNormals(mNormalsFallback->getNormalsTex());
+            }
+        }
+
+        auto distortion = loadTechnique("internal_distortion");
+        distortion->setInternal(true);
+        distortion->setLocked(true);
+        mInternalTechniques.push_back(distortion);
 
         if (mUsePostProcessing)
             enable();
@@ -266,12 +339,16 @@ namespace MWRender
     {
         mReload = true;
         mUsePostProcessing = true;
+
+        mRendering.setNormalsFallbackDefines(mNormals, mNormalsMode);
     }
 
     void PostProcessor::disable()
     {
         mUsePostProcessing = false;
         mRendering.getSkyManager()->setSunglare(true);
+
+        mRendering.setNormalsFallbackDefines(false, mNormalsMode);
     }
 
     void PostProcessor::traverse(osg::NodeVisitor& nv)
@@ -312,7 +389,7 @@ namespace MWRender
         mDistortionCallback->setOriginalFBO(mFbos[frameId][FBO_Primary], frameId);
 
         size_t frame = cv->getTraversalNumber();
-
+ 
         mStateUpdater->setResolution(osg::Vec2f(cv->getViewport()->width(), cv->getViewport()->height()));
 
         // per-frame data
@@ -404,8 +481,22 @@ namespace MWRender
             mCanvases[frameId]->setPasses(fx::DispatchArray(mTemplateData));
         }
 
-        if ((mNormalsSupported && mNormals != mPrevNormals) || (mPassLights != mPrevPassLights))
+        if(mNormalsFallback)
+            mNormalsFallback->update(frameId);
+
+        if ((mNormals != mPrevNormals) || (mPassLights != mPrevPassLights))
         {
+            if ((mNormals != mPrevNormals) && !mNormalsSupported)
+            {
+                mRendering.setNormalsFallbackDefines(mNormals, mNormalsMode);
+                mTransparentDepthPostPass->setNormals(mNormals);
+
+                if (mNormals)
+                    mNormalsFallback->enable();
+                else
+                    mNormalsFallback->disable();
+            }
+
             mPrevNormals = mNormals;
             mPrevPassLights = mPassLights;
 
@@ -460,6 +551,13 @@ namespace MWRender
             texture->setResizeNonPowerOfTwoHint(false);
             Stereo::setMultiviewCompatibleTextureSize(texture, width, height);
             texture->dirtyTextureObject();
+        }
+
+        if (mNormals && mNormalsMode != NormalsMode_Camera && mNormalsMode != NormalsMode_MRT)
+        {
+            textures[Tex_Scene]->setSourceFormat(GL_RGBA);
+            textures[Tex_Scene]->setInternalFormat(GL_RGBA16F);
+            textures[Tex_Scene]->setSourceType(GL_HALF_FLOAT);
         }
 
         textures[Tex_Normal]->setSourceFormat(GL_RGB);
@@ -535,8 +633,19 @@ namespace MWRender
         }
 
         fbos[FBO_OpaqueDepth] = new osg::FrameBufferObject;
+        if (mNormalsFallback && getenv("ONECAMERA") != nullptr)
+        {
+            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
+                Stereo::createMultiviewCompatibleAttachment(mNormalsFallback->getNormalsTex()));
+        }
+        else
+        {
+            fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
+                Stereo::createMultiviewCompatibleAttachment(textures[Tex_Normal]));
+        }
+
         fbos[FBO_OpaqueDepth]->setAttachment(osg::FrameBufferObject::BufferComponent::PACKED_DEPTH_STENCIL_BUFFER,
-            Stereo::createMultiviewCompatibleAttachment(textures[Tex_OpaqueDepth]));
+            Stereo::createMultiviewCompatibleAttachment(textures[Tex_Depth]));
 
         fbos[FBO_Distortion] = new osg::FrameBufferObject;
         fbos[FBO_Distortion]->setAttachment(osg::FrameBufferObject::BufferComponent::COLOR_BUFFER0,
@@ -550,6 +659,9 @@ namespace MWRender
 #endif
 
         mCanvases[frameId]->dirty();
+
+        if(mNormalsFallback)
+            mNormalsFallback->dirty();
     }
 
     void PostProcessor::dirtyTechniques(bool dirtyAttachments)
@@ -763,7 +875,7 @@ namespace MWRender
                 return technique;
 
         auto technique = std::make_shared<fx::Technique>(*mVFS, *mRendering.getResourceSystem()->getImageManager(),
-            name, renderWidth(), renderHeight(), mUBO, mNormalsSupported);
+            name, renderWidth(), renderHeight(), mUBO, mNormalsSupported, mNormalsMode);
 
         technique->compile();
 
@@ -840,7 +952,7 @@ namespace MWRender
 
     int PostProcessor::renderHeight() const
     {
-        if (Stereo::getStereo())
+        if (Stereo::getStereo())						
             return Stereo::Manager::instance().eyeResolution().y();
         return mHeight;
     }
@@ -848,5 +960,15 @@ namespace MWRender
     void PostProcessor::triggerShaderReload()
     {
         mTriggerShaderReload = true;
+    }
+
+    void PostProcessor::setPostPass(bool enable)
+    {
+        mTransparentDepthPostPass->setPostPass(enable);
+    }
+
+    void PostProcessor::setPlayerDefines(osg::ref_ptr<osg::Group> objectRoot, bool firstPerson)
+    {
+        objectRoot->getOrCreateStateSet()->setDefine("FIRST_PERSON", (firstPerson) ? "1" : "0", osg::StateAttribute::ON);
     }
 }

@@ -35,8 +35,7 @@ namespace MWRender
         Shader::ShaderManager::DefineMap defines;
         Stereo::shaderStereoDefines(defines);
 
-        mFallbackProgram = shaderManager.getProgram("fullscreen_tri");
-
+        mFallbackProgram = shaderManager.getProgram("fullscreen_tri", defines);
         mFallbackStateSet->setAttributeAndModes(mFallbackProgram);
         mFallbackStateSet->addUniform(new osg::Uniform("lastShader", 0));
         mFallbackStateSet->addUniform(new osg::Uniform("scaling", osg::Vec2f(1, 1)));
@@ -67,6 +66,11 @@ namespace MWRender
         osg::FrameBufferObject* fbo, osg::Camera::BufferComponent component, osg::Texture* tex)
     {
         osg::ref_ptr<osg::Texture> clone = static_cast<osg::Texture*>(tex->clone(osg::CopyOp::SHALLOW_COPY));
+/*
+        clone->setSourceFormat(GL_RGBA);
+        clone->setInternalFormat(GL_RGBA);
+        clone->setSourceType(GL_UNSIGNED_BYTE);
+*/
         fbo->setAttachment(component, Stereo::createMultiviewCompatibleAttachment(clone));
     }
 
@@ -240,8 +244,12 @@ namespace MWRender
             if (mAvgLum)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_EyeAdaptation,
                     mLuminanceCalculator->getLuminanceTexture(frameId));
-
-            if (mTextureNormals)
+ 
+            if (mNormalsMode == NormalsMode_PackedTextureFetchOnly)
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mTextureScene);
+            else if (mExternalTextureNormals)
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mExternalTextureNormals);
+            else if (mTextureNormals)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mTextureNormals);
 
             if (mTextureDistortion)

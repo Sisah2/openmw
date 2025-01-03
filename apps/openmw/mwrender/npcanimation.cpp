@@ -321,7 +321,8 @@ namespace MWRender
             mDepth->setWriteMask(true);
 
             mStateSet = new osg::StateSet;
-            mStateSet->setAttributeAndModes(new osg::ColorMask(false, false, false, false), osg::StateAttribute::ON);
+            //mStateSet->setAttributeAndModes(new osg::ColorMask(false, false, false, false), osg::StateAttribute::ON);
+            mStateSet->setDefine("NORMALS_ONLY", "1", osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
             mStateSet->setMode(GL_LIGHTING, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
         }
 
@@ -344,10 +345,11 @@ namespace MWRender
             auto primaryFBO = postProcessor->getPrimaryFbo(frameId);
             primaryFBO->apply(*state);
 
-//            postProcessor->getFbo(PostProcessor::FBO_OpaqueDepth, frameId)->apply(*state);
+            postProcessor->getFbo(PostProcessor::FBO_OpaqueDepth, frameId)->apply(*state);
 
             // depth accumulation pass
             osg::ref_ptr<osg::StateSet> restore = bin->getStateSet();
+
             bin->setStateSet(mStateSet);
             bin->drawImplementation(renderInfo, previous);
             bin->setStateSet(restore);
@@ -528,6 +530,24 @@ namespace MWRender
             mObjectRoot->addCullCallback(new OverrideFieldOfViewCallback(mFirstPersonFieldOfView));
         }
 
+        PostProcessor* postProcessor = MWBase::Environment::get().getWorld()->getPostProcessor();
+//postProcessor->setPlayerDefines(mObjectRoot, is1stPerson);
+
+        int mode = postProcessor->getNormalsMode();
+        bool enable = false;
+        if ((mode == NormalsMode_PackedTextureRerender && is1stPerson) || mode == NormalsMode_Camera)
+            enable = false;
+        else
+            enable = mEncodeNormals;
+
+        Log(Debug::Warning) << "updateNpcBase mEncodeNormals = " << mEncodeNormals;
+
+   //     mObjectRoot->getOrCreateStateSet()->setDefine("ENCODE_NORMALS", (enable) ? "1" : "0", osg::StateAttribute::ON);
+if(is1stPerson)
+{
+        mObjectRoot->getOrCreateStateSet()->setDefine("ENCODE_NORMALS", (enable) ? "1" : "0", osg::StateAttribute::ON);
+        mObjectRoot->getOrCreateStateSet()->setDefine("FIRST_PERSON", "1", osg::StateAttribute::ON);
+}
         mWeaponAnimationTime->updateStartTime();
     }
 
@@ -1288,6 +1308,20 @@ namespace MWRender
     bool NpcAnimation::isArrowAttached() const
     {
         return mAmmunition != nullptr;
+    }
+
+    void NpcAnimation::setNormalsFallbackDefines(bool enabled, int mode)
+    {/*
+        Log(Debug::Warning) << "NpcAnimation::setNormalsFallbackDefines '" << enabled;
+
+        bool is1stPerson = mViewMode == VM_FirstPerson;
+
+        if (mode == NormalsMode_PackedTextureRerender && is1stPerson)
+            mEncodeNormals = false;
+        else
+            mEncodeNormals = enabled;
+
+        mObjectRoot->getOrCreateStateSet()->setDefine("ENCODE_NORMALS", (mEncodeNormals) ? "1" : "0", osg::StateAttribute::ON);*/
     }
 
 }

@@ -1,5 +1,6 @@
 #include "pass.hpp"
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -23,6 +24,7 @@
 namespace
 {
     constexpr char s_DefaultVertex[] = R"GLSL(
+
 #if OMW_USE_BINDINGS
     omw_In vec2 omw_Vertex;
 #endif
@@ -73,6 +75,8 @@ namespace fx
 #define OMW_RADIAL_FOG @radialFog
 #define OMW_EXPONENTIAL_FOG @exponentialFog
 #define OMW_HDR @hdr
+#define OMW_NORMALSDISTANCE @normalsDistance
+#define OMW_NORMALSMODE @normalMode
 #define OMW_NORMALS @normals
 #define OMW_USE_BINDINGS @useBindings
 #define OMW_MULTIVIEW @multiview
@@ -84,6 +88,8 @@ namespace fx
 #define omw_Texture3D @texture3D
 #define omw_Vertex @vertex
 #define omw_FragColor @fragColor
+
+#define POSTPROCESS 1
 
 @fragBinding
 
@@ -100,6 +106,8 @@ uniform int omw_PointLightsCount;
 uniform mat4 projectionMatrixMultiView[2];
 uniform mat4 invProjectionMatrixMultiView[2];
 #endif
+
+@packFunctions
 
 int omw_GetPointLightCount()
 {
@@ -185,11 +193,32 @@ mat4 omw_InvProjectionMatrix()
 
     vec3 omw_GetNormals(vec2 uv)
     {
+        vec4 normals;
 #if OMW_MULTIVIEW
-        return omw_Texture2D(omw_SamplerNormals, vec3(uv, gl_ViewID_OVR)).rgb * 2.0 - 1.0;
+        normals = omw_Texture2D(omw_SamplerNormals, vec3(uv, gl_ViewID_OVR));
 #else
-        return omw_Texture2D(omw_SamplerNormals, uv).rgb * 2.0 - 1.0;
+        normals = omw_Texture2D(omw_SamplerNormals, uv);
 #endif
+/*
+#if OMW_NORMALSMODE == 1
+//NormalsMode_Camera
+
+#endif
+
+#if OMW_NORMALSMODE == 2
+//NormalsMode_PackedTextureRerender
+    if (normals.a != 1.0)
+        normals = omw_Texture2D(omw_SamplerExternalNormals, uv);
+#endif
+*/
+#if OMW_NORMALSMODE == 4
+//NormalsMode_PackedTextureFetchOnly
+    vec4 scene, encodedNormals;
+    decode(normals, scene, encodedNormals);
+    normals = encodedNormals;
+#endif
+
+        return normals.rgb * 2.0 - 1.0;
     }
 
     vec3 omw_GetNormalsWorldSpace(vec2 uv)
@@ -259,6 +288,42 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
             extBlock << "#ifdef " << extension << '\n'
                      << "\t#extension " << extension << ": enable" << '\n'
                      << "#endif" << '\n';
+/*
+    enum NormalsMode
+    {
+        NormalsMode_MRT = 0,
+        NormalsMode_Camera,
+        NormalsMode_PackedTextureRerender,
+        NormalsMode_PackedTextureFetch,
+        NormalsMode_PackedTextureFetchOnly
+    };
+*/
+int i = 0;
+if(technique.getNormalsMode() == 1)
+i = 1;
+if(technique.getNormalsMode() == 2)
+i = 2;
+if(technique.getNormalsMode() == 3)
+i = 3;
+if(technique.getNormalsMode() == 4)
+i = 4;
+
+
+std::ifstream ifs("/storage/emulated/0/omw_nightly/resources/shaders/lib/util/packcolors.glsl");
+std::string content;
+if (ifs.is_open()) {
+//Log(Debug::Warning) << "include opened";
+std::string line;
+while (std::getline(ifs, line)) {
+content += line + "\n";
+//Log(Debug::Error) << line;
+}
+}
+
+ifs.close();
+//Log(Debug::Warning) << "full content";
+//Log(Debug::Error) << content;
+
 
         const std::vector<std::pair<std::string, std::string>> defines
             = { { "@pointLightCount", std::to_string(SceneUtil::PPLightBuffer::sMaxPPLightsArraySize) },
@@ -280,11 +345,19 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                   { "@vertex", mLegacyGLSL ? "gl_Vertex" : "_omw_Vertex" },
                   { "@fragColor", mLegacyGLSL ? "gl_FragColor" : "_omw_FragColor" },
                   { "@useBindings", mLegacyGLSL ? "0" : "1" },
-                  { "@fragBinding", mLegacyGLSL ? "" : "out vec4 omw_FragColor;" } };
+                  { "@fragBinding", mLegacyGLSL ? "" : "out vec4 omw_FragColor;" },
+                  { "@packFunctions", "\n" + content + "\n" },
+                  { "@normalMode", std::to_string(i/*static_cast<int>(technique.getNormalsMode())*/) },
+                  { "@normalsDistance", std::to_string(std::min(Settings::postProcessing().mCameraNormalsFallbackRenderingDistance, Settings::camera().mViewingDistance)) }, };
 
         for (const auto& [define, value] : defines)
             for (size_t pos = header.find(define); pos != std::string::npos; pos = header.find(define))
                 header.replace(pos, define.size(), value);
+
+
+ //       header.append("\n" + content + "\n");
+//Log(Debug::Warning) << "full header";
+//Log(Debug::Error) << header;
 
         for (const auto& target : mRenderTargets)
             header.append("uniform sampler2D " + std::string(target) + ";");
@@ -294,6 +367,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                 header.append(glsl.value());
 
         header.append(preamble);
+     //   header.append("\n" + content + "\n");
 
         return header;
     }

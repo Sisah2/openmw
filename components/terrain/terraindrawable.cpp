@@ -86,7 +86,15 @@ namespace Terrain
         if (osg::isNaN(depth))
             return;
 
-        if (shadowcam)
+        if (cv->getCurrentCamera()->getName() == "Normals Camera redraw")
+        {
+            float dist = (osg::Vec3f(cv->getEyePoint().x(), cv->getEyePoint().y(), 0.0) - osg::Vec3f(bb.center().x(), bb.center().y(), 0.0)).length() + bb.radius();
+
+            if (dist > 14000)
+                return;
+        }
+
+        if (shadowcam || cv->getCurrentCamera()->getName() == "Normals Camera redraw singlelayer")
         {
             cv->addDrawableAndDepth(this, &matrix, depth);
             return;

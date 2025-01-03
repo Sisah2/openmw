@@ -9,6 +9,8 @@
 
 #include <osgUtil/RenderBin>
 
+#include <components/sceneutil/depth.hpp>
+
 namespace Shader
 {
     class ShaderManager;
@@ -35,11 +37,19 @@ namespace MWRender
 
         std::array<std::unique_ptr<Stereo::MultiviewFramebufferResolve>, 2> mMultiviewResolve;
 
+        void setNormalsMode(int mode) { mNormalsMode = mode; }
+
+        void setNormals(bool enable) { mNormals = enable; };
+
+        void setPostPass(bool enable);
+
     private:
         osg::ref_ptr<osg::StateSet> mStateSet;
+        osg::ref_ptr<osg::Depth> mDepth;
         bool mPostPass;
+        bool mNormals;
+        int mNormalsMode;
     };
-
 }
 
 #endif

@@ -131,7 +131,7 @@ namespace
         osg::ref_ptr<osg::BlendFunc> mValue;
 
         BlendFuncFirst()
-            : mValue(new osg::BlendFunc(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ZERO))
+            : mValue(new osg::BlendFunc(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ZERO/*, osg::BlendFunc::ONE, osg::BlendFunc::ZERO*/))
         {
         }
     };
@@ -149,7 +149,7 @@ namespace
         osg::ref_ptr<osg::BlendFunc> mValue;
 
         BlendFunc()
-            : mValue(new osg::BlendFunc(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ONE))
+            : mValue(new osg::BlendFunc(osg::BlendFunc::SRC_ALPHA, osg::BlendFunc::ONE/*, osg::BlendFunc::ONE, osg::BlendFunc::ZERO*/))
         {
         }
     };
@@ -304,6 +304,16 @@ namespace Terrain
                 defineMap["writeNormals"] = (it == layers.end() - 1) ? "1" : "0";
                 defineMap["reconstructNormalZ"] = reconstructNormalZ ? "1" : "0";
                 Stereo::shaderStereoDefines(defineMap);
+
+                stateset->setDefine("DnormalMap", (it->mNormalMap) ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("DblendMap", (!blendmaps.empty()) ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("Dparallax", parallax ? "1" : "0", osg::StateAttribute::ON);
+                stateset->setDefine("TERRAIN", "1", osg::StateAttribute::ON);
+                stateset->setDefine("FIRST", (it == layers.begin()) ? "1" : "0", osg::StateAttribute::ON);
+
+                defineMap["blend"] = "1";
+                defineMap["dstBlendFunc"] = (it == layers.begin()) ? "0" : "1";
+                defineMap["srcBlendFunc"] = "770"/*"1"*/;
 
                 stateset->setAttributeAndModes(shaderManager.getProgram("terrain", defineMap));
                 stateset->addUniform(UniformCollection::value().mColorMode);

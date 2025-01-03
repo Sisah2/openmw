@@ -273,6 +273,9 @@ namespace MWRender
             camera->getOrCreateStateSet()->setAttributeAndModes(
                 fog, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
 
+            // Inform the shader that we're in a refraction
+            camera->getOrCreateStateSet()->addUniform(new osg::Uniform("isRefraction", true));
+
             camera->addChild(mClipCullNode);
             camera->setNodeMask(Mask_RenderToTexture);
 
@@ -646,7 +649,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("normalMap", 0));
             stateset->setTextureAttributeAndModes(0, mNormalMap, osg::StateAttribute::ON);
             stateset->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
-            stateset->setAttributeAndModes(mProgram, osg::StateAttribute::ON);
+            stateset->setAttributeAndModes(mProgram, osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
 
             stateset->addUniform(new osg::Uniform("reflectionMap", 1));
             if (mRefraction)
@@ -708,6 +711,10 @@ namespace MWRender
         defineMap["sunlightScattering"] = Settings::water().mSunlightScattering ? "1" : "0";
         defineMap["wobblyShores"] = Settings::water().mWobblyShores ? "1" : "0";
         defineMap["shaderRipples"] = supportShaderWaterRipples ? "1" : "0";
+
+        defineMap["blend"] = "1";
+        defineMap["dstBlendFunc"] = "771";
+        defineMap["srcBlendFunc"] = "770";
 
         Stereo::shaderStereoDefines(defineMap);
 

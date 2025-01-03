@@ -173,6 +173,7 @@ namespace MWRender
             stateset->addUniform(new osg::Uniform("skyBlendingStart", 0.f));
             stateset->addUniform(new osg::Uniform("screenRes", osg::Vec2f{}));
             stateset->addUniform(new osg::Uniform("isReflection", false));
+            stateset->addUniform(new osg::Uniform("isRefraction", false));
             stateset->addUniform(new osg::Uniform("windSpeed", 0.0f));
             stateset->addUniform(new osg::Uniform("playerPos", osg::Vec3f(0.f, 0.f, 0.f)));
             stateset->addUniform(new osg::Uniform("useTreeAnim", false));
@@ -217,6 +218,9 @@ namespace MWRender
             : mFogStart(0.f)
             , mFogEnd(0.f)
             , mWireframe(false)
+            , mEncodeNormals(false)
+            , mBlendInShader(false)
+            , mBlendInShaderSet(false)
         {
         }
 
@@ -239,6 +243,9 @@ namespace MWRender
             stateset->setDefine("FORCE_PPL", (Settings::shaders().mForcePerPixelLighting == true) ? "1" : "0", osg::StateAttribute::ON);
             stateset->setDefine("CLASSIC_FALLOFF", (Settings::shaders().mClassicFalloff == true) ? "1" : "0", osg::StateAttribute::ON);
             stateset->setDefine("MAX_LIGHTS", std::to_string(Settings::shaders().mMaxLights), osg::StateAttribute::ON);
+
+            stateset->setDefine("ENCODE_NORMALS", (mEncodeNormals) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("SHADER_BLENDING", "0", osg::StateAttribute::ON);
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor*) override
@@ -250,6 +257,22 @@ namespace MWRender
             fog->setColor(mFogColor);
             fog->setStart(mFogStart);
             fog->setEnd(mFogEnd);
+
+            stateset->setDefine("ENCODE_NORMALS", (mEncodeNormals) ? "1" : "0", osg::StateAttribute::ON);
+
+            if (mBlendInShaderSet)
+            {
+                stateset->setDefine("SHADER_BLENDING", (mBlendInShader) ? "1" : "0", osg::StateAttribute::ON);
+
+                if (mBlendInShader)
+                    stateset->setMode(GL_BLEND, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE | osg::StateAttribute::PROTECTED);
+                else
+                    stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
+
+            //    mBlendInShaderSet = false;
+            }
+
+ //stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, osg::StateAttribute::ON);
         }
 
         void setAmbientColor(const osg::Vec4f& col) { mAmbientColor = col; }
@@ -271,12 +294,19 @@ namespace MWRender
 
         bool getWireframe() const { return mWireframe; }
 
+        void setEncodeNormals(bool enabled) { mEncodeNormals = enabled; }
+
+        void setBlendInShader(bool enabled) { mBlendInShader = enabled; mBlendInShaderSet = true; }
+
     private:
         osg::Vec4f mAmbientColor;
         osg::Vec4f mFogColor;
         float mFogStart;
         float mFogEnd;
         bool mWireframe;
+        bool mEncodeNormals;
+        bool mBlendInShader;
+        bool mBlendInShaderSet;
     };
 
     class PreloadCommonAssetsWorkItem : public SceneUtil::WorkItem
@@ -471,6 +501,16 @@ namespace MWRender
         globalDefines["shadowMapSize"] = std::to_string(Settings::shadows().mShadowMapResolution);
         globalDefines["PCFSamples"] = std::to_string(Settings::shadows().mPercentageCloserFiltering);
 
+        globalDefines["NormalsMode"] = "0";
+        if (getenv("OPENMW_CAMERA") != nullptr)
+            globalDefines["NormalsMode"] = "1";
+        if (getenv("OPENMW_RERENDER") != nullptr)
+            globalDefines["NormalsMode"] = "2";
+        if (getenv("OPENMW_NOBLEND") != nullptr)
+            globalDefines["NormalsMode"] = "3";
+        if (getenv("OPENMW_FETCH") != nullptr)
+            globalDefines["NormalsMode"] = "4";
+
         // It is unnecessary to stop/start the viewer as no frames are being rendered yet.
         mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(globalDefines);
 
@@ -522,7 +562,7 @@ namespace MWRender
         mPerViewUniformStateUpdater = new PerViewUniformStateUpdater(mResourceSystem->getSceneManager());
         rootNode->addCullCallback(mPerViewUniformStateUpdater);
 
-        mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS());
+        mPostProcessor = new PostProcessor(*this, viewer, mRootNode, resourceSystem->getVFS(), sceneRoot);
         resourceSystem->getSceneManager()->setOpaqueDepthTex(
             mPostProcessor->getTexture(PostProcessor::Tex_Depth, 0),
             mPostProcessor->getTexture(PostProcessor::Tex_Depth, 1));
@@ -1620,10 +1660,6 @@ namespace MWRender
                 defines["classicFalloff"] = Settings::shaders().mClassicFalloff ? "1" : "0";
                 mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
 */
-/*
-                mStateUpdater->setPPL(Settings::shaders().mForcePerPixelLighting);
-                mStateUpdater->setClassicFalloff(Settings::shaders().mClassicFalloff);
-*/
                 mStateUpdater->reset();
 
                 if (MWMechanics::getPlayer().isInCell() && it->second == "classic falloff")
@@ -1654,7 +1690,6 @@ namespace MWRender
                     mResourceSystem->getSceneManager()->getShaderManager().setGlobalDefines(defines);
 */
 
- //                   mStateUpdater->setMaxLights(Settings::shaders().mMaxLights);
                     mStateUpdater->reset();
 
                     mViewer->startThreading();
@@ -1909,4 +1944,20 @@ namespace MWRender
     {
         mNavMesh->setMode(value);
     }
+
+    void RenderingManager::setNormalsFallbackDefines(bool enabled, int mode)
+    {
+        Log(Debug::Warning) << "RenderingManager::setNormalsFallbackDefines " << enabled << " " << mode;
+
+        if (mode != NormalsMode_Camera)
+            mStateUpdater->setEncodeNormals(enabled);
+
+        if (mode == NormalsMode_PackedTextureFetchOnly)
+            mStateUpdater->setBlendInShader(enabled);
+
+        if (mPlayerAnimation && mode != NormalsMode_PackedTextureFetchOnly)
+            mPlayerAnimation->setNormalsFallbackDefines(enabled, mode);
+
+    }
+
 }

@@ -360,13 +360,21 @@ namespace MWGui
         const int screen = Settings::video().mScreen;
         int numDisplayModes = SDL_GetNumDisplayModes(screen);
         std::vector<std::pair<int, int>> resolutions;
-/*        for (int i = 0; i < numDisplayModes; i++)
-        {
+  //      for (int i = 0; i < numDisplayModes; i++)
+  //      {
             SDL_DisplayMode mode;
-            SDL_GetDisplayMode(screen, i, &mode);
+            SDL_GetDisplayMode(screen, 0/*i*/, &mode);
+  //          resolutions.emplace_back(mode.w, mode.h);
+  //      }
+            resolutions.emplace_back(mode.w * 0.25, mode.h * 0.25);
+            resolutions.emplace_back(mode.w * 0.50, mode.h * 0.50);
+            resolutions.emplace_back(mode.w * 0.75, mode.h * 0.75);
             resolutions.emplace_back(mode.w, mode.h);
-        }
-*/
+            resolutions.emplace_back(mode.w * 1.25, mode.h * 1.25);
+            resolutions.emplace_back(mode.w * 1.50, mode.h * 1.50);
+            resolutions.emplace_back(mode.w * 1.75, mode.h * 1.75);
+            resolutions.emplace_back(mode.w * 2.0, mode.h * 2.0);
+
             resolutions.emplace_back(Settings::video().mResolutionX, Settings::video().mResolutionY);
 
 

@@ -21,6 +21,7 @@
 
 #include "pingpongcanvas.hpp"
 #include "transparentpass.hpp"
+#include "normalsfallback.hpp"
 
 #include <memory>
 
@@ -51,6 +52,7 @@ namespace MWRender
     class PingPongCanvas;
     class TransparentDepthBinCallback;
     class DistortionCallback;
+    class NormalsFallback;
 
     class PostProcessor : public osg::Group
     {
@@ -76,7 +78,7 @@ namespace MWRender
             FBO_FirstPerson,
             FBO_OpaqueDepth,
             FBO_Intercept,
-            FBO_Distortion,
+            FBO_Distortion
         };
 
         enum TextureUnits
@@ -98,7 +100,7 @@ namespace MWRender
         };
 
         PostProcessor(
-            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs);
+            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs, osg::ref_ptr<SceneUtil::LightManager> sceneRoot);
 
         ~PostProcessor();
 
@@ -136,6 +138,8 @@ namespace MWRender
         Status disableTechnique(std::shared_ptr<fx::Technique> technique, bool dirty = true);
 
         bool getSupportsNormalsRT() const { return mNormalsSupported; }
+
+        bool getNormals() const { return mNormals; }
 
         template <class T>
         void setUniform(std::shared_ptr<fx::Technique> technique, const std::string& name, const T& value)
@@ -197,9 +201,23 @@ namespace MWRender
         void triggerShaderReload();
 
         bool mEnableLiveReload = false;
-
+	
         void loadChain();
         void saveChain();
+
+        std::unique_ptr<NormalsFallback> mNormalsFallback;
+
+        osg::ref_ptr<osg::Geometry> getNormalsFallbackGeometry(int i) { return mNormalsFallback->getGeometry(i); }
+        osg::ref_ptr<CopyTextureCallback> getNormalsFallbackCallback(int i) { return mNormalsFallback->getCopyTextureCallback(i); }
+
+        size_t getFrameId() const { return mViewer->getFrameStamp()->getFrameNumber() % 2; }
+        std::array<osg::ref_ptr<PingPongCanvas>, 2> getCanvases() { return mCanvases; }
+
+        int getNormalsMode() const { return mNormalsMode; }
+
+        void setPlayerDefines(osg::ref_ptr<osg::Group> objectRoot, bool firstPerson);
+
+        void setPostPass(bool enable);
 
     private:
         void populateTechniqueFiles();
@@ -243,6 +261,7 @@ namespace MWRender
         bool mReload = true;
         bool mTriggerShaderReload = false;
         bool mUsePostProcessing = false;
+        bool mUseCameraFallback = false;
 
         bool mUBO = false;
         bool mHDR = false;
@@ -258,6 +277,7 @@ namespace MWRender
         int mWidth;
         int mHeight;
         int mSamples;
+        int mNormalsMode;
 
         osg::ref_ptr<fx::StateUpdater> mStateUpdater;
         osg::ref_ptr<PingPongCull> mPingPongCull;
