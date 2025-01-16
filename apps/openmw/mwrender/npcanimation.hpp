@@ -178,8 +178,6 @@ namespace MWRender
         /// parts.
         static const std::vector<const ESM::BodyPart*>& getBodyParts(
             const ESM::RefId& raceId, bool female, bool firstperson, bool werewolf);
-
-        void setBlending(bool enable);
     };
 
 }

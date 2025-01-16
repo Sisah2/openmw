@@ -21,7 +21,6 @@
 
 #include "pingpongcanvas.hpp"
 #include "transparentpass.hpp"
-#include "normalsfallback.hpp"
 
 #include <memory>
 
@@ -52,7 +51,6 @@ namespace MWRender
     class PingPongCanvas;
     class TransparentDepthBinCallback;
     class DistortionCallback;
-    class NormalsFallback;
 
     class PostProcessor : public osg::Group
     {
@@ -100,7 +98,7 @@ namespace MWRender
         };
 
         PostProcessor(
-            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs, osg::ref_ptr<SceneUtil::LightManager> sceneRoot);
+            RenderingManager& rendering, osgViewer::Viewer* viewer, osg::Group* rootNode, const VFS::Manager* vfs);
 
         ~PostProcessor();
 
@@ -138,12 +136,6 @@ namespace MWRender
         Status disableTechnique(std::shared_ptr<fx::Technique> technique, bool dirty = true);
 
         bool getSupportsNormalsRT() const { return mNormalsSupported; }
-
-        bool getNormalsEnabled() const { return mNormals; }
-
-        int getNormalsMode() const { return mNormalsMode; }
-
-        void setPostPass(bool enable);
 
         template <class T>
         void setUniform(std::shared_ptr<fx::Technique> technique, const std::string& name, const T& value)
@@ -251,7 +243,6 @@ namespace MWRender
         bool mReload = true;
         bool mTriggerShaderReload = false;
         bool mUsePostProcessing = false;
-        bool mUseCameraFallback = false;
 
         bool mUBO = false;
         bool mHDR = false;
@@ -267,14 +258,12 @@ namespace MWRender
         int mWidth;
         int mHeight;
         int mSamples;
-        int mNormalsMode;
 
         osg::ref_ptr<fx::StateUpdater> mStateUpdater;
         osg::ref_ptr<PingPongCull> mPingPongCull;
         std::array<osg::ref_ptr<PingPongCanvas>, 2> mCanvases;
         osg::ref_ptr<TransparentDepthBinCallback> mTransparentDepthPostPass;
         osg::ref_ptr<DistortionCallback> mDistortionCallback;
-        std::unique_ptr<NormalsFallback> mNormalsFallback;
 
         fx::DispatchArray mTemplateData;
     };

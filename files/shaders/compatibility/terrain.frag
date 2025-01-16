@@ -1,12 +1,13 @@
 #version 120
-#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, ENCODE_NORMALS, SHADER_BLENDING)
+#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
 
-#if @blendMap && defined(SHADER_BLENDING) && SHADER_BLENDING
-    #extension GL_EXT_shader_framebuffer_fetch : enable
-    #define BLEND
+#if @useUBO
+    #extension GL_ARB_uniform_buffer_object : require
 #endif
 
-#define TERRAIN
+#if @useGPUShader4
+    #extension GL_EXT_gpu_shader4: require
+#endif
 
 varying vec2 uv;
 
@@ -41,7 +42,6 @@ varying vec3 passNormal;
 uniform vec2 screenRes;
 uniform float far;
 
-#include "lib/util/packcolors.glsl"
 #include "vertexcolors.glsl"
 #include "shadows_fragment.glsl"
 #include "lib/light/lighting.glsl"
@@ -104,24 +104,6 @@ void main()
 
 #if !@disableNormals && @writeNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
-#endif
-
-#if DEBUG
-#if @writeNormals
-    gl_FragData[0] = vec4(vec3(smoothstep(300.0, 3000.0, length(passViewPos))), 1.0);
-#else
-    gl_FragData[0] = vec4(0.0);
-#endif
-#endif
-
-#if @NormalsMode == 2 && !@blendMap && defined(ENCODE_NORMALS) && ENCODE_NORMALS
-    gl_FragData[0] = encode(gl_FragData[0], vec4((viewNormal * 0.5 + 0.5), gl_FragData[0].a));
-    return;
-#endif
-
-#if @NormalsMode != 2 && defined(ENCODE_NORMALS) && ENCODE_NORMALS
-    vec4 normals = vec4((viewNormal * 0.5 + 0.5), gl_FragData[0].a);
-    gl_FragData[0] = encode(gl_FragData[0], normals);
 #endif
 
     applyShadowDebugOverlay();

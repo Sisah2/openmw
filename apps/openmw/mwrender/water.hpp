@@ -73,7 +73,6 @@ namespace MWRender
         float mTop;
         bool mInterior;
         bool mShowWorld;
-        bool mNoBlend;
 
         osg::Callback* mCullCallback;
         osg::ref_ptr<osg::Callback> mShaderWaterStateSetUpdater;
@@ -124,8 +123,6 @@ namespace MWRender
         void processChangedSettings(const Settings::CategorySettingVector& settings);
 
         void showWorld(bool show);
-
-        void setBlending(bool enable);
     };
 
 }

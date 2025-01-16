@@ -2,7 +2,6 @@
 
 varying vec2 diffuseMapUV;
 varying float alphaPassthrough;
-varying vec3 passNormal;
 
 #include "lib/core/vertex.h.glsl"
 #include "vertexcolors.glsl"
@@ -13,8 +12,6 @@ void main()
 
     vec4 viewPos = modelToView(gl_Vertex);
     gl_ClipVertex = viewPos;
-
-    passNormal = gl_Normal.xyz;
 
     if (colorMode == 2)
         alphaPassthrough = gl_Color.a;

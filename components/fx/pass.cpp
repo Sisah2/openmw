@@ -1,6 +1,5 @@
 #include "pass.hpp"
 
-#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -74,8 +73,6 @@ namespace fx
 #define OMW_RADIAL_FOG @radialFog
 #define OMW_EXPONENTIAL_FOG @exponentialFog
 #define OMW_HDR @hdr
-#define OMW_NORMALSDISTANCE @normalsDistance
-#define OMW_NORMALSMODE @normalMode
 #define OMW_NORMALS @normals
 #define OMW_USE_BINDINGS @useBindings
 #define OMW_MULTIVIEW @multiview
@@ -87,8 +84,6 @@ namespace fx
 #define omw_Texture3D @texture3D
 #define omw_Vertex @vertex
 #define omw_FragColor @fragColor
-
-#define POSTPROCESS 1
 
 @fragBinding
 
@@ -105,8 +100,6 @@ uniform int omw_PointLightsCount;
 uniform mat4 projectionMatrixMultiView[2];
 uniform mat4 invProjectionMatrixMultiView[2];
 #endif
-
-@packFunctions
 
 int omw_GetPointLightCount()
 {
@@ -192,29 +185,12 @@ mat4 omw_InvProjectionMatrix()
 
     vec3 omw_GetNormals(vec2 uv)
     {
-        vec4 normals;
 #if OMW_MULTIVIEW
-        normals = omw_Texture2D(omw_SamplerNormals, vec3(uv, gl_ViewID_OVR));
+        return omw_Texture2D(omw_SamplerNormals, vec3(uv, gl_ViewID_OVR)).rgb * 2.0 - 1.0;
 #else
-        normals = omw_Texture2D(omw_SamplerNormals, uv);
+        return omw_Texture2D(omw_SamplerNormals, uv).rgb * 2.0 - 1.0;
 #endif
-/*
-#if OMW_NORMALSMODE == 1
-//NormalsMode_Camera
-
-#endif
-*/
-
-#if OMW_NORMALSMODE == 4
-//NormalsMode_PackedTextureFetchOnly
-    vec4 scene, encodedNormals;
-    decode(normals, scene, encodedNormals);
-    normals = encodedNormals;
-#endif
-
-        return normals.rgb * 2.0 - 1.0;
     }
-
 
     vec3 omw_GetNormalsWorldSpace(vec2 uv)
     {
@@ -284,16 +260,6 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                      << "\t#extension " << extension << ": enable" << '\n'
                      << "#endif" << '\n';
 
-        // include packcolors.glsl to postprocess shaders for now
-        std::ifstream ifs("/storage/emulated/0/omw_nightly/resources/shaders/lib/util/packcolors.glsl");
-        std::string content;
-        std::string line;
-        if (ifs.is_open()) 
-            while (std::getline(ifs, line)) 
-                content += line + "\n";
-
-        ifs.close();
-
         const std::vector<std::pair<std::string, std::string>> defines
             = { { "@pointLightCount", std::to_string(SceneUtil::PPLightBuffer::sMaxPPLightsArraySize) },
                   { "@apiVersion", std::to_string(Version::getPostprocessingApiRevision()) },
@@ -314,10 +280,7 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                   { "@vertex", mLegacyGLSL ? "gl_Vertex" : "_omw_Vertex" },
                   { "@fragColor", mLegacyGLSL ? "gl_FragColor" : "_omw_FragColor" },
                   { "@useBindings", mLegacyGLSL ? "0" : "1" },
-                  { "@fragBinding", mLegacyGLSL ? "" : "out vec4 omw_FragColor;" },
-                  { "@packFunctions", "\n" + content + "\n" },
-                  { "@normalMode", std::to_string(technique.getNormalsMode()) },
-                  { "@normalsDistance", std::to_string(std::min(Settings::postProcessing().mCameraNormalsFallbackRenderingDistance, Settings::camera().mViewingDistance)) }, };
+                  { "@fragBinding", mLegacyGLSL ? "" : "out vec4 omw_FragColor;" } };
 
         for (const auto& [define, value] : defines)
             for (size_t pos = header.find(define); pos != std::string::npos; pos = header.find(define))
