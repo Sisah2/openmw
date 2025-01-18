@@ -409,9 +409,7 @@ namespace Shader
             }
             else
             {
-                //Log(Debug::Warning) << "Shader " << templateName << " warning: Undefined " << define;
                 source.replace(foundPos, endPos - foundPos, "0");
-              //  return false;
             }
         }
         return true;

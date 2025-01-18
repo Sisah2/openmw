@@ -253,6 +253,27 @@ namespace MWRender
             else if (mTextureNormals)
                 node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_Normals, mTextureNormals);
 
+            if (mTextureRippleMap)
+            {
+                if (!node.mRootStateSet->getUniform("worldScaleFactor"))
+                    node.mRootStateSet->addUniform(new osg::Uniform("worldScaleFactor", float(mRipplesWorldScaleFactor)));
+
+                if (!node.mRootStateSet->getUniform("RTTSize"))
+                    node.mRootStateSet->addUniform(new osg::Uniform("RTTSize", float(mRipplesRTTSize)));
+
+                if (!node.mRootStateSet->getUniform("rainIntensity"))
+                    node.mRootStateSet->addUniform(new osg::Uniform("rainIntensity", float(mRipplesRainIntensity)));
+                else
+                    node.mRootStateSet->getUniform("rainIntensity")->set(float(mRipplesRainIntensity));
+
+                if (!node.mRootStateSet->getUniform("nodePosition"))
+                    node.mRootStateSet->addUniform(new osg::Uniform("nodePosition", osg::Vec3f(mRipplesNodePosition)));
+                else
+                    node.mRootStateSet->getUniform("nodePosition")->set(osg::Vec3f(mRipplesNodePosition));
+
+                node.mRootStateSet->setTextureAttribute(PostProcessor::TextureUnits::Unit_RippleMap, mTextureRippleMap);
+            }
+
             if (mTextureDistortion)
                 node.mRootStateSet->setTextureAttribute(
                     PostProcessor::TextureUnits::Unit_Distortion, mTextureDistortion);

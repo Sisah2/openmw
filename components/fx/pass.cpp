@@ -284,15 +284,30 @@ float omw_EstimateFogCoverageFromUV(vec2 uv)
                      << "\t#extension " << extension << ": enable" << '\n'
                      << "#endif" << '\n';
 
-        // include packcolors.glsl to postprocess shaders for now
-        std::ifstream ifs("/storage/emulated/0/omw_nightly/resources/shaders/lib/util/packcolors.glsl");
-        std::string content;
-        std::string line;
-        if (ifs.is_open()) 
-            while (std::getline(ifs, line)) 
-                content += line + "\n";
+        // include packcolors.glsl or rain_ripples.glsl to postprocess shaders for now
+        std::ifstream ifs;
+        std::string content, line;
 
-        ifs.close();
+        if (technique.getName() == "internal_distortion" || technique.getNormals())
+            ifs = std::ifstream("/storage/emulated/0/omw_nightly/resources/shaders/lib/util/packcolors.glsl");
+        else if (technique.getName() == "water_nonormals")
+        {
+            content += "#define rainRippleDetail " + std::to_string(Settings::water().mRainRippleDetail) + "\n";
+            ifs = std::ifstream("/storage/emulated/0/omw_nightly/resources/shaders/lib/water/rain_ripples.glsl");
+        }
+        if (ifs.is_open())
+        {
+            while (std::getline(ifs, line))
+            {
+                size_t pos = line.find('@');
+                if (pos != std::string::npos){
+
+                    line.replace(pos, 1, "");
+}
+                content += line + "\n";
+            }
+            ifs.close();
+        }
 
         const std::vector<std::pair<std::string, std::string>> defines
             = { { "@pointLightCount", std::to_string(SceneUtil::PPLightBuffer::sMaxPPLightsArraySize) },

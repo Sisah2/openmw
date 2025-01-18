@@ -74,6 +74,7 @@ namespace MWRender
         bool mInterior;
         bool mShowWorld;
         bool mNoBlend;
+        float mRainIntensity;
 
         osg::Callback* mCullCallback;
         osg::ref_ptr<osg::Callback> mShaderWaterStateSetUpdater;
@@ -124,6 +125,8 @@ namespace MWRender
         void processChangedSettings(const Settings::CategorySettingVector& settings);
 
         void showWorld(bool show);
+
+        void setScreenSpace(bool enable);
 
         void setBlending(bool enable);
     };

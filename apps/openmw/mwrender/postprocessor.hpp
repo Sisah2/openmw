@@ -89,6 +89,7 @@ namespace MWRender
             Unit_EyeAdaptation,
             Unit_Normals,
             Unit_Distortion,
+            Unit_RippleMap;
             Unit_NextFree
         };
 

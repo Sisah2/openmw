@@ -124,6 +124,9 @@ set(BUILTIN_DATA_FILES
     shaders/bloomlinear.omwfx
     shaders/debug.omwfx
     shaders/internal_distortion.omwfx
+    shaders/water.omwfx
+    shaders/water_nonormals.omwfx
+    shaders/water_nm.png
 
     mygui/core.skin
     mygui/core.xml

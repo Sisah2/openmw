@@ -702,6 +702,8 @@ namespace MWRender
 
             node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerDistortion", Unit_Distortion));
 
+            node.mRootStateSet->addUniform(new osg::Uniform("omw_SamplerRippleMap", Unit_RippleMap));
+
             int texUnit = Unit_NextFree;
 
             // user-defined samplers
@@ -814,6 +816,9 @@ namespace MWRender
         mTechniques.insert(mTechniques.begin() + pos, technique);
         dirtyTechniques(Settings::ShaderManager::get().getMode() == Settings::ShaderManager::Mode::Debug);
 
+        if (techniqueName == "water_nonormals")
+            mRendering.setScreenSpaceWater(true);
+
         return Status_Toggled;
     }
 
@@ -829,6 +834,9 @@ namespace MWRender
         mTechniques.erase(it);
         if (dirty)
             dirtyTechniques();
+
+        if (techniqueName == "water_nonormals")
+            mRendering.setScreenSpaceWater(false);
 
         return Status_Toggled;
     }
@@ -887,6 +895,9 @@ namespace MWRender
         {
             if (techniqueName.empty())
                 continue;
+
+            if (techniqueName == "water_nonormals")
+                mRendering.setScreenSpaceWater(true);
 
             mTechniques.push_back(loadTechnique(techniqueName));
         }

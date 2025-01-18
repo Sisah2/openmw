@@ -1912,6 +1912,11 @@ namespace MWRender
         mNavMesh->setMode(value);
     }
 
+    void RenderingManager::setScreenSpaceWater(bool enable)
+    {
+        mWater->setScreenSpace(enable);
+    }
+
     void RenderingManager::setNormalsFallbackDefines(bool enabled, int mode)
     {
         if (mode != NormalsMode_Camera)

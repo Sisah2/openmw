@@ -56,6 +56,8 @@ namespace MWRender
 
         const osg::ref_ptr<osg::Texture>& getSceneTexture(size_t frameId) const { return mTextureScene; }
 
+        void setTextureRippleMap(osg::ref_ptr<osg::Texture> tex, float worldScaleFactor, float RTTSize, float rainIntensity, osg::Vec3f nodePosition) { mTextureRippleMap = tex; mRipplesWorldScaleFactor = worldScaleFactor; mRipplesRTTSize = RTTSize; mRipplesRainIntensity = rainIntensity; mRipplesNodePosition = nodePosition; }
+
         void setExternalTextureNormals(osg::ref_ptr<osg::Texture> tex) { mExternalTextureNormals = tex; }
 
         void setNormalsMode(int mode) { mNormalsMode = mode; }
@@ -77,6 +79,12 @@ namespace MWRender
         osg::ref_ptr<osg::Texture> mTextureNormals;
         osg::ref_ptr<osg::Texture> mTextureDistortion;
         osg::ref_ptr<osg::Texture> mExternalTextureNormals;
+
+        osg::ref_ptr<osg::Texture> mTextureRippleMap;
+        float mRipplesWorldScaleFactor;
+        float mRipplesRTTSize;
+        float mRipplesRainIntensity;
+        osg::Vec3f mRipplesNodePosition;
 
         mutable bool mDirty = false;
         mutable std::vector<fx::Types::RenderTarget> mDirtyAttachments;

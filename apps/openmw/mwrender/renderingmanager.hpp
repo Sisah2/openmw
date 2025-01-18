@@ -275,6 +275,8 @@ namespace MWRender
 
         void setNavMeshMode(Settings::NavMeshRenderMode value);
 
+        void setScreenSpaceWater(bool enable);
+
         void setNormalsFallbackDefines(bool enabled, int mode);
 
     private:

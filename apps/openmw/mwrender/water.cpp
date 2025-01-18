@@ -829,6 +829,8 @@ namespace MWRender
 
     void Water::setRainIntensity(float rainIntensity)
     {
+        mRainIntensity = rainIntensity;
+
         if (mRainSettingsUpdater)
             mRainSettingsUpdater->setRainIntensity(rainIntensity);
     }
@@ -848,6 +850,9 @@ namespace MWRender
 
         if (mRipples)
         {
+        MWBase::Environment::get().getWorld()->getPostProcessor()->getCanvas(0)->setTextureRippleMap(mRipples->getColorTexture(),         RipplesSurface::sWorldScaleFactor, RipplesSurface::sRTTSize, getRainIntensity(), getPosition());
+        MWBase::Environment::get().getWorld()->getPostProcessor()->getCanvas(1)->setTextureRippleMap(mRipples->getColorTexture(), RipplesSurface::sWorldScaleFactor, RipplesSurface::sRTTSize, getRainIntensity(), getPosition());
+
             mRipples->setPaused(paused);
         }
     }
@@ -919,6 +924,16 @@ namespace MWRender
         if (mRefraction)
             mRefraction->showWorld(show);
         mShowWorld = show;
+    }
+
+    void Water::setScreenSpace(bool enable)
+    {
+        mScreenSpace = enable;
+        mWaterNode->setNodeMask(enable ? 0u : ~0u);
+        if (mRefraction)
+            mRefraction->setNodeMask(enable ? 0u : Mask_RenderToTexture);
+        if (mReflection)
+            mReflection->setNodeMask(enable ? 0u : Mask_RenderToTexture);
     }
 
     void Water::setBlending(bool enable)
