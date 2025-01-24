@@ -74,7 +74,7 @@ namespace Resource
                     // patch to OSG.
                     && !osg::isGLExtensionSupported(exts.contextID, "GL_S3_s3tc"))
                 {
-                    return false;
+                    return true/*false*/;
                 }
                 break;
             }
