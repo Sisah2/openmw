@@ -12,12 +12,12 @@
 #endif
     @endforeach
 #endif // SHADOWS
-
+/*
 float lerp(float a, float b, float w)
 {
     return a + w*(b-a);
 }
-
+*/
 float PCFBase(sampler2D shadowTexture, vec3 shadowCoordsProj)
 {
     float Offset = 1.0/@shadowMapSize.0;
@@ -47,7 +47,7 @@ float PCFBase(sampler2D shadowTexture, vec3 shadowCoordsProj)
     float weightx = fract(@shadowMapSize.0 * (shadowCoordsProj.x + offset.x));
     float weighty = fract(@shadowMapSize.0 * (shadowCoordsProj.y + offset.y));
 
-    return lerp( lerp(res3, res4, weightx), lerp(res1, res2, weightx), weighty );
+    return mix( mix(res3, res4, weightx), mix(res1, res2, weightx), weighty );
 }
 
 float calcShadowing(sampler2D shadowTexture, vec4 LightSpacePos)
