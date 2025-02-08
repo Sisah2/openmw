@@ -119,10 +119,22 @@ namespace SDLUtil
             minor = 2;
         }
 
+        mWindow = oldWin;
+        mContext = oldCtx;
+
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
-#endif
+
+        SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+#else
 
         mContext = SDL_GL_CreateContext(mWindow);
         if (!mContext)
@@ -130,6 +142,7 @@ namespace SDLUtil
             OSG_FATAL << "Error: Unable to create OpenGL graphics context: " << SDL_GetError() << std::endl;
             return;
         }
+#endif
 
 #ifdef OPENMW_GL4ES_MANUAL_INIT
         openmw_gl4es_init(mWindow);
@@ -160,7 +173,9 @@ namespace SDLUtil
         SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &intermediateLocation);
         _traits->samples = intermediateLocation;
 
+#if !defined(ANDROID) 
         SDL_GL_MakeCurrent(oldWin, oldCtx);
+#endif
 
         mValid = true;
 
@@ -191,6 +206,9 @@ namespace SDLUtil
 
     bool GraphicsWindowSDL2::makeCurrentImplementation()
     {
+#if defined(ANDROID) 
+        return true;
+#endif
         if (!mRealized)
         {
             OSG_WARN << "Warning: GraphicsWindow not realized, cannot do makeCurrent." << std::endl;
@@ -202,6 +220,9 @@ namespace SDLUtil
 
     bool GraphicsWindowSDL2::releaseContextImplementation()
     {
+#if defined(ANDROID) 
+        return true;
+#endif
         if (!mRealized)
         {
             OSG_WARN << "Warning: GraphicsWindow not realized, cannot do releaseContext." << std::endl;
@@ -213,6 +234,9 @@ namespace SDLUtil
 
     void GraphicsWindowSDL2::closeImplementation()
     {
+#if defined(ANDROID) 
+        return true;
+#endif
         if (mContext)
             SDL_GL_DeleteContext(mContext);
         mContext = nullptr;
@@ -230,7 +254,11 @@ namespace SDLUtil
         if (!mRealized)
             return;
 
+#if defined(ANDROID) 
+        SwapSurfaceWindow();
+#else
         SDL_GL_SwapWindow(mWindow);
+#endif
     }
 
     void GraphicsWindowSDL2::setSyncToVBlank(bool on)
@@ -241,6 +269,9 @@ namespace SDLUtil
 
     void GraphicsWindowSDL2::setSyncToVBlank(VSyncMode mode)
     {
+#if defined(ANDROID) 
+        return;
+#endif
         SDL_Window* oldWin = SDL_GL_GetCurrentWindow();
         SDL_GLContext oldCtx = SDL_GL_GetCurrentContext();
 
