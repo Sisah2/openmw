@@ -38,6 +38,7 @@ namespace MWRender
     private:
         osg::ref_ptr<osg::StateSet> mStateSet;
         bool mPostPass;
+        osg::ref_ptr<osg::Depth> mDepth;
     };
 
 }

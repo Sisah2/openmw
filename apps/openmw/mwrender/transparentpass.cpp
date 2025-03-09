@@ -43,6 +43,9 @@ namespace MWRender
 
         for (unsigned int unit = 1; unit < 8; ++unit)
             mStateSet->setTextureMode(unit, GL_TEXTURE_2D, modeOff);
+
+        mDepth = new SceneUtil::AutoDepth;
+        mDepth->setWriteMask(false);
     }
 
     void TransparentDepthBinCallback::drawImplementation(
@@ -100,8 +103,14 @@ namespace MWRender
         msaaFbo ? msaaFbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER)
                 : fbo->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
 
+        if (mPostPass)
+            bin->getStateSet()->setAttributeAndModes(mDepth, osg::StateAttribute::ON);
+
         // draws scene into primary attachments
         bin->drawImplementation(renderInfo, previous);
+
+        if (mPostPass)
+            bin->getStateSet()->setAttributeAndModes(mDepth, osg::StateAttribute::OFF);
 
         if (!mPostPass)
             return;
