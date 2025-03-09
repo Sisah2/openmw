@@ -343,6 +343,7 @@ namespace MWLua
         mPlayerStorage.clearTemporaryAndRemoveCallbacks();
         mInputActions.clear();
         mInputTriggers.clear();
+        mQueuedAutoStartedScripts.clear();
         for (int i = 0; i < 5; ++i)
             lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
     }
@@ -653,8 +654,8 @@ namespace MWLua
         MWBase::Environment::get().getL10nManager()->dropCache();
         mUiResourceManager.clear();
         mLua.dropScriptCache();
-        mInputActions.clear();
-        mInputTriggers.clear();
+        mInputActions.clear(true);
+        mInputTriggers.clear(true);
         initConfiguration();
 
         ESM::LuaScripts globalData;

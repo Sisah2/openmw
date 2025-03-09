@@ -1,14 +1,6 @@
 #version 120
 #pragma import_defines(FORCE_OPAQUE, DISTORTION, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
 
-#if @useUBO
-    #extension GL_ARB_uniform_buffer_object : require
-#endif
-
-#if @useGPUShader4
-    #extension GL_EXT_gpu_shader4: require
-#endif
-
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
@@ -93,6 +85,7 @@ varying vec4 passTangent;
 #define ADDITIVE_BLENDING
 #endif
 
+#include "lib/core/fragment.h.glsl"
 #include "lib/light/lighting.glsl"
 #include "lib/material/parallax.glsl"
 #include "lib/material/alpha.glsl"
@@ -116,8 +109,6 @@ uniform float softFalloffDepth;
 uniform highp sampler2D orthoDepthMap;
 varying vec3 orthoDepthMapCoord;
 #endif
-
-uniform highp sampler2D opaqueDepthTex;
 
 void main()
 {
@@ -147,7 +138,7 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
 
 #if defined(DISTORTION) && DISTORTION
     gl_FragData[0].a *= getDiffuseColor().a;
-    gl_FragData[0] = applyDistortion(gl_FragData[0], distortionStrength, gl_FragCoord.z, texture2D(opaqueDepthTex, screenCoords / @distorionRTRatio).x);
+    gl_FragData[0] = applyDistortion(gl_FragData[0], distortionStrength, gl_FragCoord.z, sampleOpaqueDepthTex(screenCoords / @distorionRTRatio).x);
     return;
 #endif
 
@@ -262,7 +253,7 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
         viewNormal,
         near,
         far,
-        texture2D(opaqueDepthTex, screenCoords).x,
+        sampleOpaqueDepthTex(screenCoords).x,
         particleSize,
         particleFade,
         softFalloffDepth

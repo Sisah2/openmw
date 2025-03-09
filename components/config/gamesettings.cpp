@@ -274,9 +274,8 @@ bool Config::GameSettings::isOrderedLine(const QString& line)
 // - Always ignore a line beginning with '#' or empty lines; added above a config
 //   entry.
 //
-// - If a line in file exists with matching key and first part of value (before ',',
-//   '\n', etc) also matches, then replace the line with that of mUserSettings.
-// - else remove line
+// - If a line in file exists with matching key and value, then replace the line with that of mUserSettings.
+// - else if only the key matches, remove comment
 //
 // - If there is no corresponding line in file, add at the end
 //
@@ -302,6 +301,25 @@ bool Config::GameSettings::writeFileWithComments(QFile& file)
     if (fileCopy.empty())
         return writeFile(stream);
 
+    QMultiMap<QString, SettingValue> existingSettings;
+    QString context = QFileInfo(file).absoluteDir().path();
+    if (readFile(stream, existingSettings, context))
+    {
+        // don't use QMultiMap operator== as mUserSettings may have blank context fields
+        // don't use one std::equal with custom predicate as (until Qt 6.4) there was no key-value iterator
+        if (std::equal(existingSettings.keyBegin(), existingSettings.keyEnd(), mUserSettings.keyBegin(),
+                mUserSettings.keyEnd())
+            && std::equal(existingSettings.cbegin(), existingSettings.cend(), mUserSettings.cbegin(),
+                [](const SettingValue& l, const SettingValue& r) {
+                    return l.originalRepresentation == r.originalRepresentation;
+                }))
+        {
+            // The existing file already contains what we need, don't risk scrambling comments and formatting
+            return true;
+        }
+    }
+    stream.seek(0);
+
     // start
     //   |
     //   |    +----------------------------------------------------------+
@@ -325,7 +343,7 @@ bool Config::GameSettings::writeFileWithComments(QFile& file)
     //        +----------------------------------------------------------+
     //
     //
-    QRegularExpression settingRegex("^([^=]+)\\s*=\\s*([^,]+)(.*)$");
+    QRegularExpression settingRegex("^([^=]+)\\s*=\\s*(.+?)\\s*$");
     std::vector<QString> comments;
     auto commentStart = fileCopy.end();
     std::map<QString, std::vector<QString>> commentsMap;
@@ -395,8 +413,7 @@ bool Config::GameSettings::writeFileWithComments(QFile& file)
             // look for a key in the line
             if (!match.hasMatch() || settingRegex.captureCount() < 2)
             {
-                // no key or first part of value found in line, replace with a null string which
-                // will be removed later
+                // no key or no value found in line, replace with a null string which will be removed later
                 *iter = QString();
                 comments.clear();
                 commentStart = fileCopy.end();

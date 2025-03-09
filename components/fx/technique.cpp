@@ -85,7 +85,7 @@ namespace fx
         mDescription = {};
         mVersion = {};
         mGLSLExtensions.clear();
-        mGLSLVersion = mUBO ? 330 : 120;
+        mGLSLVersion = (mUBO || Stereo::getMultiview()) ? 330 : 120;
         mGLSLProfile.clear();
         mDynamic = false;
     }
@@ -108,6 +108,14 @@ namespace fx
     bool Technique::compile()
     {
         clear();
+
+        if (std::ranges::count(mFilePath.value(), '/') > 1)
+        {
+            Log(Debug::Error) << "Could not load technique, invalid location '" << mFilePath << "'";
+
+            mStatus = Status::File_Not_exists;
+            return false;
+        }
 
         if (!mVFS.exists(mFilePath))
         {

@@ -35,7 +35,6 @@
     Bug #5977: Fatigueless NPCs' corpse underwater changes animation on game load
     Bug #6025: Subrecords cannot overlap records
     Bug #6027: Collisionshape becomes spiderweb-like when the mesh is too complex
-    Bug #6097: Level Progress Tooltip Sometimes Not Updated
     Bug #6146: Lua command `actor:setEquipment` doesn't trigger mwscripts when equipping or unequipping a scripted item
     Bug #6156: 1ft Charm or Sound magic effect vfx doesn't work properly
     Bug #6190: Unintuitive sun specularity time of day dependence
@@ -226,6 +225,10 @@
     Bug #8231: AGOP doesn't like NiCollisionSwitch
     Bug #8237: Non-bipedal creatures should *not* use spellcast equip/unequip animations
     Bug #8252: Plugin dependencies are not required to be loaded
+    Bug #8295: Post-processing chain is case-sensitive
+    Bug #8299: Crash while smoothing landscape
+    Bug #8364: Crash when clicking scrollbar without handle (divide by zero)
+    Bug #8378: Korean bitmap fonts are unusable
     Feature #1415: Infinite fall failsafe
     Feature #2566: Handle NAM9 records for manual cell references
     Feature #3501: OpenMW-CS: Instance Editing - Shortcuts for axial locking
@@ -310,6 +313,8 @@
     Feature #8109: Expose commitCrime to Lua API
     Feature #8130: Launcher: Add the ability to open a selected data directory in the file browser
     Feature #8145: Starter spell flag is not exposed
+    Feature #8286: Launcher: Preserve semantically identical openmw.cfg
+    Feature #8287: Launcher: Special handling for comma in openmw.cfg entries is unintuitive and should be removed
     Task #5859: User openmw-cs.cfg has comment talking about settings.cfg
     Task #5896: Do not use deprecated MyGUI properties
     Task #6085: Replace boost::filesystem with std::filesystem
@@ -388,6 +393,7 @@
     Bug #6066: Addtopic "return" does not work from within script. No errors thrown
     Bug #6067: ESP loader fails for certain subrecord orders
     Bug #6087: Bound items added directly to the inventory disappear if their corresponding spell effect ends
+    Bug #6097: Level Progress Tooltip Sometimes Not Updated
     Bug #6101: Disarming trapped unlocked owned objects isn't considered a crime
     Bug #6107: Fatigue is incorrectly recalculated when fortify effect is applied or removed
     Bug #6109: Crash when playing a custom made menu_background file

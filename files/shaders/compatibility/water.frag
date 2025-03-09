@@ -1,14 +1,6 @@
 #version 120
 #pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS)
 
-#if @useUBO
-    #extension GL_ARB_uniform_buffer_object : require
-#endif
-
-#if @useGPUShader4
-    #extension GL_EXT_gpu_shader4: require
-#endif
-
 #include "lib/core/fragment.h.glsl"
 
 // Inspired by Blender GLSL Water by martinsh ( https://devlog-martinsh.blogspot.de/2012/07/waterundewater-shader-wip.html )
