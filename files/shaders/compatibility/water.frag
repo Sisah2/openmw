@@ -1,5 +1,5 @@
 #version 120
-#pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS)
+#pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS, WRITE_NORMALS)
 
 #include "lib/core/fragment.h.glsl"
 
@@ -232,7 +232,7 @@ void main(void)
 
     gl_FragData[0] = applyFogAtDist(gl_FragData[0], radialDepth, linearDepth, far);
 
-#if !@disableNormals
+#if defined(WRITE_NORMALS) && WRITE_NORMALS
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 #endif
 

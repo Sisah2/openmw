@@ -217,6 +217,7 @@ namespace MWRender
             : mFogStart(0.f)
             , mFogEnd(0.f)
             , mWireframe(false)
+            , mWriteNormals(false)
         {
         }
 
@@ -239,6 +240,8 @@ namespace MWRender
             stateset->setDefine("FORCE_PPL", (Settings::shaders().mForcePerPixelLighting == true) ? "1" : "0", osg::StateAttribute::ON);
             stateset->setDefine("CLASSIC_FALLOFF", (Settings::shaders().mClassicFalloff == true) ? "1" : "0", osg::StateAttribute::ON);
             stateset->setDefine("MAX_LIGHTS", std::to_string(Settings::shaders().mMaxLights), osg::StateAttribute::ON);
+
+            stateset->setDefine("WRITE_NORMALS", (mWriteNormals) ? "1" : "0", osg::StateAttribute::ON);
         }
 
         void apply(osg::StateSet* stateset, osg::NodeVisitor*) override
@@ -250,6 +253,12 @@ namespace MWRender
             fog->setColor(mFogColor);
             fog->setStart(mFogStart);
             fog->setEnd(mFogEnd);
+
+            stateset->setDefine("FORCE_PPL", (Settings::shaders().mForcePerPixelLighting == true) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("CLASSIC_FALLOFF", (Settings::shaders().mClassicFalloff == true) ? "1" : "0", osg::StateAttribute::ON);
+            stateset->setDefine("MAX_LIGHTS", std::to_string(Settings::shaders().mMaxLights), osg::StateAttribute::ON);
+
+            stateset->setDefine("WRITE_NORMALS", (mWriteNormals) ? "1" : "0", osg::StateAttribute::ON);
         }
 
         void setAmbientColor(const osg::Vec4f& col) { mAmbientColor = col; }
@@ -271,12 +280,15 @@ namespace MWRender
 
         bool getWireframe() const { return mWireframe; }
 
+        void setWriteNormals(float enabled) { mWriteNormals = enabled; }
+
     private:
         osg::Vec4f mAmbientColor;
         osg::Vec4f mFogColor;
         float mFogStart;
         float mFogEnd;
         bool mWireframe;
+        bool mWriteNormals;
     };
 
     class PreloadCommonAssetsWorkItem : public SceneUtil::WorkItem
@@ -1906,5 +1918,10 @@ namespace MWRender
     void RenderingManager::setNavMeshMode(Settings::NavMeshRenderMode value)
     {
         mNavMesh->setMode(value);
+    }
+
+    void RenderingManager::setWriteNormals(bool enabled)
+    {
+        mStateUpdater->setWriteNormals(enabled);
     }
 }

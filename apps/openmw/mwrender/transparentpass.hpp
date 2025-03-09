@@ -9,6 +9,8 @@
 
 #include <osgUtil/RenderBin>
 
+#include <components/sceneutil/depth.hpp>
+
 namespace Shader
 {
     class ShaderManager;

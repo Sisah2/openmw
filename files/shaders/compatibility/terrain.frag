@@ -1,5 +1,5 @@
 #version 120
-#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
+#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, WRITE_NORMALS)
 
 varying vec2 uv;
 
@@ -94,7 +94,7 @@ void main()
 
     gl_FragData[0] = applyFogAtDist(gl_FragData[0], euclideanDepth, linearDepth, far);
 
-#if !@disableNormals && @writeNormals
+#if defined(WRITE_NORMALS) && WRITE_NORMALS && @writeNormals
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
 

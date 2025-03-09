@@ -1,5 +1,5 @@
 #version 120
-#pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS)
+#pragma import_defines(CLASSIC_FALLOFF, MAX_LIGHTS, WRITE_NORMALS)
 
 #define GROUNDCOVER
 
@@ -74,7 +74,7 @@ void main()
     gl_FragData[0].xyz *= lighting;
     gl_FragData[0] = applyFogAtDist(gl_FragData[0], euclideanDepth, linearDepth, far);
 
-#if !@disableNormals
+#if defined(WRITE_NORMALS) && WRITE_NORMALS
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
 

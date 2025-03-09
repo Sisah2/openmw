@@ -554,23 +554,23 @@ namespace MWRender
                     mRefraction->addCullCallback(mCullCallback);
                 mParent->addChild(mRefraction);
             }
-
+/*
             osg::GLExtensions& exts = SceneUtil::getGLExtensions();
             bool supportHalfFloatTexture = osg::isGLExtensionSupported(exts.contextID, "GL_OES_texture_half_float");
             bool supportHalfFloatAttachment = osg::isGLExtensionSupported(exts.contextID, "GL_EXT_color_buffer_half_float");
-
-            if (supportHalfFloatTexture && supportHalfFloatAttachment)
+*/
+//            if (supportHalfFloatTexture && supportHalfFloatAttachment)
             {
                 mRipples = new Ripples(mResourceSystem);
                 mSimulation->setRipples(mRipples);
                 mParent->addChild(mRipples);
             }
-            else
-                Log(Debug::Info) << "Initialized simple water ripples, missing required features";
+//            else
+//                Log(Debug::Info) << "Initialized simple water ripples, missing required features";
 
             showWorld(mShowWorld);
 
-            createShaderWaterStateSet(mWaterNode, (supportHalfFloatTexture && supportHalfFloatAttachment) ? true : false);
+            createShaderWaterStateSet(mWaterNode, true /*(supportHalfFloatTexture && supportHalfFloatAttachment) ? true : false*/);
         }
         else
             createSimpleWaterStateSet(mWaterGeom, Fallback::Map::getFloat("Water_World_Alpha"));

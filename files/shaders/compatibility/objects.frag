@@ -1,5 +1,5 @@
 #version 120
-#pragma import_defines(FORCE_OPAQUE, DISTORTION, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
+#pragma import_defines(FORCE_OPAQUE, DISTORTION, FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS, WRITE_NORMALS)
 
 #if @diffuseMap
 uniform sampler2D diffuseMap;
@@ -265,7 +265,7 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
     gl_FragData[0].a = 1.0;
 #endif
 
-#if !defined(FORCE_OPAQUE) && !@disableNormals
+#if !defined(FORCE_OPAQUE) && defined(WRITE_NORMALS) && WRITE_NORMALS
     gl_FragData[1].xyz = viewNormal * 0.5 + 0.5;
 #endif
 
