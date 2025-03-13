@@ -6,6 +6,14 @@
 #include "gl4es_init.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+void SwapSurfaceWindow();
+#ifdef __cplusplus
+}
+#endif
+
 namespace SDLUtil
 {
 
@@ -235,7 +243,7 @@ namespace SDLUtil
     void GraphicsWindowSDL2::closeImplementation()
     {
 #if defined(ANDROID) 
-        return true;
+        return;
 #endif
         if (mContext)
             SDL_GL_DeleteContext(mContext);
