@@ -39,6 +39,7 @@
 #include "../mwbase/soundmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
+#include "../mwlua/luamanagerimp.hpp"
 
 #include "confirmationdialog.hpp"
 
@@ -1090,6 +1091,13 @@ namespace MWGui
         resetScrollbars();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
+    }
+
+    void SettingsWindow::onClose()
+    {
+        // Save user settings
+        Settings::Manager::saveUser(g_cfgMgr->getUserConfigPath() / "settings.cfg");
+        MWBase::Environment::get().getLuaManager()->savePermanentStorage(g_cfgMgr->getUserConfigPath());
     }
 
     void SettingsWindow::onWindowResize(MyGUI::Window* _sender)
