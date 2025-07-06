@@ -12,6 +12,7 @@
 #include <osg/Texture3D>
 
 #include <components/files/conversion.hpp>
+#include <components/misc/pathhelpers.hpp>
 #include <components/misc/strings/algorithm.hpp>
 #include <components/misc/strings/lower.hpp>
 #include <components/resource/scenemanager.hpp>
@@ -246,14 +247,12 @@ namespace MWRender
 
     void PostProcessor::populateTechniqueFiles()
     {
-        for (const auto& name : mVFS->getRecursiveDirectoryIterator(fx::Technique::sSubdir))
+        for (const auto& path : mVFS->getRecursiveDirectoryIterator(fx::Technique::sSubdir))
         {
-            std::filesystem::path path = Files::pathFromUnicodeString(name);
-            std::string fileExt = Misc::StringUtils::lowerCase(Files::pathToUnicodeString(path.extension()));
-            if (!path.parent_path().has_parent_path() && fileExt == fx::Technique::sExt)
+            std::string_view fileExt = Misc::getFileExtension(path);
+            if (path.parent().parent().empty() && fileExt == fx::Technique::sExt)
             {
-                const auto absolutePath = mVFS->getAbsoluteFileName(path);
-                mTechniqueFileMap[Files::pathToUnicodeString(absolutePath.stem())] = absolutePath;
+                mTechniqueFiles.emplace(path);
             }
         }
     }
@@ -344,10 +343,10 @@ namespace MWRender
 
         for (auto& technique : mTechniques)
         {
-            if (!technique || technique->getStatus() == fx::Technique::Status::File_Not_exists)
+            if (technique->getStatus() == fx::Technique::Status::File_Not_exists)
                 continue;
 
-            const auto lastWriteTime = std::filesystem::last_write_time(mTechniqueFileMap[technique->getName()]);
+            const auto lastWriteTime = mVFS->getLastModified(technique->getFileName());
             const bool isDirty = technique->setLastModificationTime(lastWriteTime);
 
             if (!isDirty)
@@ -359,7 +358,7 @@ namespace MWRender
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
             if (technique->compile())
-                Log(Debug::Info) << "Reloaded technique : " << mTechniqueFileMap[technique->getName()];
+                Log(Debug::Info) << "Reloaded technique : " << technique->getFileName();
 
             mReload = technique->isValid();
         }
@@ -570,7 +569,7 @@ namespace MWRender
 
         for (const auto& technique : mTechniques)
         {
-            if (!technique || !technique->isValid())
+            if (!technique->isValid())
                 continue;
 
             if (technique->getGLSLVersion() > mGLSLVersion)
@@ -655,6 +654,14 @@ namespace MWRender
                     const auto [w, h] = renderTarget.mSize.get(renderWidth(), renderHeight());
                     subPass.mStateSet->setAttributeAndModes(new osg::Viewport(0, 0, w, h));
 
+                    if (subPass.mMipMap)
+                    {
+                        subPass.mRenderTexture->setNumMipmapLevels(osg::Image::computeNumberOfMipmapLevels(w, h));
+                    }
+                    else
+                    {
+                        subPass.mRenderTexture->setNumMipmapLevels(0);
+                    }
                     subPass.mRenderTexture->setTextureSize(w, h);
                     subPass.mRenderTexture->dirtyTextureObject();
 
@@ -712,7 +719,7 @@ namespace MWRender
     PostProcessor::Status PostProcessor::enableTechnique(
         std::shared_ptr<fx::Technique> technique, std::optional<int> location)
     {
-        if (!technique || technique->getLocked() || (location.has_value() && location.value() < 0))
+        if (technique->getLocked() || (location.has_value() && location.value() < 0))
             return Status_Error;
 
         disableTechnique(technique, false);
@@ -727,7 +734,7 @@ namespace MWRender
 
     PostProcessor::Status PostProcessor::disableTechnique(std::shared_ptr<fx::Technique> technique, bool dirty)
     {
-        if (!technique || technique->getLocked())
+        if (technique->getLocked())
             return Status_Error;
 
         auto it = std::find(mTechniques.begin(), mTechniques.end(), technique);
@@ -743,37 +750,41 @@ namespace MWRender
 
     bool PostProcessor::isTechniqueEnabled(const std::shared_ptr<fx::Technique>& technique) const
     {
-        if (!technique)
-            return false;
-
         if (auto it = std::find(mTechniques.begin(), mTechniques.end(), technique); it == mTechniques.end())
             return false;
 
         return technique->isValid();
     }
 
-    std::shared_ptr<fx::Technique> PostProcessor::loadTechnique(const std::string& name, bool loadNextFrame)
+    std::shared_ptr<fx::Technique> PostProcessor::loadTechnique(std::string_view name, bool loadNextFrame)
+    {
+        VFS::Path::Normalized path = fx::Technique::makeFileName(name);
+        return loadTechnique(VFS::Path::NormalizedView(path), loadNextFrame);
+    }
+
+    std::shared_ptr<fx::Technique> PostProcessor::loadTechnique(VFS::Path::NormalizedView path, bool loadNextFrame)
     {
         for (const auto& technique : mTemplates)
-            if (Misc::StringUtils::ciEqual(technique->getName(), name))
+            if (technique->getFileName() == path)
                 return technique;
 
         for (const auto& technique : mQueuedTemplates)
-            if (Misc::StringUtils::ciEqual(technique->getName(), name))
+            if (technique->getFileName() == path)
                 return technique;
 
-        std::string realName = name;
-        auto fileIter = mTechniqueFileMap.find(name);
-        if (fileIter != mTechniqueFileMap.end())
-            realName = fileIter->first;
+        std::string name;
+        if (mTechniqueFiles.contains(path))
+            name = mVFS->getStem(path);
+        else
+            name = path.stem();
 
         auto technique = std::make_shared<fx::Technique>(*mVFS, *mRendering.getResourceSystem()->getImageManager(),
-            std::move(realName), renderWidth(), renderHeight(), mUBO, mNormalsSupported);
+            path, std::move(name), renderWidth(), renderHeight(), mUBO, mNormalsSupported);
 
         technique->compile();
 
         if (technique->getStatus() != fx::Technique::Status::File_Not_exists)
-            technique->setLastModificationTime(std::filesystem::last_write_time(fileIter->second));
+            technique->setLastModificationTime(mVFS->getLastModified(path));
 
         if (loadNextFrame)
         {
@@ -784,6 +795,11 @@ namespace MWRender
         mTemplates.push_back(std::move(technique));
 
         return mTemplates.back();
+    }
+
+    PostProcessor::TechniqueList PostProcessor::getChain()
+    {
+        return mTechniques;
     }
 
     void PostProcessor::loadChain()
@@ -812,7 +828,7 @@ namespace MWRender
 
         for (const auto& technique : mTechniques)
         {
-            if (!technique || technique->getDynamic() || technique->getInternal())
+            if (technique->getDynamic() || technique->getInternal())
                 continue;
             chain.push_back(technique->getName());
         }
@@ -823,16 +839,21 @@ namespace MWRender
     void PostProcessor::toggleMode()
     {
         for (auto& technique : mTemplates)
+        {
+            if (technique->getStatus() == fx::Technique::Status::File_Not_exists)
+                continue;
             technique->compile();
+        }
 
         dirtyTechniques(true);
     }
 
     void PostProcessor::disableDynamicShaders()
     {
-        for (auto& technique : mTechniques)
-            if (technique && technique->getDynamic())
-                disableTechnique(technique);
+        auto erased = std::erase_if(mTechniques, [](const auto& technique) { return technique->getDynamic(); });
+
+        if (erased)
+            dirtyTechniques();
     }
 
     int PostProcessor::renderWidth() const

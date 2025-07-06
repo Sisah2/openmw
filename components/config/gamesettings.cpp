@@ -38,19 +38,19 @@ void Config::GameSettings::validatePaths()
 
     mDataDirs.clear();
 
-    QProgressDialog progressBar("Validating paths", {}, 0, paths.count() + 1);
+    QProgressDialog progressBar("Validating paths", {}, 0, static_cast<int>(paths.size() + 1));
     progressBar.setWindowModality(Qt::WindowModal);
     progressBar.setValue(0);
 
     for (const auto& dataDir : paths)
     {
-        progressBar.setValue(progressBar.value() + 1);
         if (QDir(dataDir.value).exists())
         {
             SettingValue copy = dataDir;
             copy.value = QDir(dataDir.value).canonicalPath();
             mDataDirs.append(copy);
         }
+        progressBar.setValue(progressBar.value() + 1);
     }
 
     // Do the same for data-local
@@ -189,19 +189,16 @@ bool Config::GameSettings::readFile(
             if (ignoreContent && (key == QLatin1String("content") || key == QLatin1String("data")))
                 continue;
 
-            QList<SettingValue> values = cache.values(key);
-            values.append(settings.values(key));
-
-            bool exists = false;
-            for (const auto& existingValue : values)
-            {
-                if (existingValue.value == value.value)
+            auto containsValue = [&](const QMultiMap<QString, SettingValue>& map) {
+                for (auto [itr, end] = map.equal_range(key); itr != end; ++itr)
                 {
-                    exists = true;
-                    break;
+                    if (itr->value == value.value)
+                        return true;
                 }
-            }
-            if (!exists)
+                return false;
+            };
+
+            if (!containsValue(cache) && !containsValue(settings))
             {
                 cache.insert(key, value);
             }

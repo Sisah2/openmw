@@ -22,7 +22,7 @@
 #include <components/sdlutil/sdlcursormanager.hpp>
 #include <components/sdlutil/sdlvideowrapper.hpp>
 #include <components/settings/settings.hpp>
-#include <components/to_utf8/to_utf8.hpp>
+#include <components/toutf8/toutf8.hpp>
 
 #include "charactercreation.hpp"
 #include "draganddrop.hpp"
@@ -390,6 +390,7 @@ namespace MWGui
         // Used in Lua bindings
         const std::vector<GuiMode>& getGuiModeStack() const override { return mGuiModes; }
         void setDisabledByLua(std::string_view windowId, bool disabled) override;
+        bool isWindowVisible(std::string_view windowId) const override;
         std::vector<std::string_view> getAllWindowIds() const override;
         std::vector<std::string_view> getAllowedWindowIds(GuiMode mode) const override;
 

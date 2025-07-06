@@ -404,8 +404,8 @@ OMW::Engine::~Engine()
     mMechanicsManager = nullptr;
     mDialogueManager = nullptr;
     mJournal = nullptr;
-    mScriptManager = nullptr;
     mWindowManager = nullptr;
+    mScriptManager = nullptr;
     mWorld = nullptr;
     mStereoManager = nullptr;
     mSoundManager = nullptr;
@@ -736,7 +736,7 @@ void OMW::Engine::prepareEngine()
 
     mVFS = std::make_unique<VFS::Manager>();
 
-    VFS::registerArchives(mVFS.get(), mFileCollections, mArchives, true);
+    VFS::registerArchives(mVFS.get(), mFileCollections, mArchives, true, &mEncoder.get()->getStatelessEncoder());
 
     mResourceSystem = std::make_unique<Resource::ResourceSystem>(
         mVFS.get(), Settings::cells().mCacheExpiryDelay, &mEncoder.get()->getStatelessEncoder());

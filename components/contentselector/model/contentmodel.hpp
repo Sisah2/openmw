@@ -58,10 +58,11 @@ namespace ContentSelectorModel
         QStringList gameFiles() const;
         void setCurrentGameFile(const EsmFile* file);
 
+        bool isChecked(const EsmFile* file) const;
         bool isEnabled(const QModelIndex& index) const;
         bool setCheckState(const EsmFile* file, bool isChecked);
         bool isNew(const QString& filepath) const;
-        void setNew(const QString& filepath, bool isChecked);
+        void setNew(const EsmFile* file, bool isChecked);
         void setNonUserContent(const QStringList& fileList);
         void setContentList(const QStringList& fileList);
         ContentFileList checkedItems() const;

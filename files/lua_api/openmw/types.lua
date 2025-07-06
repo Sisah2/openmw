@@ -1,5 +1,6 @@
 ---
--- `openmw.types` defines functions for specific types of game objects.
+-- Defines functions for specific types of game objects.
+-- @context global|menu|local|player
 -- @module types
 -- @usage local types = require('openmw.types')
 
@@ -808,8 +809,8 @@
 -- A read-only list of all @{#CreatureRecord}s in the world database, may be indexed by recordId.
 -- Implements [iterables#List](iterables.html#List) of #CreatureRecord.
 -- @field [parent=#Creature] #list<#CreatureRecord> records
--- @usage local record = types.NPC.classes['example_recordid']
--- @usage local record = types.NPC.classes[1]
+-- @usage local creature = types.Creature.records['creature id']  -- get by id
+-- @usage local creature = types.Creature.records[1]  -- get by index
 
 ---
 -- Whether the object is a creature.
@@ -876,8 +877,8 @@
 -- A read-only list of all @{#NpcRecord}s in the world database, may be indexed by recordId.
 -- Implements [iterables#List](iterables.html#List) of #NpcRecord.
 -- @field [parent=#NPC] #map<#NpcRecord> records
--- @usage local record = types.NPC.classes['example_recordid']
--- @usage local record = types.NPC.classes[1]
+-- @usage local npc = types.NPC.records['npc id']  -- get by id
+-- @usage local npc = types.NPC.records[1]  -- get by index
 
 ---
 -- Whether the object is an NPC or a Player.
@@ -1048,8 +1049,8 @@
 -- A read-only list of all @{#ClassRecord}s in the world database, may be indexed by recordId.
 -- Implements [iterables#List](iterables.html#List) of #ClassRecord.
 -- @field [parent=#Classes] #list<#ClassRecord> records
--- @usage local record = types.NPC.classes['example_recordid']
--- @usage local record = types.NPC.classes[1]
+-- @usage local class = types.NPC.classes.records['class id']  -- get by id
+-- @usage local class = types.NPC.classes.records[1]  -- get by index
 
 ---
 -- Returns a read-only @{#ClassRecord}
@@ -1088,8 +1089,8 @@
 -- A read-only list of all @{#RaceRecord}s in the world database.
 -- Implements [iterables#List](iterables.html#List) of #RaceRecord.
 -- @field [parent=#Races] #list<#RaceRecord> records
--- @usage local record = types.NPC.classes['example_recordid']
--- @usage local record = types.NPC.classes[1]
+-- @usage local race = types.NPC.races.records['race id']  -- get by id
+-- @usage local race = types.NPC.races.records[1]  -- get by index
 
 ---
 -- Returns a read-only @{#RaceRecord}
@@ -1275,8 +1276,8 @@
 -- A read-only list of all @{#BirthSignRecord}s in the world database.
 -- Implements [iterables#List](iterables.html#List) of #BirthSignRecord.
 -- @field [parent=#BirthSigns] #list<#BirthSignRecord> records
--- @usage local record = types.NPC.classes['example_recordid']
--- @usage local record = types.NPC.classes[1]
+-- @usage local birthSign = types.Player.birthSigns.records['birthsign id']  -- get by id
+-- @usage local birthSign = types.Player.birthSigns.records[1]  -- get by index
 
 ---
 -- Returns a read-only @{#BirthSignRecord}
@@ -1673,7 +1674,7 @@
 -- @field #number value
 -- @field #number duration
 -- @field #number radius
--- @field #number color
+-- @field openmw.util#Color color
 -- @field #boolean isCarriable True if the light can be carried by actors and appears up in their inventory.
 -- @field #boolean isDynamic If true, the light will apply to actors and other moving objects
 -- @field #boolean isFire True if the light acts like a fire.
