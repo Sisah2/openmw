@@ -519,8 +519,31 @@ namespace MWMechanics
             case ESM::MagicEffect::ExtraSpell:
                 if (target.getClass().hasInventoryStore(target))
                 {
-                    auto& store = target.getClass().getInventoryStore(target);
-                    store.unequipAll();
+                    if (target != getPlayer())
+                    {
+                        auto& store = target.getClass().getInventoryStore(target);
+                        for (int slot = 0; slot < MWWorld::InventoryStore::Slots; ++slot)
+                        {
+                            // Unequip everything except weapons, torches, and pants
+                            switch (slot)
+                            {
+                                case MWWorld::InventoryStore::Slot_Ammunition:
+                                case MWWorld::InventoryStore::Slot_CarriedRight:
+                                case MWWorld::InventoryStore::Slot_Pants:
+                                    continue;
+                                case MWWorld::InventoryStore::Slot_CarriedLeft:
+                                {
+                                    auto carried = store.getSlot(slot);
+                                    if (carried == store.end()
+                                        || carried.getType() != MWWorld::ContainerStore::Type_Armor)
+                                        continue;
+                                    [[fallthrough]];
+                                }
+                                default:
+                                    store.unequipSlot(slot);
+                            }
+                        }
+                    }
                 }
                 else
                     invalid = true;
@@ -891,7 +914,7 @@ namespace MWMechanics
     }
 
     MagicApplicationResult applyMagicEffect(const MWWorld::Ptr& target, const MWWorld::Ptr& caster,
-        ActiveSpells::ActiveSpellParams& spellParams, ESM::ActiveEffect& effect, float dt)
+        ActiveSpells::ActiveSpellParams& spellParams, ESM::ActiveEffect& effect, float dt, bool playNonLooping)
     {
         const auto world = MWBase::Environment::get().getWorld();
         bool invalid = false;
@@ -1009,9 +1032,12 @@ namespace MWMechanics
                 oldMagnitude = effect.mMagnitude;
             else
             {
-                if (!spellParams.hasFlag(ESM::ActiveSpells::Flag_Equipment)
-                    && !spellParams.hasFlag(ESM::ActiveSpells::Flag_Lua))
-                    playEffects(target, *magicEffect, spellParams.hasFlag(ESM::ActiveSpells::Flag_Temporary));
+                bool isTemporary = spellParams.hasFlag(ESM::ActiveSpells::Flag_Temporary);
+                bool isEquipment = spellParams.hasFlag(ESM::ActiveSpells::Flag_Equipment);
+
+                if (!spellParams.hasFlag(ESM::ActiveSpells::Flag_Lua))
+                    playEffects(target, *magicEffect, (isTemporary || (isEquipment && playNonLooping)));
+
                 if (effect.mEffectId == ESM::MagicEffect::Soultrap && !target.getClass().isNpc()
                     && target.getType() == ESM::Creature::sRecordId
                     && target.get<ESM::Creature>()->mBase->mData.mSoul == 0 && caster == getPlayer())
@@ -1083,7 +1109,7 @@ namespace MWMechanics
                 }
                 break;
             case ESM::MagicEffect::ExtraSpell:
-                if (magnitudes.getOrDefault(effect.mEffectId).getMagnitude() <= 0.f)
+                if (magnitudes.getOrDefault(effect.mEffectId).getMagnitude() <= 0.f && target != getPlayer())
                     target.getClass().getInventoryStore(target).autoEquip();
                 break;
             case ESM::MagicEffect::TurnUndead:
