@@ -433,6 +433,8 @@ OMW::Engine::~Engine()
     }
 
     SDL_Quit();
+
+    Log(Debug::Info) << "Quitting peacefully.";
 }
 
 // Set data dir
@@ -480,6 +482,10 @@ void OMW::Engine::setSkipMenu(bool skipMenu, bool newGame)
     mSkipMenu = skipMenu;
     mNewGame = newGame;
 }
+
+
+// To share the viewer with Android interfaces
+osg::ref_ptr<osgViewer::Viewer> g_viewer;
 
 void OMW::Engine::createWindow()
 {
@@ -686,6 +692,9 @@ void OMW::Engine::createWindow()
 
     mViewer->getEventQueue()->getCurrentEventState()->setWindowRectangle(
         0, 0, graphicsWindow->getTraits()->width, graphicsWindow->getTraits()->height);
+
+    // To share the viewer with Android interfaces
+    g_viewer = mViewer;
 }
 
 void OMW::Engine::setWindowIcon()
@@ -1065,12 +1074,12 @@ void OMW::Engine::go()
 
     mLuaWorker->join();
 
+    g_viewer.release();
+
     // Save user settings
     Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
     Settings::ShaderManager::get().save();
     mLuaManager->savePermanentStorage(mCfgMgr.getUserConfigPath());
-
-    Log(Debug::Info) << "Quitting peacefully.";
 }
 
 void OMW::Engine::setCompileAll(bool all)

@@ -44,7 +44,7 @@ add_openmw_dir (mwgui
     tradeitemmodel companionitemmodel pickpocketitemmodel controllers savegamedialog
     recharge mode videowidget backgroundimage itemwidget screenfader debugwindow spellmodel spellview
     draganddrop timeadvancer jailscreen itemchargeview keyboardnavigation textcolours statswatcher
-    postprocessorhud settings
+    postprocessorhud settings worlditemmodel itemtransfer
     )
 
 add_openmw_dir (mwdialogue
@@ -116,6 +116,10 @@ add_openmw_dir (mwbase
     inputmanager windowmanager statemanager luamanager
     )
 
+add_openmw_dir (.
+    ../navmeshtool/main ../navmeshtool/navmesh ../navmeshtool/worldspacedata
+    )
+
 # Main executable
 
 add_library(openmw-lib STATIC
@@ -168,7 +172,7 @@ target_link_libraries(openmw-lib
     ${OPENAL_LIBRARY}
     ${FFmpeg_LIBRARIES}
     ${MyGUI_LIBRARIES}
-    SDL2::SDL2
+    ${SDL2_LIBRARY}
     ${RecastNavigation_LIBRARIES}
     "osg-ffmpeg-videoplayer"
     "oics"

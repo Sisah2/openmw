@@ -605,10 +605,6 @@ namespace MWMechanics
     void Actors::engageCombat(
         const MWWorld::Ptr& actor1, const MWWorld::Ptr& actor2, SidingCache& cachedAllies, bool againstPlayer) const
     {
-        // No combat for totally static creatures
-        if (!actor1.getClass().isMobile(actor1))
-            return;
-
         CreatureStats& creatureStats1 = actor1.getClass().getCreatureStats(actor1);
         if (creatureStats1.isDead() || creatureStats1.getAiSequence().isInCombat(actor2))
             return;
@@ -1066,9 +1062,12 @@ namespace MWMechanics
             {
                 if (heldIter != inventoryStore.end() && heldIter->getType() == ESM::Light::sRecordId)
                 {
-                    // At day, unequip lights and auto equip shields or other suitable items
-                    // (Note: autoEquip will ignore lights)
-                    inventoryStore.autoEquip();
+                    // At day, unequip lights and auto equip shields
+                    auto shield = inventoryStore.getPreferredShield();
+                    if (shield != inventoryStore.end())
+                        inventoryStore.equip(MWWorld::InventoryStore::Slot_CarriedLeft, shield);
+                    else
+                        inventoryStore.unequipSlot(MWWorld::InventoryStore::Slot_CarriedLeft);
                 }
             }
         }
