@@ -27,11 +27,12 @@
 #include <osg/ClipControl>
 
 #include <sstream>
-#include <deque>
 #include <vector>
 
 #include "glextensions.hpp"
 #include "shadowsbin.hpp"
+
+// NOLINTBEGIN(readability-identifier-naming)
 
 namespace {
 
@@ -3405,4 +3406,7 @@ osg::ref_ptr<osg::StateSet> SceneUtil::MWShadowTechnique::getOrCreateShadowsBinS
     }
     return _shadowsBinStateSet;
 }
+
+// NOLINTEND(readability-identifier-naming)
+
 // clang-format on

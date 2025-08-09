@@ -1568,6 +1568,9 @@ namespace NifOsg
                 }
                 rig->setBoneInfo(std::move(boneInfo));
                 rig->setInfluences(influences);
+                rig->setTransform(data->mTransform.toMatrix());
+                if (const Nif::NiAVObject* rootBone = skin->mRoot.getPtr())
+                    rig->setRootBone(rootBone->mName);
 
                 drawable = rig;
             }
@@ -1683,7 +1686,7 @@ namespace NifOsg
                 if (hasColors)
                     colors.emplace_back(elem.mVertColor[0], elem.mVertColor[1], elem.mVertColor[2], elem.mVertColor[3]);
                 if (hasUV)
-                    uvlist.emplace_back(halfToFloat(elem.mUV[0]), 1.0 - halfToFloat(elem.mUV[1]));
+                    uvlist.emplace_back(halfToFloat(elem.mUV[0]), 1.0f - halfToFloat(elem.mUV[1]));
             }
 
             if (!vertices.empty())
@@ -1729,6 +1732,8 @@ namespace NifOsg
                 }
                 rig->setBoneInfo(std::move(boneInfo));
                 rig->setInfluences(influences);
+                if (const Nif::NiAVObject* rootBone = skin->mRoot.getPtr())
+                    rig->setRootBone(rootBone->mName);
 
                 drawable = rig;
             }
@@ -2682,8 +2687,8 @@ namespace NifOsg
             bool hasMatCtrl = false;
             bool hasSortAlpha = false;
 
-            auto setBin_BackToFront = [](osg::StateSet* ss) { ss->setRenderBinDetails(0, "SORT_BACK_TO_FRONT"); };
-            auto setBin_Traversal = [](osg::StateSet* ss) { ss->setRenderBinDetails(2, "TraversalOrderBin"); };
+            auto setBinBackToFront = [](osg::StateSet* ss) { ss->setRenderBinDetails(0, "SORT_BACK_TO_FRONT"); };
+            auto setBinTraversal = [](osg::StateSet* ss) { ss->setRenderBinDetails(2, "TraversalOrderBin"); };
 
             auto lightmode = Nif::NiVertexColorProperty::LightMode::LightMode_EmiAmbDif;
             float emissiveMult = 1.f;
@@ -2883,7 +2888,7 @@ namespace NifOsg
             if (!mPushedSorter)
             {
                 if (!hasSortAlpha && mHasStencilProperty)
-                    setBin_Traversal(node->getOrCreateStateSet());
+                    setBinTraversal(node->getOrCreateStateSet());
                 return;
             }
 
@@ -2891,19 +2896,19 @@ namespace NifOsg
             auto assignBin = [&](Nif::NiSortAdjustNode::SortingMode mode, int type) {
                 if (mode == Nif::NiSortAdjustNode::SortingMode::Off)
                 {
-                    setBin_Traversal(stateset);
+                    setBinTraversal(stateset);
                     return;
                 }
 
                 if (type == Nif::RC_NiAlphaAccumulator)
                 {
                     if (hasSortAlpha)
-                        setBin_BackToFront(stateset);
+                        setBinBackToFront(stateset);
                     else
-                        setBin_Traversal(stateset);
+                        setBinTraversal(stateset);
                 }
                 else if (type == Nif::RC_NiClusterAccumulator)
-                    setBin_BackToFront(stateset);
+                    setBinBackToFront(stateset);
                 else
                     Log(Debug::Error) << "Unrecognized NiAccumulator in " << mFilename;
             };
@@ -2920,7 +2925,7 @@ namespace NifOsg
                 }
                 case Nif::NiSortAdjustNode::SortingMode::Off:
                 {
-                    setBin_Traversal(stateset);
+                    setBinTraversal(stateset);
                     break;
                 }
                 case Nif::NiSortAdjustNode::SortingMode::Subsort:

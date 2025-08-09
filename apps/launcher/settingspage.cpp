@@ -163,8 +163,6 @@ bool Launcher::SettingsPage::loadSettings()
         loadSettingInt(Settings::physics().mAsyncNumThreads, *physicsThreadsSpinBox);
         loadSettingBool(
             Settings::game().mAllowActorsToFollowOverWaterSurface, *allowNPCToFollowOverWaterSurfaceCheckBox);
-        loadSettingBool(
-            Settings::game().mUnarmedCreatureAttacksDamageArmor, *unarmedCreatureAttacksDamageArmorCheckBox);
         loadSettingInt(Settings::game().mActorCollisionShapeType, *actorCollisonShapeTypeComboBox);
     }
 
@@ -293,6 +291,7 @@ bool Launcher::SettingsPage::loadSettings()
             }
         }
         loadSettingBool(Settings::sound().mCameraListener, *cameraListenerCheckBox);
+        dopplerSpinBox->setValue(Settings::sound().mDopplerFactor);
     }
 
     // Interface Changes
@@ -304,6 +303,9 @@ bool Launcher::SettingsPage::loadSettings()
         loadSettingBool(Settings::gui().mColorTopicEnable, *changeDialogTopicsCheckBox);
         showOwnedComboBox->setCurrentIndex(Settings::game().mShowOwned);
         loadSettingBool(Settings::gui().mStretchMenuBackground, *stretchBackgroundCheckBox);
+        connect(controllerMenusCheckBox, &QCheckBox::toggled, this, &SettingsPage::slotControllerMenusToggled);
+        loadSettingBool(Settings::gui().mControllerMenus, *controllerMenusCheckBox);
+        loadSettingBool(Settings::gui().mControllerTooltips, *controllerMenuTooltipsCheckBox);
         loadSettingBool(Settings::map().mAllowZooming, *useZoomOnMapCheckBox);
         loadSettingBool(Settings::game().mGraphicHerbalism, *graphicHerbalismCheckBox);
         scalingSpinBox->setValue(Settings::gui().mScalingFactor);
@@ -373,8 +375,6 @@ void Launcher::SettingsPage::saveSettings()
         saveSettingInt(*physicsThreadsSpinBox, Settings::physics().mAsyncNumThreads);
         saveSettingBool(
             *allowNPCToFollowOverWaterSurfaceCheckBox, Settings::game().mAllowActorsToFollowOverWaterSurface);
-        saveSettingBool(
-            *unarmedCreatureAttacksDamageArmorCheckBox, Settings::game().mUnarmedCreatureAttacksDamageArmor);
         saveSettingInt(*actorCollisonShapeTypeComboBox, Settings::game().mActorCollisionShapeType);
     }
 
@@ -486,6 +486,8 @@ void Launcher::SettingsPage::saveSettings()
 
         const bool cCameraListener = cameraListenerCheckBox->checkState() != Qt::Unchecked;
         Settings::sound().mCameraListener.set(cCameraListener);
+
+        Settings::sound().mDopplerFactor.set(dopplerSpinBox->value());
     }
 
     // Interface Changes
@@ -497,6 +499,8 @@ void Launcher::SettingsPage::saveSettings()
         saveSettingBool(*changeDialogTopicsCheckBox, Settings::gui().mColorTopicEnable);
         saveSettingInt(*showOwnedComboBox, Settings::game().mShowOwned);
         saveSettingBool(*stretchBackgroundCheckBox, Settings::gui().mStretchMenuBackground);
+        saveSettingBool(*controllerMenusCheckBox, Settings::gui().mControllerMenus);
+        saveSettingBool(*controllerMenuTooltipsCheckBox, Settings::gui().mControllerTooltips);
         saveSettingBool(*useZoomOnMapCheckBox, Settings::map().mAllowZooming);
         saveSettingBool(*graphicHerbalismCheckBox, Settings::game().mGraphicHerbalism);
         Settings::gui().mScalingFactor.set(scalingSpinBox->value());
@@ -553,6 +557,11 @@ void Launcher::SettingsPage::slotAnimSourcesToggled(bool checked)
         weaponSheathingCheckBox->setCheckState(Qt::Unchecked);
         shieldSheathingCheckBox->setCheckState(Qt::Unchecked);
     }
+}
+
+void Launcher::SettingsPage::slotControllerMenusToggled(bool checked)
+{
+    controllerMenuTooltipsCheckBox->setEnabled(checked);
 }
 
 void Launcher::SettingsPage::slotPostProcessToggled(bool checked)

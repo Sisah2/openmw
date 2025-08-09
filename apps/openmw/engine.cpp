@@ -5,7 +5,8 @@
 #include <future>
 #include <system_error>
 
-#include <osgDB/WriteFile>
+#include <osgDB/ReaderWriter>
+#include <osgDB/Registry>
 #include <osgViewer/ViewerEventHandlers>
 
 #include <SDL.h>
@@ -28,7 +29,6 @@
 
 #include <components/compiler/extensions0.hpp>
 
-#include <components/stereo/multiview.hpp>
 #include <components/stereo/stereomanager.hpp>
 
 #include <components/sceneutil/glextensions.hpp>
@@ -497,12 +497,13 @@ void OMW::Engine::createWindow()
     const SDLUtil::VSyncMode vsync = Settings::video().mVsyncMode;
     unsigned antialiasing = static_cast<unsigned>(Settings::video().mAntialiasing);
 
-    int pos_x = SDL_WINDOWPOS_CENTERED_DISPLAY(screen), pos_y = SDL_WINDOWPOS_CENTERED_DISPLAY(screen);
+    int posX = SDL_WINDOWPOS_CENTERED_DISPLAY(screen);
+    int posY = SDL_WINDOWPOS_CENTERED_DISPLAY(screen);
 
     if (windowMode == Settings::WindowMode::Fullscreen || windowMode == Settings::WindowMode::WindowedFullscreen)
     {
-        pos_x = SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen);
-        pos_y = SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen);
+        posX = SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen);
+        posY = SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen);
     }
 
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
@@ -539,7 +540,7 @@ void OMW::Engine::createWindow()
     {
         while (!mWindow)
         {
-            mWindow = SDL_CreateWindow("OpenMW", pos_x, pos_y, width, height, flags);
+            mWindow = SDL_CreateWindow("OpenMW", posX, posY, width, height, flags);
             if (!mWindow)
             {
                 // Try with a lower AA
@@ -762,7 +763,7 @@ void OMW::Engine::prepareEngine()
 
     mViewer->addEventHandler(mScreenCaptureHandler);
 
-    mL10nManager = std::make_unique<l10n::Manager>(mVFS.get());
+    mL10nManager = std::make_unique<L10n::Manager>(mVFS.get());
     mL10nManager->setPreferredLocales(Settings::general().mPreferredLocales, Settings::general().mGmstOverridesL10n);
     mEnvironment.setL10nManager(*mL10nManager);
 
@@ -788,7 +789,6 @@ void OMW::Engine::prepareEngine()
 
     const auto userdefault = mCfgMgr.getUserConfigPath() / "gamecontrollerdb.txt";
     const auto localdefault = mCfgMgr.getLocalPath() / "gamecontrollerdb.txt";
-    const auto globaldefault = mCfgMgr.getGlobalPath() / "gamecontrollerdb.txt";
 
     std::filesystem::path userGameControllerdb;
     if (std::filesystem::exists(userdefault))
@@ -797,9 +797,13 @@ void OMW::Engine::prepareEngine()
     std::filesystem::path gameControllerdb;
     if (std::filesystem::exists(localdefault))
         gameControllerdb = localdefault;
-    else if (std::filesystem::exists(globaldefault))
-        gameControllerdb = globaldefault;
-    // else if it doesn't exist, pass in an empty string
+    else if (!mCfgMgr.getGlobalPath().empty())
+    {
+        const auto globaldefault = mCfgMgr.getGlobalPath() / "gamecontrollerdb.txt";
+        if (std::filesystem::exists(globaldefault))
+            gameControllerdb = globaldefault;
+    }
+    // else if it doesn't exist, pass in an empty path
 
     // gui needs our shaders path before everything else
     mResourceSystem->getSceneManager()->setShaderPath(mResDir / "shaders");
@@ -965,14 +969,14 @@ void OMW::Engine::go()
     prepareEngine();
 
 #ifdef _WIN32
-    const auto* stats_file = _wgetenv(L"OPENMW_OSG_STATS_FILE");
+    const auto* statsFile = _wgetenv(L"OPENMW_OSG_STATS_FILE");
 #else
-    const auto* stats_file = std::getenv("OPENMW_OSG_STATS_FILE");
+    const auto* statsFile = std::getenv("OPENMW_OSG_STATS_FILE");
 #endif
 
     std::filesystem::path path;
-    if (stats_file != nullptr)
-        path = stats_file;
+    if (statsFile != nullptr)
+        path = statsFile;
 
     std::ofstream stats;
     if (!path.empty())

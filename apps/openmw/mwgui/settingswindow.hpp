@@ -1,6 +1,7 @@
 #ifndef MWGUI_SETTINGS_H
 #define MWGUI_SETTINGS_H
 
+#include <components/files/configurationmanager.hpp>
 #include <components/lua_ui/adapter.hpp>
 
 #include "windowbase.hpp"
@@ -10,7 +11,7 @@ namespace MWGui
     class SettingsWindow : public WindowBase
     {
     public:
-        SettingsWindow();
+        SettingsWindow(Files::ConfigurationManager& cfgMgr);
 
         void onOpen() override;
 
@@ -27,6 +28,8 @@ namespace MWGui
         void updateWindowModeSettings();
 
         void onResChange(int, int) override;
+
+        bool onControllerButtonEvent(const SDL_ControllerButtonEvent& arg) override;
 
     protected:
         MyGUI::TabControl* mSettingsTab;
@@ -122,6 +125,7 @@ namespace MWGui
 
     private:
         void resetScrollbars();
+        Files::ConfigurationManager& mCfgMgr;
     };
 }
 

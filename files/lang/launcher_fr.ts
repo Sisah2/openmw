@@ -691,10 +691,6 @@ to default Morrowind fonts. Check this box if you still prefer original fonts ov
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Lorsque cette option est activée, le joueur est autorisé à piller créatures et PNJ (p. ex. les créatures invoquées) durant leur animation de mort, si elles ne sont pas en combat. Dans ce cas, le jeu incrémente le conteur de mort et lance son script instantanément.&lt;/p&gt;&lt;p&gt;Lorsque cette option est désactivée, le joueur doit attendre la fin de l&apos;animation de mort. Dans ce cas, l&apos;utilisation de l&apos;exploit des créatures invoquées (piller des créatures invoquées telles que des Drémoras ou des Saintes Dorées afin d&apos;obtenir des armes de grandes valeurs) est rendu beaucoup plus ardu. Cette option entre en confit avec les Mods de mannequin. En effet, ceux-ci utilisent SkipAnim afin d&apos;éviter la fin de l&apos;animation de mort.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Makes unarmed creature attacks able to reduce armor condition, just as attacks from NPCs and armed creatures.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;L&apos;option donne aux créatures non armées la capacité d&apos;endommager les pièces d&apos;armure, comme le font les PNJ et les créatures armées.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
         <source>Off</source>
         <translation>Inactif</translation>
     </message>
@@ -1159,10 +1155,6 @@ to default Morrowind fonts. Check this box if you still prefer original fonts ov
         <translation>Comportement traditionnel de la réflexion des sorts d&apos;absorbtion</translation>
     </message>
     <message>
-        <source>Unarmed Creature Attacks Damage Armor</source>
-        <translation>L&apos;attaque des créatures non armées endomage les armures</translation>
-    </message>
-    <message>
         <source>Affect Werewolves</source>
         <translation>S&apos;applique aux loups garoux</translation>
     </message>
@@ -1461,6 +1453,30 @@ to default Morrowind fonts. Check this box if you still prefer original fonts ov
     <message>
         <source>Run Script After Startup:</source>
         <translation>Script à lancer après démarrage :</translation>
+    </message>
+    <message>
+        <source>Enable Controller Menus</source>
+        <translation>Activer les menus du contrôleur</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Make it easier to use game menus with a controller.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Faciliter l&apos;utilisation des menus de jeu avec une manette.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When using controller menus, make tooltips visible by default.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Lorsque vous utilisez les menus du contrôleur, rendez les info-bulles visibles par défaut.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>Show Controller Tooltips By Default</source>
+        <translation>Afficher les info-bulles du contrôleur par défaut</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Controls the strength of the Doppler effect. Zero means it is completely disabled.&lt;/p&gt;&lt;p&gt;The Doppler effect increases or decreases the pitch of sounds relative to the velocity of the sound source and the listener.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Doppler Factor</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

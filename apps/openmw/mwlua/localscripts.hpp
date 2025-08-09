@@ -1,15 +1,14 @@
 #ifndef MWLUA_LOCALSCRIPTS_H
 #define MWLUA_LOCALSCRIPTS_H
 
-#include <memory>
-#include <set>
-#include <string>
+#include <string_view>
 #include <utility>
 
 #include <components/lua/luastate.hpp>
 #include <components/lua/scriptscontainer.hpp>
 
 #include "../mwbase/luamanager.hpp"
+#include "../mwmechanics/actorutil.hpp"
 
 #include "object.hpp"
 
@@ -88,8 +87,22 @@ namespace MWLua
         {
             callEngineHandlers(mOnSkillLevelUp, skillId, source);
         }
+        void onJailTimeServed(int days) { callEngineHandlers(mOnJailTimeServed, days); }
 
         void applyStatsCache();
+
+        // Calls a lua interface on the player's scripts. This call is only meant for use in updating UI elements.
+        template <typename T, typename... Args>
+        static std::optional<T> callPlayerInterface(
+            std::string_view interfaceName, std::string_view identifier, const Args&... args)
+        {
+            auto player = MWMechanics::getPlayer();
+            auto scripts = player.getRefData().getLuaScripts();
+            if (scripts)
+                return scripts->callInterface<T>(interfaceName, identifier, args...);
+
+            return std::nullopt;
+        }
 
     protected:
         SelfObject mData;
@@ -104,6 +117,7 @@ namespace MWLua
         EngineHandlerList mOnPlayAnimationHandlers{ "_onPlayAnimation" };
         EngineHandlerList mOnSkillUse{ "_onSkillUse" };
         EngineHandlerList mOnSkillLevelUp{ "_onSkillLevelUp" };
+        EngineHandlerList mOnJailTimeServed{ "_onJailTimeServed" };
     };
 
 }

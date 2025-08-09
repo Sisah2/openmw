@@ -1132,7 +1132,7 @@ void CSVRender::InstanceMode::dropEvent(QDropEvent* event)
             return;
 
         WorldspaceHitResult hit
-            = getWorldspaceWidget().mousePick(event->pos(), getWorldspaceWidget().getInteractionMask());
+            = getWorldspaceWidget().mousePick(event->position().toPoint(), getWorldspaceWidget().getInteractionMask());
 
         std::string cellId = getWorldspaceWidget().getCellId(hit.worldPos);
 
@@ -1277,9 +1277,8 @@ void CSVRender::InstanceMode::cloneSelectedInstances()
         if (CSVRender::ObjectTag* objectTag = dynamic_cast<CSVRender::ObjectTag*>(tag.get()))
         {
             macro.push(new CSMWorld::CloneCommand(referencesTable, objectTag->mObject->getReferenceId(),
-                "ref#" + std::to_string(referencesTable.rowCount()), CSMWorld::UniversalId::Type_Reference));
+                document.getData().getReferences().getNewId(), CSMWorld::UniversalId::Type_Reference));
         }
-    // getWorldspaceWidget().clearSelection(Mask_Reference);
 }
 
 void CSVRender::InstanceMode::dropInstance(CSVRender::Object* object, float dropHeight)

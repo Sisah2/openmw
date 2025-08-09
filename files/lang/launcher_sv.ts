@@ -694,10 +694,6 @@ de ordinarie fonterna i Morrowind. Bocka denna ruta om du ändå föredrar ordin
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Om denna inställning är aktiv tillåts spelaren plundra figurer (exempelvis tillkallade varelser) under deras dödsanimation, om de inte är i strid.&lt;/p&gt;&lt;p&gt;Om inställningen är inaktiv måste spelaren vänta tills dödsanimationen är slut. Detta gör det mycket svårare att exploatera tillkallade varelser (exempelvis plundra Draemoror eller Golden Saints för att få dyrbara vapen). Inställningen är i konflikt med skyltdocks-moddar som använder SkipAnim för att förhindra avslutning av dödsanimationer.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Makes unarmed creature attacks able to reduce armor condition, just as attacks from NPCs and armed creatures.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Gör att obeväpnade varelseattacker kan reducera rustningars skick, precis som attacker från icke-spelbara figurer och beväpnade varelser.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
         <source>Off</source>
         <translation>Av</translation>
     </message>
@@ -1164,10 +1160,6 @@ de ordinarie fonterna i Morrowind. Bocka denna ruta om du ändå föredrar ordin
         <translation>Klassiskt beteende för reflekterade &quot;Absorb&quot;-besvärjelser</translation>
     </message>
     <message>
-        <source>Unarmed Creature Attacks Damage Armor</source>
-        <translation>Obeväpnad attack från varelser skadar rustning</translation>
-    </message>
-    <message>
         <source>Affect Werewolves</source>
         <translation>Påverka varulvar</translation>
     </message>
@@ -1477,6 +1469,30 @@ de ordinarie fonterna i Morrowind. Bocka denna ruta om du ändå föredrar ordin
     <message>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If enabled - makes transitions between different animations/poses much smoother. Also allows to load animation blending config YAML files that can be bundled with animations in order to customise blending styles.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Vid aktivering gör denna funktion att övergångarna mellan olika animationer och poser blir mycket mjukare. Funktionen gör det också möjligt att konfigurera animationsövergångarna i YAML-filer. Dessa filer kan buntas ihop tillsammans med nya animationsfiler.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Make it easier to use game menus with a controller.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Gör det enklare att använda spelmenyer med en handkontroll.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>Enable Controller Menus</source>
+        <translation>Aktivera handkontrollmenyer</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When using controller menus, make tooltips visible by default.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Visar inforutor som standard när handkontrollmenyer används.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>Show Controller Tooltips By Default</source>
+        <translation>Visa handkontrollinforutor som standard</translation>
+    </message>
+    <message>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Controls the strength of the Doppler effect. Zero means it is completely disabled.&lt;/p&gt;&lt;p&gt;The Doppler effect increases or decreases the pitch of sounds relative to the velocity of the sound source and the listener.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kontrollerar styrkan på dopplereffekten. Noll innebär helt inaktiverat.&lt;/p&gt;&lt;p&gt;Dopplereffekten höjer eller sänker tonhöjden på ljud i förhållande till ljudkällans hastighet och lyssnaren.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>Doppler Factor</source>
+        <translation>Dopplerfaktor</translation>
     </message>
 </context>
 </TS>
