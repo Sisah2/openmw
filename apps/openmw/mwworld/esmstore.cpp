@@ -566,10 +566,10 @@ namespace MWWorld
         std::vector<Ref> refs;
         std::set<ESM::RefId> keyIDs;
         std::vector<ESM::RefId> refIDs;
-        Store<ESM::Cell> Cells = get<ESM::Cell>();
-        for (auto it = Cells.intBegin(); it != Cells.intEnd(); ++it)
+        const Store<ESM::Cell>& cells = get<ESM::Cell>();
+        for (auto it = cells.intBegin(); it != cells.intEnd(); ++it)
             readRefs(*it, refs, refIDs, keyIDs, readers);
-        for (auto it = Cells.extBegin(); it != Cells.extEnd(); ++it)
+        for (auto it = cells.extBegin(); it != cells.extEnd(); ++it)
             readRefs(*it, refs, refIDs, keyIDs, readers);
         const auto lessByRefNum = [](const Ref& l, const Ref& r) { return l.mRefNum < r.mRefNum; };
         std::stable_sort(refs.begin(), refs.end(), lessByRefNum);
@@ -726,8 +726,6 @@ namespace MWWorld
         switch (type)
         {
             case ESM::REC_ALCH:
-            case ESM::REC_MISC:
-            case ESM::REC_ACTI:
             case ESM::REC_ARMO:
             case ESM::REC_BOOK:
             case ESM::REC_CLAS:
@@ -735,14 +733,16 @@ namespace MWWorld
             case ESM::REC_ENCH:
             case ESM::REC_SPEL:
             case ESM::REC_WEAP:
-            case ESM::REC_LEVI:
-            case ESM::REC_LEVC:
-            case ESM::REC_LIGH:
                 mStoreImp->mRecNameToStore[type]->read(reader);
                 return true;
             case ESM::REC_NPC_:
             case ESM::REC_CREA:
             case ESM::REC_CONT:
+            case ESM::REC_MISC:
+            case ESM::REC_ACTI:
+            case ESM::REC_LEVI:
+            case ESM::REC_LEVC:
+            case ESM::REC_LIGH:
                 mStoreImp->mRecNameToStore[type]->read(reader, true);
                 return true;
 

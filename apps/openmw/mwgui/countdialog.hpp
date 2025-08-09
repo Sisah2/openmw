@@ -15,13 +15,12 @@ namespace MWGui
     public:
         CountDialog();
         void openCountDialog(const std::string& item, const std::string& message, const int maxCount);
-
-        typedef MyGUI::delegates::MultiDelegate<MyGUI::Widget*, int> EventHandle_WidgetInt;
+        void setCount(int count);
 
         /** Event : Ok button was clicked.\n
-            signature : void method(MyGUI::Widget* _sender, int _count)\n
+            signature : void method(MyGUI::Widget* sender, std::size_t count)\n
         */
-        EventHandle_WidgetInt eventOkClicked;
+        MyGUI::delegates::MultiDelegate<MyGUI::Widget*, std::size_t> eventOkClicked;
 
     private:
         MyGUI::ScrollBar* mSlider;
@@ -36,6 +35,7 @@ namespace MWGui
         void onEditValueChanged(int value);
         void onSliderMoved(MyGUI::ScrollBar* _sender, size_t _position);
         void onEnterKeyPressed(MyGUI::EditBox* _sender);
+        bool onControllerButtonEvent(const SDL_ControllerButtonEvent& arg) override;
     };
 
 }

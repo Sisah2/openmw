@@ -12,6 +12,7 @@
 #include <components/esm3/loaddial.hpp>
 #include <components/esm3/loadfact.hpp>
 #include <components/esm3/loadinfo.hpp>
+#include <components/esm3/loadmgef.hpp>
 
 #include <components/compiler/errorhandler.hpp>
 #include <components/compiler/exception.hpp>
@@ -95,8 +96,8 @@ namespace MWDialogue
             if (tok->isExplicitLink())
             {
                 // calculation of standard form for all hyperlinks
-                size_t asterisk_count = HyperTextParser::removePseudoAsterisks(topicId);
-                for (; asterisk_count > 0; --asterisk_count)
+                size_t asteriskCount = HyperTextParser::removePseudoAsterisks(topicId);
+                for (; asteriskCount > 0; --asteriskCount)
                     topicId.append("*");
 
                 topicId = mTranslationDataStorage.topicStandardForm(topicId);
@@ -448,12 +449,14 @@ namespace MWDialogue
         {
             updateOriginalDisposition();
             MWMechanics::NpcStats& npcStats = mActor.getClass().getNpcStats(mActor);
-            // Clamp permanent disposition change so that final disposition doesn't go below 0 (could happen with
-            // intimidate)
-            npcStats.setBaseDisposition(0);
-            int zero = MWBase::Environment::get().getMechanicsManager()->getDerivedDisposition(mActor, false);
-            int disposition = std::clamp(mOriginalDisposition + mPermanentDispositionChange, -zero, 100 - zero);
 
+            // Get the sum of disposition effects minus charm (shouldn't be made permanent)
+            npcStats.setBaseDisposition(0);
+            int zero = MWBase::Environment::get().getMechanicsManager()->getDerivedDisposition(mActor, false)
+                - npcStats.getMagicEffects().getOrDefault(ESM::MagicEffect::Charm).getMagnitude();
+
+            // Clamp new permanent disposition to avoid negative derived disposition (can be caused by intimidate)
+            int disposition = std::clamp(mOriginalDisposition + mPermanentDispositionChange, -zero, 100 - zero);
             npcStats.setBaseDisposition(disposition);
         }
         mPermanentDispositionChange = 0;

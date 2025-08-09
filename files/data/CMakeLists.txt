@@ -9,6 +9,35 @@ set(BUILTIN_DATA_FILES
     textures/omw_menu_scroll_right.dds
     textures/omw_menu_scroll_center_h.dds
     textures/omw_menu_scroll_center_v.dds
+    textures/omw_menu_icon_active.dds
+    textures/omw_psx_button_circle.dds
+    textures/omw_psx_button_dpad.dds
+    textures/omw_psx_button_square.dds
+    textures/omw_psx_button_triangle.dds
+    textures/omw_psx_button_x.dds
+    textures/omw_steam_button_a.dds
+    textures/omw_steam_button_b.dds
+    textures/omw_steam_button_dpad.dds
+    textures/omw_steam_button_l1.dds
+    textures/omw_steam_button_l2.dds
+    textures/omw_steam_button_l3.dds
+    textures/omw_steam_button_lstick.dds
+    textures/omw_steam_button_menu.dds
+    textures/omw_steam_button_r1.dds
+    textures/omw_steam_button_r2.dds
+    textures/omw_steam_button_r3.dds
+    textures/omw_steam_button_rstick.dds
+    textures/omw_steam_button_view.dds
+    textures/omw_steam_button_x.dds
+    textures/omw_steam_button_y.dds
+    textures/omw_switch_button_l.dds
+    textures/omw_switch_button_r.dds
+    textures/omw_switch_button_zl.dds
+    textures/omw_switch_button_zr.dds
+    textures/omw_xbox_button_lb.dds
+    textures/omw_xbox_button_lt.dds
+    textures/omw_xbox_button_rb.dds
+    textures/omw_xbox_button_rt.dds
     textures/omw/water_nm.png
 
     fonts/DejaVuFontLicense.txt
@@ -43,6 +72,9 @@ set(BUILTIN_DATA_FILES
     l10n/OMWCamera/ru.yaml
     l10n/OMWCamera/sv.yaml
     l10n/OMWCamera/fr.yaml
+    l10n/OMWCombat/en.yaml
+    l10n/OMWCombat/ru.yaml
+    l10n/OMWCombat/sv.yaml
     l10n/OMWControls/de.yaml
     l10n/OMWControls/en.yaml
     l10n/OMWControls/fr.yaml
@@ -87,11 +119,17 @@ set(BUILTIN_DATA_FILES
     scripts/omw/camera/settings.lua
     scripts/omw/camera/move360.lua
     scripts/omw/camera/first_person_auto_switch.lua
+    scripts/omw/combat/common.lua
+    scripts/omw/combat/global.lua
+    scripts/omw/combat/local.lua
+    scripts/omw/combat/menu.lua
     scripts/omw/console/global.lua
     scripts/omw/console/local.lua
     scripts/omw/console/player.lua
     scripts/omw/console/menu.lua
+    scripts/omw/mechanics/actorcontroller.lua
     scripts/omw/mechanics/animationcontroller.lua
+    scripts/omw/mechanics/globalcontroller.lua
     scripts/omw/mechanics/playercontroller.lua
     scripts/omw/settings/menu.lua
     scripts/omw/music/actor.lua
@@ -146,6 +184,7 @@ set(BUILTIN_DATA_FILES
     mygui/openmw_console.layout
     mygui/openmw_console.skin.xml
     mygui/openmw_container_window.layout
+    mygui/openmw_controllerbuttons.layout
     mygui/openmw_count_window.layout
     mygui/openmw_dialogue_window.layout
     mygui/openmw_dialogue_window.skin.xml
@@ -156,6 +195,7 @@ set(BUILTIN_DATA_FILES
     mygui/openmw_infobox.layout
     mygui/openmw_interactive_messagebox.layout
     mygui/openmw_interactive_messagebox_notransp.layout
+    mygui/openmw_inventory_tabs.layout
     mygui/openmw_inventory_window.layout
     mygui/openmw_journal.layout
     mygui/openmw_journal.skin.xml

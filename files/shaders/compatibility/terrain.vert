@@ -1,19 +1,16 @@
 #version 120
-
-#if @useUBO
-    #extension GL_ARB_uniform_buffer_object : require
-#endif
-
-#if @useGPUShader4
-    #extension GL_EXT_gpu_shader4: require
-#endif
+#pragma import_defines(FORCE_PPL, CLASSIC_FALLOFF, MAX_LIGHTS)
 
 #include "lib/core/vertex.h.glsl"
 varying vec2 uv;
 varying float euclideanDepth;
 varying float linearDepth;
 
+#if defined(FORCE_PPL)
+#define PER_PIXEL_LIGHTING (@normalMap || @specularMap || FORCE_PPL)
+#else
 #define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
+#endif
 
 #if !PER_PIXEL_LIGHTING
 centroid varying vec3 passLighting;
@@ -46,8 +43,8 @@ void main(void)
     normalToViewMatrix = gl_NormalMatrix;
 
 #if @normalMap
-    mat3 tbnMatrix = generateTangentSpace(vec4(1.0, 0.0, 0.0, 1.0), passNormal);
-    tbnMatrix[0] = normalize(cross(tbnMatrix[2], tbnMatrix[1])); // note, now we need to re-cross to derive tangent again because it wasn't orthonormal
+    mat3 tbnMatrix = generateTangentSpace(vec4(1.0, 0.0, 0.0, -1.0), passNormal);
+    tbnMatrix[0] = -normalize(cross(tbnMatrix[2], tbnMatrix[1])); // our original tangent was not at a 90 degree angle to the normal, so we need to rederive it
     normalToViewMatrix *= tbnMatrix;
 #endif
 

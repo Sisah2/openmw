@@ -139,6 +139,7 @@ namespace MWRender
         int skyGetSecundaPhase() const;
         void skySetMoonColour(bool red);
 
+        const osg::Vec4f& getSunLightPosition() const { return mSunLight->getPosition(); }
         void setSunDirection(const osg::Vec3f& direction);
         void setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular, float sunVis);
         void setNight(bool isNight) { mNight = isNight; }
@@ -274,6 +275,8 @@ namespace MWRender
         void setScreenRes(int width, int height);
 
         void setNavMeshMode(Settings::NavMeshRenderMode value);
+
+        void setWriteNormals(bool enabled);
 
     private:
         void updateTextureFiltering();

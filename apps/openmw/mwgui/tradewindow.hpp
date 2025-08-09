@@ -49,6 +49,9 @@ namespace MWGui
 
         std::string_view getWindowIdForLua() const override { return "Trade"; }
 
+        bool onControllerButtonEvent(const SDL_ControllerButtonEvent& arg) override;
+        void setActiveControllerWindow(bool active) override;
+
     private:
         friend class InventoryWindow;
 
@@ -95,7 +98,7 @@ namespace MWGui
         void updateOffer();
 
         void onItemSelected(int index);
-        void sellItem(MyGUI::Widget* sender, int count);
+        void sellItem(MyGUI::Widget* sender, std::size_t count);
 
         void borrowItem(int index, size_t count);
         void returnItem(int index, size_t count);
@@ -113,6 +116,7 @@ namespace MWGui
         void onBalanceButtonReleased(MyGUI::Widget* _sender, int _left, int _top, MyGUI::MouseButton _id);
         void onBalanceValueChanged(int value);
         void onRepeatClick(MyGUI::Widget* widget, MyGUI::ControllerItem* controller);
+        void onOfferSubmitted(MyGUI::Widget* _sender, size_t offerAmount);
 
         void addRepeatController(MyGUI::Widget* widget);
 

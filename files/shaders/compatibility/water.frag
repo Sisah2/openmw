@@ -1,12 +1,5 @@
 #version 120
-
-#if @useUBO
-    #extension GL_ARB_uniform_buffer_object : require
-#endif
-
-#if @useGPUShader4
-    #extension GL_EXT_gpu_shader4: require
-#endif
+#pragma import_defines(WRITE_NORMALS, CLASSIC_FALLOFF, MAX_LIGHTS)
 
 #include "lib/core/fragment.h.glsl"
 
@@ -40,6 +33,8 @@ const vec3 SUN_EXT = vec3(0.45, 0.55, 0.68);       // sunlight extinction
 
 const float SUN_SPEC_FADING_THRESHOLD = 0.15;       // visibility at which sun specularity starts to fade
 const float SPEC_HARDNESS = 256.0;                 // specular highlights hardness
+const float SPEC_BUMPINESS = 5.0;                  // surface bumpiness boost for specular
+const float SPEC_BRIGHTNESS = 1.5;                 // boosts the brightness of the specular highlights
 
 const float BUMP_SUPPRESS_DEPTH = 300.0;           // at what water depth bumpmap will be suppressed for reflections and refractions (prevents artifacts at shores)
 const float REFR_FOG_DISTORT_DISTANCE = 3000.0;    // at what distance refraction fog will be calculated using real water depth instead of distorted depth (prevents splotchy shores)
@@ -161,7 +156,13 @@ void main(void)
     sunSpec.a = min(1.0, sunSpec.a / SUN_SPEC_FADING_THRESHOLD);
 
     // specular
-    float specular = pow(max(dot(reflect(viewDir, normal), sunWorldDir), 0.0), SPEC_HARDNESS) * shadow * sunSpec.a;
+    const float SPEC_MAGIC = 1.55; // from the original blender shader, changing it makes the spec vanish or become too bright
+
+    vec3 specNormal = normalize(vec3(normal.x * SPEC_BUMPINESS, normal.y * SPEC_BUMPINESS, normal.z));
+    vec3 viewReflectDir = reflect(viewDir, specNormal);
+    float phongTerm = max(dot(viewReflectDir, sunWorldDir), 0.0);
+    float specular = pow(atan(phongTerm * SPEC_MAGIC), SPEC_HARDNESS) * SPEC_BRIGHTNESS;
+    specular = clamp(specular, 0.0, 1.0) * shadow * sunSpec.a;
 
     // artificial specularity to make rain ripples more noticeable
     vec3 skyColorEstimate = vec3(max(0.0, mix(-0.3, 1.0, sunFade)));
@@ -237,7 +238,7 @@ void main(void)
 
     gl_FragData[0] = applyFogAtDist(gl_FragData[0], radialDepth, linearDepth, far);
 
-#if !@disableNormals
+#if defined(WRITE_NORMALS) && WRITE_NORMALS
     gl_FragData[1].rgb = normalize(gl_NormalMatrix * normal) * 0.5 + 0.5;
 #endif
 

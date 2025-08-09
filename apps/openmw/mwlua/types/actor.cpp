@@ -31,14 +31,14 @@ namespace MWLua
     static std::pair<MWWorld::ContainerStoreIterator, bool> findInInventory(
         MWWorld::InventoryStore& store, const EquipmentItem& item, int slot = sAnySlot)
     {
-        auto old_it = slot != sAnySlot ? store.getSlot(slot) : store.end();
+        auto oldIt = slot != sAnySlot ? store.getSlot(slot) : store.end();
         MWWorld::Ptr itemPtr;
 
         if (std::holds_alternative<ObjectId>(item))
         {
             itemPtr = MWBase::Environment::get().getWorldModel()->getPtr(std::get<ObjectId>(item));
-            if (old_it != store.end() && *old_it == itemPtr)
-                return { old_it, true }; // already equipped
+            if (oldIt != store.end() && *oldIt == itemPtr)
+                return { oldIt, true }; // already equipped
             if (itemPtr.isEmpty() || itemPtr.getCellRef().getCount() == 0
                 || itemPtr.getContainerStore() != static_cast<const MWWorld::ContainerStore*>(&store))
             {
@@ -50,8 +50,8 @@ namespace MWLua
         {
             const auto& stringId = std::get<std::string>(item);
             ESM::RefId recordId = ESM::RefId::deserializeText(stringId);
-            if (old_it != store.end() && old_it->getCellRef().getRefId() == recordId)
-                return { old_it, true }; // already equipped
+            if (oldIt != store.end() && oldIt->getCellRef().getRefId() == recordId)
+                return { oldIt, true }; // already equipped
             itemPtr = store.search(recordId);
             if (itemPtr.isEmpty() || itemPtr.getCellRef().getCount() == 0)
             {
@@ -119,15 +119,15 @@ namespace MWLua
 
         for (int slot = 0; slot < MWWorld::InventoryStore::Slots; ++slot)
         {
-            auto old_it = store.getSlot(slot);
-            auto new_it = equipment.find(slot);
-            if (new_it == equipment.end())
+            auto oldIt = store.getSlot(slot);
+            auto newIt = equipment.find(slot);
+            if (newIt == equipment.end())
             {
-                if (old_it != store.end())
+                if (oldIt != store.end())
                     store.unequipSlot(slot);
                 continue;
             }
-            if (tryEquipToSlot(slot, new_it->second))
+            if (tryEquipToSlot(slot, newIt->second))
                 usedSlots[slot] = true;
         }
         for (const auto& [slot, item] : equipment)
@@ -418,6 +418,42 @@ namespace MWLua
         actor["getCapacity"] = [](const Object& actor) -> float {
             const MWWorld::Ptr ptr = actor.ptr();
             return ptr.getClass().getCapacity(ptr);
+        };
+
+        actor["_onHit"] = [context](const SelfObject& self, const sol::table& options) {
+            sol::optional<sol::table> damageLua = options.get<sol::optional<sol::table>>("damage");
+            std::map<std::string, float> damageCpp;
+            if (damageLua)
+            {
+                for (auto& [key, value] : damageLua.value())
+                {
+                    damageCpp[key.as<std::string>()] = value.as<float>();
+                }
+            }
+            std::string sourceTypeStr = options.get_or<std::string>("sourceType", "unspecified");
+            MWMechanics::DamageSourceType sourceType = MWMechanics::DamageSourceType::Unspecified;
+            if (sourceTypeStr == "melee")
+                sourceType = MWMechanics::DamageSourceType::Melee;
+            else if (sourceTypeStr == "ranged")
+                sourceType = MWMechanics::DamageSourceType::Ranged;
+            else if (sourceTypeStr == "magic")
+                sourceType = MWMechanics::DamageSourceType::Magical;
+            sol::optional<Object> weapon = options.get<sol::optional<Object>>("weapon");
+            sol::optional<Object> ammo = options.get<sol::optional<Object>>("ammo");
+
+            context.mLuaManager->addAction(
+                [self = self, damages = std::move(damageCpp), attacker = options.get<sol::optional<Object>>("attacker"),
+                    weapon = ammo ? ammo : weapon, successful = options.get<bool>("successful"),
+                    sourceType = sourceType] {
+                    MWWorld::Ptr attackerPtr;
+                    MWWorld::Ptr weaponPtr;
+                    if (attacker)
+                        attackerPtr = attacker->ptr();
+                    if (weapon)
+                        weaponPtr = weapon->ptr();
+                    self.ptr().getClass().onHit(self.ptr(), damages, weaponPtr, attackerPtr, successful, sourceType);
+                },
+                "HitAction");
         };
 
         addActorStatsBindings(actor, context);

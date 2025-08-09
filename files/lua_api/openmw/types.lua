@@ -331,6 +331,7 @@
 ---
 -- Adds a new spell to the list of active spells (only in global scripts or on self).
 -- Note that this does not play any related VFX or sounds.
+-- Note that this should not be used to add spells without durations (i.e. abilities, curses, and diseases) as they will expire instantly. Use @{#ActorSpells.add} instead.
 -- @function [parent=#ActorActiveSpells] add
 -- @param self
 -- @param #table options A table of parameters. Must contain the following required parameters:
@@ -860,8 +861,12 @@
 -- @field #boolean canWalk whether the creature can walk
 -- @field #boolean canUseWeapons whether the creature can use weapons and shields
 -- @field #boolean isBiped whether the creature is a biped
+-- @field #boolean isAutocalc If true, the actors stats will be automatically calculated based on level and class.
+-- @field #string primaryFaction Faction ID of the NPCs default faction. Nil if no faction
+-- @field #number primaryFactionRank Faction rank of the NPCs default faction. Nil if no faction
 -- @field #boolean isEssential whether the creature is essential
 -- @field #boolean isRespawning whether the creature respawns after death
+-- @field #number bloodType integer representing the blood type of the Creature. Used to generate the correct blood vfx.
 
 
 --- @{#NPC} functions
@@ -872,6 +877,13 @@
 -- @extends #Actor
 -- @field #Actor baseType @{#Actor}
 -- @field [parent=#NPC] #NpcStats stats
+
+---
+-- Creates an @{#NpcRecord} without adding it to the world database.
+-- Use @{openmw_world#(world).createRecord} to add the record to the world.
+-- @function [parent=#NPC] createRecordDraft
+-- @param #NpcRecord npc A Lua table with the fields of an NpcRecord, with an optional field `template` that accepts an @{#NpcRecord} as a base.
+-- @return #NpcRecord A strongly typed NPC record.
 
 ---
 -- A read-only list of all @{#NpcRecord}s in the world database, may be indexed by recordId.
@@ -1002,7 +1014,7 @@
 -- @param openmw.core#GameObject actor NPC object
 -- @param #string faction Faction ID
 -- @usage local NPC = require('openmw.types').NPC;
--- NPC.clearExpell(player, "mages guild");
+-- NPC.clearExpelled(player, "mages guild");
 
 ---
 -- Check if NPC is expelled from given faction.
@@ -1136,6 +1148,7 @@
 -- @field #list<#TravelDestination> travelDestinations A list of @{#TravelDestination}s for this NPC.
 -- @field #boolean isEssential whether the NPC is essential
 -- @field #boolean isRespawning whether the NPC respawns after death
+-- @field #number bloodType integer representing the blood type of the NPC. Used to generate the correct blood vfx.
 
 ---
 -- @type TravelDestination
@@ -2450,5 +2463,7 @@
 -- @field #string id Record id
 -- @field #string name Human-readable name
 -- @field #string model VFS path to the model
+-- @field #string openSound FormId of the door opening sound
+-- @field #string closeSound FormId of the door closing sound
 
 return nil
