@@ -82,7 +82,7 @@ message(STATUS "Configuring OpenMW...")
 set(OPENMW_VERSION_MAJOR 0)
 set(OPENMW_VERSION_MINOR 50)
 set(OPENMW_VERSION_RELEASE 0)
-set(OPENMW_LUA_API_REVISION 90)
+set(OPENMW_LUA_API_REVISION 93)
 set(OPENMW_POSTPROCESSING_API_REVISION 3)
 
 set(OPENMW_VERSION_COMMITHASH "")
@@ -360,9 +360,6 @@ endif()
 # Required for building the FFmpeg headers
 add_definitions(-D__STDC_CONSTANT_MACROS)
 
-# Required for unity build
-add_definitions(-DMYGUI_DONT_REPLACE_NULLPTR)
-
 # TinyXML
 option(USE_SYSTEM_TINYXML "Use system TinyXML library instead of internal." OFF)
 if (USE_SYSTEM_TINYXML)
@@ -619,7 +616,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT
         add_compile_options("/WX")
     endif()
 else ()
-    add_compile_options("-Wall" "-Wextra" "-Wundef" "-Wextra-semi" "-Wno-unused-parameter" "-pedantic" "-Wno-long-long" "-Wnon-virtual-dtor" "-Wunused")
+    add_compile_options("-Wall" "-Wextra" "-Wundef" "-Wextra-semi" "-Wno-unused-parameter" "-pedantic" "-Wno-long-long" "-Wnon-virtual-dtor" "-Wunused" "-Wshadow")
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL Clang AND NOT APPLE)
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.6 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 3.6)

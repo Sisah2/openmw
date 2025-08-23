@@ -99,6 +99,7 @@ Programmers
     Gohan1989
     gugus/gus
     guidoj
+    Hailey Tribble (daisyhasacat)
     Haoda Wang (h313)
     holorat
     hristoast
@@ -238,7 +239,6 @@ Programmers
     trav
     tri4ng1e
     Thoronador
-    Tobias Tribble (zackhasacat)
     Tom Lowe (Vulpen)
     Tom Mason (wheybags)
     Torben Leif Carrington (TorbenC)
@@ -292,6 +292,7 @@ Public Relations and Translations
     Artem Kotsynyak (greye) - Russian News Writer
     Dawid Lakomy (Vedyimyn) - Polish News Writer
     ElderTroll - Release Manager
+    Igor Wiśniewski (Igilq) - Polish Translation
     Jim Clauwaert (Zedd) - Public Outreach
     juanmnzsk8 - Spanish News Writer
     Julien Voisin (jvoisin/ap0) - French News Writer

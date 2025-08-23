@@ -1955,7 +1955,7 @@ namespace MWWorld
 
                 newMarker.x = pos.pos[0];
                 newMarker.y = pos.pos[1];
-                mOut.push_back(newMarker);
+                mOut.push_back(std::move(newMarker));
             }
             return true;
         }
@@ -2546,7 +2546,7 @@ namespace MWWorld
         }
     }
 
-    float World::getWindSpeed()
+    float World::getWindSpeed() const
     {
         if (isCellExterior() || isCellQuasiExterior())
             return mWeatherManager->getWindSpeed();
