@@ -270,6 +270,7 @@ set(USED_OSG_PLUGINS
     osgdb_bmp
     osgdb_dae
     osgdb_dds
+    osgdb_ktx
     osgdb_freetype
     osgdb_jpeg
     osgdb_osg

@@ -196,17 +196,13 @@ namespace MWRender
         if (!ext->glDisablei && ext->glDisableIndexedEXT)
             ext->glDisablei = ext->glDisableIndexedEXT;
 
-#ifdef ANDROID
-        ext->glDisablei = nullptr;
-#endif
-
         if (ext->glDisablei)
             mNormalsSupported = true;
         else
             Log(Debug::Error) << "'glDisablei' unsupported, pass normals will not be available to shaders.";
 
-        mGLSLVersion = ext->glslLanguageVersion * 100;
-        mUBO = ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
+        mGLSLVersion = 120;//ext->glslLanguageVersion * 100;
+        mUBO = (getenv("OPENMW_DONT_PRECOMPILE") == nullptr) ? true : false; //ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
         mStateUpdater = new Fx::StateUpdater(mUBO);
 
         addChild(mHUDCamera);

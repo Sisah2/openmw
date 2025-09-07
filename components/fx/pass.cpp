@@ -63,6 +63,7 @@ namespace Fx
     std::string Pass::getPassHeader(Technique& technique, std::string_view preamble, bool fragOut)
     {
         std::string header = R"GLSL(
+// OMW Post-Process shader
 #version @version @profile
 @extensions
 
