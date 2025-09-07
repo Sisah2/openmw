@@ -202,7 +202,7 @@ namespace MWRender
             Log(Debug::Error) << "'glDisablei' unsupported, pass normals will not be available to shaders.";
 
         mGLSLVersion = 120;//ext->glslLanguageVersion * 100;
-        mUBO = (getenv("OPENMW_DONT_PRECOMPILE") == nullptr) ? true : false; //ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
+        mUBO = (getenv("OPENMW_UBO") == nullptr) ? true : false; //ext->isUniformBufferObjectSupported && mGLSLVersion >= 330;
         mStateUpdater = new Fx::StateUpdater(mUBO);
 
         addChild(mHUDCamera);
