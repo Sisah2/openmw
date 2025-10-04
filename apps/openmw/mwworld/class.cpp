@@ -119,7 +119,7 @@ namespace MWWorld
         throw std::runtime_error("class cannot hit");
     }
 
-    void Class::onHit(const Ptr& ptr, const std::map<std::string, float>& damages, const Ptr& object,
+    void Class::onHit(const Ptr& ptr, const std::map<std::string, float>& damages, ESM::RefId object,
         const Ptr& attacker, bool successful, const MWMechanics::DamageSourceType sourceType) const
     {
         throw std::runtime_error("class cannot be hit");
@@ -481,11 +481,16 @@ namespace MWWorld
         float capacity = getCapacity(ptr);
         float encumbrance = getEncumbrance(ptr);
 
+        // Intentional deviation: Morrowind doesn't do this
+        // but handling (0 / 0) as 1.0 encumbrance feels like a clear oversight
         if (encumbrance == 0)
             return 0.f;
 
+        // Another deviation: handle (non-zero encumbrance / zero capacity) as "overencumbered"
+        // Morrowind uses 1, but this means that for zero capacity,
+        // normalized encumbrance cannot be used to detect overencumbrance
         if (capacity == 0)
-            return 1.f;
+            return 1.f + 1e-6f;
 
         return encumbrance / capacity;
     }

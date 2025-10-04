@@ -29,9 +29,9 @@ namespace MWGui
 
         center();
 
-        mControllerButtons.mA = "#{sSelect}";
+        mControllerButtons.mA = "#{Interface:Select}";
         mControllerButtons.mB = "#{Interface:Cancel}";
-        mControllerButtons.mR3 = "#{sInfo}";
+        mControllerButtons.mR3 = "#{Interface:Info}";
     }
 
     bool ItemSelectionDialog::exit()
@@ -68,7 +68,7 @@ namespace MWGui
         eventItemSelected(item.mBase);
     }
 
-    void ItemSelectionDialog::onCancelButtonClicked(MyGUI::Widget* sender)
+    void ItemSelectionDialog::onCancelButtonClicked(MyGUI::Widget* /*sender*/)
     {
         exit();
     }

@@ -275,7 +275,7 @@ namespace MWBase
          * @param id Identifier for the GMST setting, e.g. "aName"
          * @param default Default value if the GMST setting cannot be used.
          */
-        virtual std::string_view getGameSettingString(std::string_view id, std::string_view default_) = 0;
+        virtual std::string_view getGameSettingString(std::string_view id, std::string_view defaultValue) = 0;
 
         virtual void processChangedSettings(const std::set<std::pair<std::string, std::string>>& changed) = 0;
 
@@ -392,8 +392,12 @@ namespace MWBase
         /// Cycle to the next window to receive controller events
         virtual void cycleActiveControllerWindow(bool next) = 0;
         virtual void setActiveControllerWindow(MWGui::GuiMode mode, int activeIndex) = 0;
-        virtual bool getControllerTooltip() const = 0;
-        virtual void setControllerTooltip(bool enabled) = 0;
+        virtual bool getControllerTooltipVisible() const = 0;
+        virtual void setControllerTooltipVisible(bool visible) = 0;
+        virtual bool getControllerTooltipEnabled() const = 0;
+        virtual void setControllerTooltipEnabled(bool enabled) = 0;
+        /// Restore tooltip visibility if user has them enabled but they were hidden by mouse movement
+        virtual void restoreControllerTooltips() = 0;
         virtual void updateControllerButtonsOverlay() = 0;
 
         // Used in Lua bindings

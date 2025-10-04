@@ -700,7 +700,7 @@ namespace MWClass
             damage, healthdmg, hitPosition, true, MWMechanics::DamageSourceType::Melee);
     }
 
-    void Npc::onHit(const MWWorld::Ptr& ptr, const std::map<std::string, float>& damages, const MWWorld::Ptr& object,
+    void Npc::onHit(const MWWorld::Ptr& ptr, const std::map<std::string, float>& damages, ESM::RefId object,
         const MWWorld::Ptr& attacker, bool successful, const MWMechanics::DamageSourceType sourceType) const
     {
         MWMechanics::CreatureStats& stats = getCreatureStats(ptr);
@@ -735,8 +735,8 @@ namespace MWClass
                 statsAttacker.setHitAttemptActorId(stats.getActorId());
         }
 
-        if (!object.isEmpty())
-            stats.setLastHitAttemptObject(object.getCellRef().getRefId());
+        if (!object.empty())
+            stats.setLastHitAttemptObject(object);
 
         if (setOnPcHitMe && !attacker.isEmpty() && attacker == MWMechanics::getPlayer())
         {
@@ -752,8 +752,8 @@ namespace MWClass
             return;
         }
 
-        if (!object.isEmpty())
-            stats.setLastHitObject(object.getCellRef().getRefId());
+        if (!object.empty())
+            stats.setLastHitObject(object);
 
         if (ptr == MWMechanics::getPlayer() && MWBase::Environment::get().getWorld()->getGodModeState())
             return;
@@ -953,7 +953,8 @@ namespace MWClass
 
     float Npc::getJump(const MWWorld::Ptr& ptr) const
     {
-        if (getEncumbrance(ptr) > getCapacity(ptr))
+        const float normalizedEncumbrance = getNormalizedEncumbrance(ptr);
+        if (normalizedEncumbrance > 1.0f)
             return 0.f;
 
         const MWMechanics::NpcStats& stats = getNpcStats(ptr);
@@ -963,7 +964,7 @@ namespace MWClass
         const GMST& gmst = getGmst();
         const MWMechanics::MagicEffects& mageffects = stats.getMagicEffects();
         const float encumbranceTerm = gmst.fJumpEncumbranceBase->mValue.getFloat()
-            + gmst.fJumpEncumbranceMultiplier->mValue.getFloat() * (1.0f - Npc::getNormalizedEncumbrance(ptr));
+            + gmst.fJumpEncumbranceMultiplier->mValue.getFloat() * (1.0f - normalizedEncumbrance);
 
         float a = getSkill(ptr, ESM::Skill::Acrobatics);
         float b = 0.0f;

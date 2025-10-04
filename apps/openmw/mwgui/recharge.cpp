@@ -42,7 +42,7 @@ namespace MWGui
 
         mControllerButtons.mA = "#{OMWEngine:RechargeSelect}";
         mControllerButtons.mB = "#{Interface:Cancel}";
-        mControllerButtons.mY = "#{sSoulGem}";
+        mControllerButtons.mY = "#{Interface:Soul}";
     }
 
     void Recharge::onOpen()
@@ -99,12 +99,12 @@ namespace MWGui
         center();
     }
 
-    void Recharge::onCancel(MyGUI::Widget* sender)
+    void Recharge::onCancel(MyGUI::Widget* /*sender*/)
     {
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Recharge);
     }
 
-    void Recharge::onSelectItem(MyGUI::Widget* sender)
+    void Recharge::onSelectItem(MyGUI::Widget* /*sender*/)
     {
         mItemSelectionDialog = std::make_unique<ItemSelectionDialog>("#{sSoulGemsWithSouls}");
         mItemSelectionDialog->eventItemSelected += MyGUI::newDelegate(this, &Recharge::onItemSelected);
@@ -131,7 +131,7 @@ namespace MWGui
         mItemSelectionDialog->setVisible(false);
     }
 
-    void Recharge::onItemClicked(MyGUI::Widget* sender, const MWWorld::Ptr& item)
+    void Recharge::onItemClicked(MyGUI::Widget* /*sender*/, const MWWorld::Ptr& item)
     {
         MWWorld::Ptr gem = *mGemIcon->getUserData<MWWorld::Ptr>();
         if (!MWMechanics::rechargeItem(item, gem))

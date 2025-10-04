@@ -61,7 +61,7 @@ namespace MWGui
 
         if (Settings::gui().mControllerMenus)
         {
-            mControllerButtons.mA = "#{sSelect}";
+            mControllerButtons.mA = "#{Interface:Select}";
             mControllerButtons.mB = "#{Interface:OK}";
         }
     }
@@ -201,12 +201,12 @@ namespace MWGui
         mAssignDialog->setVisible(true);
     }
 
-    void QuickKeysMenu::onOkButtonClicked(MyGUI::Widget* sender)
+    void QuickKeysMenu::onOkButtonClicked(MyGUI::Widget* /*sender*/)
     {
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_QuickKeysMenu);
     }
 
-    void QuickKeysMenu::onItemButtonClicked(MyGUI::Widget* sender)
+    void QuickKeysMenu::onItemButtonClicked(MyGUI::Widget* /*sender*/)
     {
         if (!mItemSelectionDialog)
         {
@@ -221,7 +221,7 @@ namespace MWGui
         mAssignDialog->setVisible(false);
     }
 
-    void QuickKeysMenu::onMagicButtonClicked(MyGUI::Widget* sender)
+    void QuickKeysMenu::onMagicButtonClicked(MyGUI::Widget* /*sender*/)
     {
         if (!mMagicSelectionDialog)
         {
@@ -232,13 +232,13 @@ namespace MWGui
         mAssignDialog->setVisible(false);
     }
 
-    void QuickKeysMenu::onUnassignButtonClicked(MyGUI::Widget* sender)
+    void QuickKeysMenu::onUnassignButtonClicked(MyGUI::Widget* /*sender*/)
     {
         unassign(mSelected);
         mAssignDialog->setVisible(false);
     }
 
-    void QuickKeysMenu::onCancelButtonClicked(MyGUI::Widget* sender)
+    void QuickKeysMenu::onCancelButtonClicked(MyGUI::Widget* /*sender*/)
     {
         mAssignDialog->setVisible(false);
     }
@@ -539,7 +539,7 @@ namespace MWGui
         {
             mDisableGamepadCursor = true;
             mItemButton->setStateSelected(true);
-            mControllerButtons.mA = "#{sSelect}";
+            mControllerButtons.mA = "#{Interface:Select}";
             mControllerButtons.mB = "#{Interface:Cancel}";
         }
 
@@ -701,14 +701,14 @@ namespace MWGui
 
         if (Settings::gui().mControllerMenus)
         {
-            mControllerButtons.mA = "#{sSelect}";
+            mControllerButtons.mA = "#{Interface:Select}";
             mControllerButtons.mB = "#{Interface:Cancel}";
         }
 
         center();
     }
 
-    void MagicSelectionDialog::onCancelButtonClicked(MyGUI::Widget* sender)
+    void MagicSelectionDialog::onCancelButtonClicked(MyGUI::Widget* /*sender*/)
     {
         exit();
     }

@@ -1,6 +1,6 @@
-#include <components/misc/strings/format.hpp>
-
 #include "utf8.hpp"
+
+#include <format>
 
 namespace
 {
@@ -17,12 +17,12 @@ namespace
     {
         double integer;
         if (!arg.is<double>())
-            throw std::runtime_error(Misc::StringUtils::format("bad argument #%i to '%s' (number expected, got %s)", n,
-                name, sol::type_name(arg.lua_state(), arg.get_type())));
+            throw std::runtime_error(std::format("bad argument #{} to '{}' (number expected, got {})", n, name,
+                sol::type_name(arg.lua_state(), arg.get_type())));
 
         if (std::modf(arg, &integer) != 0)
             throw std::runtime_error(
-                Misc::StringUtils::format("bad argument #%i to '%s' (number has no integer representation)", n, name));
+                std::format("bad argument #{} to '{}' (number has no integer representation)", n, name));
 
         return static_cast<std::int64_t>(integer);
     }
@@ -65,9 +65,9 @@ namespace
     }
 
     // returns: first - character pos in bytes, second - character codepoint
-    std::pair<int64_t, int64_t> decodeNextUTF8Character(std::string_view s, std::vector<int64_t>& pos_byte)
+    std::pair<int64_t, int64_t> decodeNextUTF8Character(std::string_view s, std::vector<int64_t>& posByte)
     {
-        const int64_t pos = pos_byte.back() - 1;
+        const int64_t pos = posByte.back() - 1;
         const unsigned char ch = static_cast<unsigned char>(s[pos]);
         int64_t codepoint = -1;
         size_t byteSize = 0;
@@ -104,9 +104,9 @@ namespace
             codepoint = (codepoint << 6) | (static_cast<unsigned char>(s[pos + i]) & 0b00111111);
         }
 
-        std::pair<size_t, int64_t> res = std::make_pair(pos_byte.back(), codepoint);
+        std::pair<size_t, int64_t> res = std::make_pair(posByte.back(), codepoint);
 
-        pos_byte.push_back(pos_byte.back() + byteSize); /* the next character (if exists) starts at this byte */
+        posByte.push_back(posByte.back() + byteSize); /* the next character (if exists) starts at this byte */
 
         return res;
     }
@@ -127,8 +127,7 @@ namespace LuaUtf8
             {
                 int64_t codepoint = getInteger(args[i], (i + 1), "char");
                 if (codepoint < 0 || codepoint > MAXUNICODE)
-                    throw std::runtime_error(
-                        "bad argument #" + std::to_string(i + 1) + " to 'char' (value out of range)");
+                    throw std::runtime_error(std::format("bad argument #{} to 'char' (value out of range)", i + 1));
 
                 codepointToUTF8(static_cast<char32_t>(codepoint), result);
             }
@@ -142,8 +141,7 @@ namespace LuaUtf8
                     {
                         const auto pair = decodeNextUTF8Character(s, posByte);
                         if (pair.second == -1)
-                            throw std::runtime_error(
-                                "Invalid UTF-8 code at position " + std::to_string(posByte.size()));
+                            throw std::runtime_error(std::format("Invalid UTF-8 code at position {}", posByte.size()));
 
                         return pair;
                     }
@@ -202,7 +200,7 @@ namespace LuaUtf8
             {
                 codepoints.push_back(decodeNextUTF8Character(s, posByte).second);
                 if (codepoints.back() == -1)
-                    throw std::runtime_error("Invalid UTF-8 code at position " + std::to_string(posByte.size()));
+                    throw std::runtime_error(std::format("Invalid UTF-8 code at position {}", posByte.size()));
             }
 
             return sol::as_returns(std::move(codepoints));

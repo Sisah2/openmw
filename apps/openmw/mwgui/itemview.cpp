@@ -151,32 +151,32 @@ namespace MWGui
         eventItemClicked(index);
     }
 
-    void ItemView::onSelectedBackground(MyGUI::Widget* sender)
+    void ItemView::onSelectedBackground(MyGUI::Widget* /*sender*/)
     {
         eventBackgroundClicked();
     }
 
-    void ItemView::onMouseWheelMoved(MyGUI::Widget* _sender, int _rel)
+    void ItemView::onMouseWheelMoved(MyGUI::Widget* /*sender*/, int rel)
     {
-        if (mScrollView->getViewOffset().left + _rel * 0.3f > 0)
+        if (mScrollView->getViewOffset().left + rel * 0.3f > 0)
             mScrollView->setViewOffset(MyGUI::IntPoint(0, 0));
         else
             mScrollView->setViewOffset(
-                MyGUI::IntPoint(static_cast<int>(mScrollView->getViewOffset().left + _rel * 0.3f), 0));
+                MyGUI::IntPoint(static_cast<int>(mScrollView->getViewOffset().left + rel * 0.3f), 0));
     }
 
-    void ItemView::setSize(const MyGUI::IntSize& _value)
+    void ItemView::setSize(const MyGUI::IntSize& value)
     {
-        bool changed = (_value.width != getWidth() || _value.height != getHeight());
-        Base::setSize(_value);
+        bool changed = (value.width != getWidth() || value.height != getHeight());
+        Base::setSize(value);
         if (changed)
             layoutWidgets();
     }
 
-    void ItemView::setCoord(const MyGUI::IntCoord& _value)
+    void ItemView::setCoord(const MyGUI::IntCoord& value)
     {
-        bool changed = (_value.width != getWidth() || _value.height != getHeight());
-        Base::setCoord(_value);
+        bool changed = (value.width != getWidth() || value.height != getHeight());
+        Base::setCoord(value);
         if (changed)
             layoutWidgets();
     }
@@ -190,7 +190,7 @@ namespace MWGui
     {
         mControllerActiveWindow = active;
 
-        MWBase::Environment::get().getWindowManager()->setControllerTooltip(
+        MWBase::Environment::get().getWindowManager()->setControllerTooltipVisible(
             active && Settings::gui().mControllerTooltips);
 
         if (active)
@@ -205,6 +205,7 @@ namespace MWGui
             return;
 
         int prevFocus = mControllerFocus;
+        MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
 
         switch (button)
         {
@@ -218,27 +219,30 @@ namespace MWGui
                 break;
             case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
                 // Toggle info tooltip
-                MWBase::Environment::get().getWindowManager()->setControllerTooltip(
-                    !MWBase::Environment::get().getWindowManager()->getControllerTooltip());
+                winMgr->setControllerTooltipEnabled(!winMgr->getControllerTooltipEnabled());
                 updateControllerFocus(-1, mControllerFocus);
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                winMgr->restoreControllerTooltips();
                 if (mControllerFocus % mRows == 0)
                     mControllerFocus = std::min(mControllerFocus + mRows - 1, mItemCount - 1);
                 else
                     mControllerFocus--;
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                winMgr->restoreControllerTooltips();
                 if (mControllerFocus % mRows == mRows - 1 || mControllerFocus == mItemCount - 1)
                     mControllerFocus -= mControllerFocus % mRows;
                 else
                     mControllerFocus++;
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                winMgr->restoreControllerTooltips();
                 if (mControllerFocus >= mRows)
                     mControllerFocus -= mRows;
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                winMgr->restoreControllerTooltips();
                 if (mControllerFocus + mRows < mItemCount)
                     mControllerFocus += mRows;
                 else if (mControllerFocus / mRows != (mItemCount - 1) / mRows)
@@ -257,7 +261,7 @@ namespace MWGui
     void ItemView::updateControllerFocus(int prevFocus, int newFocus)
     {
         MWBase::Environment::get().getWindowManager()->setCursorVisible(
-            !MWBase::Environment::get().getWindowManager()->getControllerTooltip());
+            !MWBase::Environment::get().getWindowManager()->getControllerTooltipVisible());
 
         if (!mItemCount)
             return;
@@ -285,7 +289,10 @@ namespace MWGui
                 else
                     mScrollView->setViewOffset(MyGUI::IntPoint(-42 * (column - 3), 0));
 
-                if (MWBase::Environment::get().getWindowManager()->getControllerTooltip())
+                MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
+                winMgr->restoreControllerTooltips();
+
+                if (winMgr->getControllerTooltipVisible())
                     MWBase::Environment::get().getInputManager()->warpMouseToWidget(focused);
             }
         }

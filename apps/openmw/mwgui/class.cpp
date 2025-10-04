@@ -59,8 +59,8 @@ namespace MWGui
         {
             mOkButton->setStateSelected(true);
             mDisableGamepadCursor = true;
-            mControllerButtons.mA = "#{sSelect}";
-            mControllerButtons.mB = "#{sBack}";
+            mControllerButtons.mA = "#{Interface:Select}";
+            mControllerButtons.mB = "#{Interface:Back}";
         }
 
         center();
@@ -104,12 +104,12 @@ namespace MWGui
 
     // widget controls
 
-    void GenerateClassResultDialog::onOkClicked(MyGUI::Widget* _sender)
+    void GenerateClassResultDialog::onOkClicked(MyGUI::Widget* /*sender*/)
     {
         eventDone(this);
     }
 
-    void GenerateClassResultDialog::onBackClicked(MyGUI::Widget* _sender)
+    void GenerateClassResultDialog::onBackClicked(MyGUI::Widget* /*sender*/)
     {
         eventBack();
     }
@@ -149,9 +149,9 @@ namespace MWGui
 
         if (Settings::gui().mControllerMenus)
         {
-            mControllerButtons.mLStick = "#{sMouse}";
-            mControllerButtons.mA = "#{sSelect}";
-            mControllerButtons.mB = "#{sBack}";
+            mControllerButtons.mLStick = "#{Interface:Mouse}";
+            mControllerButtons.mA = "#{Interface:Select}";
+            mControllerButtons.mB = "#{Interface:Back}";
         }
 
         updateClasses();
@@ -167,13 +167,13 @@ namespace MWGui
         {
             okButton->setCaption(
                 MyGUI::UString(MWBase::Environment::get().getWindowManager()->getGameSettingString("sNext", {})));
-            mControllerButtons.mX = "#{sNext}";
+            mControllerButtons.mX = "#{Interface:Next}";
         }
         else if (Settings::gui().mControllerMenus)
         {
             okButton->setCaption(
                 MyGUI::UString(MWBase::Environment::get().getWindowManager()->getGameSettingString("sDone", {})));
-            mControllerButtons.mX = "#{sDone}";
+            mControllerButtons.mX = "#{Interface:Done}";
         }
         else
             okButton->setCaption(
@@ -215,32 +215,32 @@ namespace MWGui
 
     // widget controls
 
-    void PickClassDialog::onOkClicked(MyGUI::Widget* _sender)
+    void PickClassDialog::onOkClicked(MyGUI::Widget* /*sender*/)
     {
         if (mClassList->getIndexSelected() == MyGUI::ITEM_NONE)
             return;
         eventDone(this);
     }
 
-    void PickClassDialog::onBackClicked(MyGUI::Widget* _sender)
+    void PickClassDialog::onBackClicked(MyGUI::Widget* /*sender*/)
     {
         eventBack();
     }
 
-    void PickClassDialog::onAccept(MyGUI::ListBox* _sender, size_t _index)
+    void PickClassDialog::onAccept(MyGUI::ListBox* sender, size_t index)
     {
-        onSelectClass(_sender, _index);
+        onSelectClass(sender, index);
         if (mClassList->getIndexSelected() == MyGUI::ITEM_NONE)
             return;
         eventDone(this);
     }
 
-    void PickClassDialog::onSelectClass(MyGUI::ListBox* _sender, size_t _index)
+    void PickClassDialog::onSelectClass(MyGUI::ListBox* sender, size_t index)
     {
-        if (_index == MyGUI::ITEM_NONE)
+        if (index == MyGUI::ITEM_NONE)
             return;
 
-        const ESM::RefId& classId = *mClassList->getItemDataAt<ESM::RefId>(_index);
+        const ESM::RefId& classId = *mClassList->getItemDataAt<ESM::RefId>(index);
         if (mCurrentClassId == classId)
             return;
 
@@ -392,7 +392,7 @@ namespace MWGui
         center();
 
         mDisableGamepadCursor = Settings::gui().mControllerMenus;
-        mControllerButtons.mA = "#{sSelect}";
+        mControllerButtons.mA = "#{Interface:Select}";
     }
 
     void InfoBoxDialog::setText(const std::string& str)
@@ -449,12 +449,12 @@ namespace MWGui
         center();
     }
 
-    void InfoBoxDialog::onButtonClicked(MyGUI::Widget* _sender)
+    void InfoBoxDialog::onButtonClicked(MyGUI::Widget* sender)
     {
         int i = 0;
         for (MyGUI::Button* button : mButtons)
         {
-            if (button == _sender)
+            if (button == sender)
             {
                 eventButtonSelected(i);
                 return;
@@ -584,9 +584,9 @@ namespace MWGui
         if (Settings::gui().mControllerMenus)
         {
             okButton->setStateSelected(true);
-            mControllerButtons.mLStick = "#{sMouse}";
-            mControllerButtons.mA = "#{sSelect}";
-            mControllerButtons.mB = "#{sBack}";
+            mControllerButtons.mLStick = "#{Interface:Mouse}";
+            mControllerButtons.mA = "#{Interface:Select}";
+            mControllerButtons.mB = "#{Interface:Back}";
         }
 
         // Set default skills, attributes
@@ -678,13 +678,13 @@ namespace MWGui
         {
             okButton->setCaption(
                 MyGUI::UString(MWBase::Environment::get().getWindowManager()->getGameSettingString("sNext", {})));
-            mControllerButtons.mX = "#{sNext}";
+            mControllerButtons.mX = "#{Interface:Next}";
         }
         else if (Settings::gui().mControllerMenus)
         {
             okButton->setCaption(
                 MyGUI::UString(MWBase::Environment::get().getWindowManager()->getGameSettingString("sDone", {})));
-            mControllerButtons.mX = "#{sDone}";
+            mControllerButtons.mX = "#{Interface:Done}";
         }
         else
             okButton->setCaption(
@@ -735,7 +735,7 @@ namespace MWGui
         MWBase::Environment::get().getWindowManager()->removeDialog(std::move(mDescDialog));
     }
 
-    void CreateClassDialog::onSpecializationClicked(MyGUI::Widget* _sender)
+    void CreateClassDialog::onSpecializationClicked(MyGUI::Widget* /*sender*/)
     {
         mSpecDialog = std::make_unique<SelectSpecializationDialog>();
         mSpecDialog->eventCancel += MyGUI::newDelegate(this, &CreateClassDialog::onDialogCancel);
@@ -761,10 +761,10 @@ namespace MWGui
         ToolTips::createSpecializationToolTip(mSpecializationName, specName, mSpecializationId);
     }
 
-    void CreateClassDialog::onAttributeClicked(Widgets::MWAttributePtr _sender)
+    void CreateClassDialog::onAttributeClicked(Widgets::MWAttributePtr sender)
     {
         mAttribDialog = std::make_unique<SelectAttributeDialog>();
-        mAffectedAttribute = _sender;
+        mAffectedAttribute = sender;
         mAttribDialog->eventCancel += MyGUI::newDelegate(this, &CreateClassDialog::onDialogCancel);
         mAttribDialog->eventItemSelected += MyGUI::newDelegate(this, &CreateClassDialog::onAttributeSelected);
         mAttribDialog->setVisible(true);
@@ -789,10 +789,10 @@ namespace MWGui
         update();
     }
 
-    void CreateClassDialog::onSkillClicked(Widgets::MWSkillPtr _sender)
+    void CreateClassDialog::onSkillClicked(Widgets::MWSkillPtr sender)
     {
         mSkillDialog = std::make_unique<SelectSkillDialog>();
-        mAffectedSkill = _sender;
+        mAffectedSkill = sender;
         mSkillDialog->eventCancel += MyGUI::newDelegate(this, &CreateClassDialog::onDialogCancel);
         mSkillDialog->eventItemSelected += MyGUI::newDelegate(this, &CreateClassDialog::onSkillSelected);
         mSkillDialog->setVisible(true);
@@ -819,7 +819,7 @@ namespace MWGui
         update();
     }
 
-    void CreateClassDialog::onDescriptionClicked(MyGUI::Widget* _sender)
+    void CreateClassDialog::onDescriptionClicked(MyGUI::Widget* /*sender*/)
     {
         mDescDialog = std::make_unique<DescriptionDialog>();
         mDescDialog->setTextInput(mDescription);
@@ -833,14 +833,14 @@ namespace MWGui
         MWBase::Environment::get().getWindowManager()->removeDialog(std::move(mDescDialog));
     }
 
-    void CreateClassDialog::onOkClicked(MyGUI::Widget* _sender)
+    void CreateClassDialog::onOkClicked(MyGUI::Widget* /*sender*/)
     {
         if (getName().size() <= 0)
             return;
         eventDone(this);
     }
 
-    void CreateClassDialog::onBackClicked(MyGUI::Widget* _sender)
+    void CreateClassDialog::onBackClicked(MyGUI::Widget* /*sender*/)
     {
         eventBack();
     }
@@ -882,7 +882,7 @@ namespace MWGui
         getWidget(cancelButton, "CancelButton");
         cancelButton->eventMouseButtonClick += MyGUI::newDelegate(this, &SelectSpecializationDialog::onCancelClicked);
 
-        mControllerButtons.mA = "#{sSelect}";
+        mControllerButtons.mA = "#{Interface:Select}";
         mControllerButtons.mB = "#{Interface:Cancel}";
     }
 
@@ -890,13 +890,13 @@ namespace MWGui
 
     // widget controls
 
-    void SelectSpecializationDialog::onSpecializationClicked(MyGUI::Widget* _sender)
+    void SelectSpecializationDialog::onSpecializationClicked(MyGUI::Widget* sender)
     {
-        if (_sender == mSpecialization0)
+        if (sender == mSpecialization0)
             mSpecializationId = ESM::Class::Combat;
-        else if (_sender == mSpecialization1)
+        else if (sender == mSpecialization1)
             mSpecializationId = ESM::Class::Magic;
-        else if (_sender == mSpecialization2)
+        else if (sender == mSpecialization2)
             mSpecializationId = ESM::Class::Stealth;
         else
             return;
@@ -904,7 +904,7 @@ namespace MWGui
         eventItemSelected();
     }
 
-    void SelectSpecializationDialog::onCancelClicked(MyGUI::Widget* _sender)
+    void SelectSpecializationDialog::onCancelClicked(MyGUI::Widget* /*sender*/)
     {
         exit();
     }
@@ -963,20 +963,20 @@ namespace MWGui
             if (mAttributeButtons.size() > 0)
                 mAttributeButtons[0]->setStateSelected(true);
 
-            mControllerButtons.mA = "#{sSelect}";
+            mControllerButtons.mA = "#{Interface:Select}";
             mControllerButtons.mB = "#{Interface:Cancel}";
         }
     }
 
     // widget controls
 
-    void SelectAttributeDialog::onAttributeClicked(Widgets::MWAttributePtr _sender)
+    void SelectAttributeDialog::onAttributeClicked(Widgets::MWAttributePtr sender)
     {
-        mAttributeId = _sender->getAttributeId();
+        mAttributeId = sender->getAttributeId();
         eventItemSelected();
     }
 
-    void SelectAttributeDialog::onCancelClicked(MyGUI::Widget* _sender)
+    void SelectAttributeDialog::onCancelClicked(MyGUI::Widget* /*sender*/)
     {
         exit();
     }
@@ -1063,7 +1063,7 @@ namespace MWGui
             if (mSkillButtons.size() > 0)
                 mSkillButtons[0]->setStateSelected(true);
 
-            mControllerButtons.mA = "#{sSelect}";
+            mControllerButtons.mA = "#{Interface:Select}";
             mControllerButtons.mB = "#{Interface:Cancel}";
         }
     }
@@ -1072,13 +1072,13 @@ namespace MWGui
 
     // widget controls
 
-    void SelectSkillDialog::onSkillClicked(Widgets::MWSkillPtr _sender)
+    void SelectSkillDialog::onSkillClicked(Widgets::MWSkillPtr sender)
     {
-        mSkillId = _sender->getSkillId();
+        mSkillId = sender->getSkillId();
         eventItemSelected();
     }
 
-    void SelectSkillDialog::onCancelClicked(MyGUI::Widget* _sender)
+    void SelectSkillDialog::onCancelClicked(MyGUI::Widget* /*sender*/)
     {
         exit();
     }
@@ -1184,7 +1184,7 @@ namespace MWGui
 
     // widget controls
 
-    void DescriptionDialog::onOkClicked(MyGUI::Widget* _sender)
+    void DescriptionDialog::onOkClicked(MyGUI::Widget* /*sender*/)
     {
         eventDone(this);
     }

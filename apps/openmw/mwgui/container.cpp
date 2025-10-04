@@ -59,11 +59,11 @@ namespace MWGui
 
         setCoord(200, 0, 600, 300);
 
-        mControllerButtons.mA = "#{sTake}";
+        mControllerButtons.mA = "#{Interface:Take}";
         mControllerButtons.mB = "#{Interface:Close}";
-        mControllerButtons.mX = "#{sTakeAll}";
-        mControllerButtons.mR3 = "#{sInfo}";
-        mControllerButtons.mL2 = "#{sInventory}";
+        mControllerButtons.mX = "#{Interface:TakeAll}";
+        mControllerButtons.mR3 = "#{Interface:Info}";
+        mControllerButtons.mL2 = "#{Interface:Inventory}";
     }
 
     void ContainerWindow::onItemSelected(int index)
@@ -223,12 +223,12 @@ namespace MWGui
         mItemTransfer->removeTarget(*mItemView);
     }
 
-    void ContainerWindow::onCloseButtonClicked(MyGUI::Widget* _sender)
+    void ContainerWindow::onCloseButtonClicked(MyGUI::Widget* /*sender*/)
     {
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Container);
     }
 
-    void ContainerWindow::onTakeAllButtonClicked(MyGUI::Widget* _sender)
+    void ContainerWindow::onTakeAllButtonClicked(MyGUI::Widget* /*sender*/)
     {
         if (!mModel)
             return;
@@ -279,7 +279,7 @@ namespace MWGui
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Container);
     }
 
-    void ContainerWindow::onDisposeCorpseButtonClicked(MyGUI::Widget* sender)
+    void ContainerWindow::onDisposeCorpseButtonClicked(MyGUI::Widget* /*sender*/)
     {
         if (mDragAndDrop == nullptr || !mDragAndDrop->mIsOnDragAndDrop)
         {
@@ -355,7 +355,10 @@ namespace MWGui
 
     ControllerButtons* ContainerWindow::getControllerButtons()
     {
-        mControllerButtons.mR1 = mDisposeCorpseButton->getVisible() ? "#{sDisposeofCorpse}" : "";
+        if (mDisposeCorpseButton->getVisible())
+            mControllerButtons.mR1 = "#{Interface:DisposeOfCorpse}";
+        else
+            mControllerButtons.mR1.clear();
         return &mControllerButtons;
     }
 

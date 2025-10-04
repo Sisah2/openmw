@@ -84,21 +84,21 @@ namespace MWGui
         if (Settings::gui().mControllerMenus)
         {
             setPinButtonVisible(false);
-            mControllerButtons.mLStick = "#{sMouse}";
-            mControllerButtons.mRStick = "#{sScrolldown}";
-            mControllerButtons.mB = "#{sBack}";
+            mControllerButtons.mLStick = "#{Interface:Mouse}";
+            mControllerButtons.mRStick = "#{Interface:ScrollDown}";
+            mControllerButtons.mB = "#{Interface:Back}";
         }
 
         onWindowResize(t);
     }
 
-    void StatsWindow::onMouseWheel(MyGUI::Widget* _sender, int _rel)
+    void StatsWindow::onMouseWheel(MyGUI::Widget* /*sender*/, int rel)
     {
-        if (mSkillView->getViewOffset().top + _rel * 0.3 > 0)
+        if (mSkillView->getViewOffset().top + rel * 0.3 > 0)
             mSkillView->setViewOffset(MyGUI::IntPoint(0, 0));
         else
             mSkillView->setViewOffset(
-                MyGUI::IntPoint(0, static_cast<int>(mSkillView->getViewOffset().top + _rel * 0.3)));
+                MyGUI::IntPoint(0, static_cast<int>(mSkillView->getViewOffset().top + rel * 0.3)));
     }
 
     void StatsWindow::onWindowResize(MyGUI::Window* window)

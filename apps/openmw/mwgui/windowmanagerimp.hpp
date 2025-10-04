@@ -287,7 +287,7 @@ namespace MWGui
          * @param id Identifier for the GMST setting, e.g. "aName"
          * @param default Default value if the GMST setting cannot be used.
          */
-        std::string_view getGameSettingString(std::string_view id, std::string_view default_) override;
+        std::string_view getGameSettingString(std::string_view id, std::string_view defaultValue) override;
 
         void processChangedSettings(const Settings::CategorySettingVector& changed) override;
 
@@ -395,8 +395,11 @@ namespace MWGui
         int getControllerMenuHeight() override;
         void cycleActiveControllerWindow(bool next) override;
         void setActiveControllerWindow(GuiMode mode, int activeIndex) override;
-        bool getControllerTooltip() const override { return mControllerTooltip; }
-        void setControllerTooltip(bool enabled) override;
+        bool getControllerTooltipVisible() const override { return mControllerTooltipVisible; }
+        void setControllerTooltipVisible(bool visible) override;
+        bool getControllerTooltipEnabled() const override { return mControllerTooltipEnabled; }
+        void setControllerTooltipEnabled(bool enabled) override;
+        void restoreControllerTooltips() override;
         void updateControllerButtonsOverlay() override;
 
         // Used in Lua bindings
@@ -424,7 +427,7 @@ namespace MWGui
 
         std::map<MyGUI::Window*, WindowSettingValues> mTrackedWindows;
         void trackWindow(Layout* layout, const WindowSettingValues& settings);
-        void onWindowChangeCoord(MyGUI::Window* _sender);
+        void onWindowChangeCoord(MyGUI::Window* sender);
 
         ESM::RefId mSelectedSpell;
         MWWorld::Ptr mSelectedEnchantItem;
@@ -511,7 +514,10 @@ namespace MWGui
         std::vector<GuiMode> mGuiModes;
         // The active window for controller mode for each GUI mode.
         std::map<GuiMode, int> mActiveControllerWindows;
-        bool mControllerTooltip = false;
+        // Current tooltip visibility state (can be disabled by mouse movement)
+        bool mControllerTooltipVisible = false;
+        // User preference for tooltips (persists across mouse/controller switches)
+        bool mControllerTooltipEnabled = false;
 
         void reapplyActiveControllerWindow();
 
@@ -579,18 +585,18 @@ namespace MWGui
          * "FontColor_color_<FontColourName>" from openmw.cfg, in the format "#xxxxxx" where x are hexadecimal numbers.
          * Useful in an EditBox's caption to change the color of following text.
          */
-        void onRetrieveTag(const MyGUI::UString& _tag, MyGUI::UString& _result);
+        void onRetrieveTag(const MyGUI::UString& tag, MyGUI::UString& result);
 
         void onCursorChange(std::string_view name);
         void onKeyFocusChanged(MyGUI::Widget* widget);
 
         // Key pressed while playing a video
-        void onVideoKeyPressed(MyGUI::Widget* _sender, MyGUI::KeyCode _key, MyGUI::Char _char);
+        void onVideoKeyPressed(MyGUI::Widget* sender, MyGUI::KeyCode key, MyGUI::Char value);
 
         void sizeVideo(int screenWidth, int screenHeight);
 
-        void onClipboardChanged(std::string_view _type, std::string_view _data);
-        void onClipboardRequested(std::string_view _type, std::string& _data);
+        void onClipboardChanged(std::string_view type, std::string_view data);
+        void onClipboardRequested(std::string_view type, std::string& data);
 
         void createTextures();
         void createCursors();

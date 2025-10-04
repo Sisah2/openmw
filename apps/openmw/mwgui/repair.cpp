@@ -40,7 +40,7 @@ namespace MWGui
 
         mToolIcon->eventMouseButtonClick += MyGUI::newDelegate(this, &Repair::onSelectItem);
 
-        mControllerButtons.mA = "#{sRepair}";
+        mControllerButtons.mA = "#{Interface:Repair}";
         mControllerButtons.mB = "#{Interface:Cancel}";
         mControllerButtons.mY = "#{OMWEngine:RepairTool}";
     }
@@ -110,7 +110,7 @@ namespace MWGui
         center();
     }
 
-    void Repair::onSelectItem(MyGUI::Widget* sender)
+    void Repair::onSelectItem(MyGUI::Widget* /*sender*/)
     {
         mItemSelectionDialog = std::make_unique<ItemSelectionDialog>("#{sRepair}");
         mItemSelectionDialog->eventItemSelected += MyGUI::newDelegate(this, &Repair::onItemSelected);

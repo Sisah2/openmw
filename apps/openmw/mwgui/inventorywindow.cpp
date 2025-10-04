@@ -151,7 +151,7 @@ namespace MWGui
             image->setImageTexture(MWBase::Environment::get().getInputManager()->getControllerButtonIcon(
                 SDL_CONTROLLER_BUTTON_RIGHTSHOULDER));
 
-            mControllerButtons.mR3 = "#{sInfo}";
+            mControllerButtons.mR3 = "#{Interface:Info}";
         }
 
         adjustPanes();
@@ -325,10 +325,10 @@ namespace MWGui
         // If we unequip weapon during attack, it can lead to unexpected behaviour
         if (MWBase::Environment::get().getMechanicsManager()->isAttackingOrSpell(mPtr))
         {
-            bool isWeapon = item.mBase.getType() == ESM::Weapon::sRecordId;
             MWWorld::InventoryStore& invStore = mPtr.getClass().getInventoryStore(mPtr);
-
-            if (isWeapon && invStore.isEquipped(item.mBase))
+            MWWorld::ContainerStoreIterator weapIt = invStore.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
+            bool weapActive = mPtr.getClass().getCreatureStats(mPtr).getDrawState() == MWMechanics::DrawState::Weapon;
+            if (weapActive && weapIt != invStore.end() && *weapIt == item.mBase)
             {
                 MWBase::Environment::get().getWindowManager()->messageBox("#{sCantEquipWeapWarning}");
                 return;
@@ -512,19 +512,19 @@ namespace MWGui
         mItemTransfer->removeTarget(*mItemView);
     }
 
-    void InventoryWindow::onWindowResize(MyGUI::Window* _sender)
+    void InventoryWindow::onWindowResize(MyGUI::Window* sender)
     {
-        WindowBase::clampWindowCoordinates(_sender);
+        WindowBase::clampWindowCoordinates(sender);
 
         adjustPanes();
         const WindowSettingValues settings = getModeSettings(mGuiMode);
 
         MyGUI::IntSize viewSize = MyGUI::RenderManager::getInstance().getViewSize();
 
-        settings.mRegular.mX.set(_sender->getPosition().left / static_cast<float>(viewSize.width));
-        settings.mRegular.mY.set(_sender->getPosition().top / static_cast<float>(viewSize.height));
-        settings.mRegular.mW.set(_sender->getSize().width / static_cast<float>(viewSize.width));
-        settings.mRegular.mH.set(_sender->getSize().height / static_cast<float>(viewSize.height));
+        settings.mRegular.mX.set(sender->getPosition().left / static_cast<float>(viewSize.width));
+        settings.mRegular.mY.set(sender->getPosition().top / static_cast<float>(viewSize.height));
+        settings.mRegular.mW.set(sender->getSize().width / static_cast<float>(viewSize.width));
+        settings.mRegular.mH.set(sender->getSize().height / static_cast<float>(viewSize.height));
         settings.mIsMaximized.set(false);
 
         if (mMainWidget->getSize().width != mLastXSize || mMainWidget->getSize().height != mLastYSize)
@@ -557,23 +557,23 @@ namespace MWGui
                 viewport.height / float(mPreview->getTextureHeight())));
     }
 
-    void InventoryWindow::onNameFilterChanged(MyGUI::EditBox* _sender)
+    void InventoryWindow::onNameFilterChanged(MyGUI::EditBox* sender)
     {
-        mSortModel->setNameFilter(_sender->getCaption());
+        mSortModel->setNameFilter(sender->getCaption());
         mItemView->update();
     }
 
-    void InventoryWindow::onFilterChanged(MyGUI::Widget* _sender)
+    void InventoryWindow::onFilterChanged(MyGUI::Widget* sender)
     {
-        if (_sender == mFilterAll)
+        if (sender == mFilterAll)
             mSortModel->setCategory(SortFilterItemModel::Category_All);
-        else if (_sender == mFilterWeapon)
+        else if (sender == mFilterWeapon)
             mSortModel->setCategory(SortFilterItemModel::Category_Weapon);
-        else if (_sender == mFilterApparel)
+        else if (sender == mFilterApparel)
             mSortModel->setCategory(SortFilterItemModel::Category_Apparel);
-        else if (_sender == mFilterMagic)
+        else if (sender == mFilterMagic)
             mSortModel->setCategory(SortFilterItemModel::Category_Magic);
-        else if (_sender == mFilterMisc)
+        else if (sender == mFilterMisc)
             mSortModel->setCategory(SortFilterItemModel::Category_Misc);
         mFilterAll->setStateSelected(false);
         mFilterWeapon->setStateSelected(false);
@@ -583,7 +583,7 @@ namespace MWGui
 
         mItemView->update();
 
-        _sender->castType<MyGUI::Button>()->setStateSelected(true);
+        sender->castType<MyGUI::Button>()->setStateSelected(true);
     }
 
     void InventoryWindow::onPinToggled()
@@ -621,20 +621,23 @@ namespace MWGui
         auto type = ptr.getType();
         bool isWeaponOrArmor = type == ESM::Weapon::sRecordId || type == ESM::Armor::sRecordId;
         bool isBroken = ptr.getClass().hasItemHealth(ptr) && ptr.getCellRef().getCharge() == 0;
+        const bool isFromDragAndDrop = mDragAndDrop->mIsOnDragAndDrop && mDragAndDrop->mItem.mBase == ptr;
+        const auto [canEquipResult, canEquipMsg] = ptr.getClass().canBeEquipped(ptr, mPtr);
 
         // In vanilla, broken armor or weapons cannot be equipped
         // tools with 0 charges is equippable
         if (isBroken && isWeaponOrArmor)
         {
-            MWBase::Environment::get().getWindowManager()->messageBox("#{sInventoryMessage1}");
+            if (isFromDragAndDrop)
+                mDragAndDrop->drop(mTradeModel, mItemView);
+            MWBase::Environment::get().getWindowManager()->messageBox(canEquipMsg);
             return;
         }
 
-        bool canEquip = ptr.getClass().canBeEquipped(ptr, mPtr).first != 0;
-        bool shouldSetOnPcEquip = canEquip || force;
+        const bool willEquip = canEquipResult != 0 || force;
 
         // If the item has a script, set OnPCEquip or PCSkipEquip to 1
-        if (!script.empty() && shouldSetOnPcEquip)
+        if (!script.empty() && willEquip)
         {
             // Ingredients, books and repair hammers must not have OnPCEquip set to 1 here
             bool isBook = type == ESM::Book::sRecordId;
@@ -649,7 +652,6 @@ namespace MWGui
 
         MWWorld::InventoryStore& invStore = mPtr.getClass().getInventoryStore(mPtr);
         auto [eqSlots, canStack] = ptr.getClass().getEquipmentSlots(ptr);
-        bool isFromDragAndDrop = mDragAndDrop->mItem.mBase == ptr;
         int useCount = isFromDragAndDrop ? mDragAndDrop->mDraggedCount : ptr.getCellRef().getCount();
 
         if (!eqSlots.empty())
@@ -659,18 +661,20 @@ namespace MWGui
                 useCount += it->getCellRef().getCount();
         }
 
-        action->execute(player, !canEquip);
+        action->execute(player, !willEquip);
 
         // Partial equipping
         int excess = ptr.getCellRef().getCount() - useCount;
         if (excess > 0 && canStack)
             invStore.unequipItemQuantity(ptr, excess);
 
-        if (mDragAndDrop->mIsOnDragAndDrop && isFromDragAndDrop)
+        if (isFromDragAndDrop)
         {
             // Feature: Don't finish draganddrop if potion or ingredient was used
             if (type == ESM::Potion::sRecordId || type == ESM::Ingredient::sRecordId)
                 mDragAndDrop->update();
+            else if (!willEquip)
+                mDragAndDrop->drop(mTradeModel, mItemView);
             else
                 mDragAndDrop->finish();
         }
@@ -683,19 +687,11 @@ namespace MWGui
         // else: will be updated in open()
     }
 
-    void InventoryWindow::onAvatarClicked(MyGUI::Widget* _sender)
+    void InventoryWindow::onAvatarClicked(MyGUI::Widget* /*sender*/)
     {
         if (mDragAndDrop->mIsOnDragAndDrop)
         {
             MWWorld::Ptr ptr = mDragAndDrop->mItem.mBase;
-
-            auto [canEquipRes, canEquipMsg] = ptr.getClass().canBeEquipped(ptr, mPtr);
-            if (canEquipRes == 0) // cannot equip
-            {
-                mDragAndDrop->drop(mTradeModel, mItemView); // also plays down sound
-                MWBase::Environment::get().getWindowManager()->messageBox(canEquipMsg);
-                return;
-            }
 
             if (mDragAndDrop->mSourceModel != mTradeModel)
             {
@@ -972,25 +968,25 @@ namespace MWGui
                 mControllerButtons.mA = "#{OMWEngine:InventorySelect}";
                 mControllerButtons.mB = "#{Interface:Close}";
                 mControllerButtons.mX.clear();
-                mControllerButtons.mR2 = "#{sCompanionShare}";
+                mControllerButtons.mR2 = "#{Interface:Share}";
                 break;
             case MWGui::GM_Container:
                 mControllerButtons.mA = "#{OMWEngine:InventorySelect}";
                 mControllerButtons.mB = "#{Interface:Close}";
-                mControllerButtons.mX = "#{sTakeAll}";
-                mControllerButtons.mR2 = "#{sContainer}";
+                mControllerButtons.mX = "#{Interface:TakeAll}";
+                mControllerButtons.mR2 = "#{Interface:Container}";
                 break;
             case MWGui::GM_Barter:
-                mControllerButtons.mA = "#{sSell}";
+                mControllerButtons.mA = "#{Interface:Sell}";
                 mControllerButtons.mB = "#{Interface:Cancel}";
-                mControllerButtons.mX = "#{sOffer}";
-                mControllerButtons.mR2 = "#{sBarter}";
+                mControllerButtons.mX = "#{Interface:Offer}";
+                mControllerButtons.mR2 = "#{Interface:Barter}";
                 break;
             case MWGui::GM_Inventory:
             default:
-                mControllerButtons.mA = "#{sEquip}";
-                mControllerButtons.mB = "#{sBack}";
-                mControllerButtons.mX = "#{sDrop}";
+                mControllerButtons.mA = "#{Interface:Equip}";
+                mControllerButtons.mB = "#{Interface:Back}";
+                mControllerButtons.mX = "#{Interface:Drop}";
                 mControllerButtons.mR2.clear();
                 break;
         }

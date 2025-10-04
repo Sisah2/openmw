@@ -66,16 +66,16 @@ namespace MWGui
                 MyGUI::IntCoord(0, 0, (64 - 7) * scale, mNextPageButton->getSize().height * scale));
         }
 
-        mControllerButtons.mL1 = "#{sPrev}";
-        mControllerButtons.mR1 = "#{sNext}";
+        mControllerButtons.mL1 = "#{Interface:Prev}";
+        mControllerButtons.mR1 = "#{Interface:Next}";
         mControllerButtons.mB = "#{Interface:Close}";
 
         center();
     }
 
-    void BookWindow::onMouseWheel(MyGUI::Widget* _sender, int _rel)
+    void BookWindow::onMouseWheel(MyGUI::Widget* /*sender*/, int rel)
     {
-        if (_rel < 0)
+        if (rel < 0)
             nextPage();
         else
             prevPage();
@@ -122,7 +122,7 @@ namespace MWGui
         mTakeButton->setVisible(mTakeButtonShow && mTakeButtonAllowed);
     }
 
-    void BookWindow::onKeyButtonPressed(MyGUI::Widget* sender, MyGUI::KeyCode key, MyGUI::Char character)
+    void BookWindow::onKeyButtonPressed(MyGUI::Widget* /*sender*/, MyGUI::KeyCode key, MyGUI::Char character)
     {
         if (key == MyGUI::KeyCode::ArrowUp)
             prevPage();
@@ -136,12 +136,12 @@ namespace MWGui
         mTakeButton->setVisible(mTakeButtonShow && mTakeButtonAllowed);
     }
 
-    void BookWindow::onCloseButtonClicked(MyGUI::Widget* sender)
+    void BookWindow::onCloseButtonClicked(MyGUI::Widget* /*sender*/)
     {
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Book);
     }
 
-    void BookWindow::onTakeButtonClicked(MyGUI::Widget* sender)
+    void BookWindow::onTakeButtonClicked(MyGUI::Widget* /*sender*/)
     {
         MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Item Book Up"));
 
@@ -151,12 +151,12 @@ namespace MWGui
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Book);
     }
 
-    void BookWindow::onNextPageButtonClicked(MyGUI::Widget* sender)
+    void BookWindow::onNextPageButtonClicked(MyGUI::Widget* /*sender*/)
     {
         nextPage();
     }
 
-    void BookWindow::onPrevPageButtonClicked(MyGUI::Widget* sender)
+    void BookWindow::onPrevPageButtonClicked(MyGUI::Widget* /*sender*/)
     {
         prevPage();
     }
@@ -224,7 +224,10 @@ namespace MWGui
 
     ControllerButtons* BookWindow::getControllerButtons()
     {
-        mControllerButtons.mA = mTakeButton->getVisible() ? "#{sTake}" : "";
+        if (mTakeButton->getVisible())
+            mControllerButtons.mA = "#{Interface:Take}";
+        else
+            mControllerButtons.mA.clear();
         return &mControllerButtons;
     }
 

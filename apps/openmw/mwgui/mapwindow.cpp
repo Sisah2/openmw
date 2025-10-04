@@ -76,9 +76,9 @@ namespace
         MyGUI::Colour mNormalColour;
         MyGUI::Colour mHoverColour;
 
-        void onMouseLostFocus(MyGUI::Widget* _new) override { setColour(mNormalColour); }
+        void onMouseLostFocus(MyGUI::Widget* /*newWidget*/) override { setColour(mNormalColour); }
 
-        void onMouseSetFocus(MyGUI::Widget* _old) override { setColour(mHoverColour); }
+        void onMouseSetFocus(MyGUI::Widget* /*oldWidget*/) override { setColour(mHoverColour); }
     };
 
     MyGUI::IntRect createRect(const MyGUI::IntPoint& center, int radius)
@@ -834,10 +834,11 @@ namespace MWGui
 
         if (Settings::gui().mControllerMenus)
         {
-            mControllerButtons.mB = "#{sBack}";
-            mControllerButtons.mX = global ? "#{sLocal}" : "#{sWorld}";
-            mControllerButtons.mY = "#{sCenter}";
-            mControllerButtons.mDpad = Settings::map().mAllowZooming ? "" : "#{sMove}";
+            mControllerButtons.mB = "#{Interface:Back}";
+            mControllerButtons.mX = global ? "#{Interface:Local}" : "#{Interface:World}";
+            mControllerButtons.mY = "#{Interface:Center}";
+            if (!Settings::map().mAllowZooming)
+                mControllerButtons.mDpad = "#{Interface:Move}";
         }
     }
 
@@ -878,7 +879,7 @@ namespace MWGui
         mEditNoteDialog.setVisible(true);
     }
 
-    void MapWindow::onMapDoubleClicked(MyGUI::Widget* sender)
+    void MapWindow::onMapDoubleClicked(MyGUI::Widget* /*sender*/)
     {
         MyGUI::IntPoint clickedPos = MyGUI::InputManager::getInstance().getMousePosition();
 
@@ -911,7 +912,7 @@ namespace MWGui
         mEditNoteDialog.setText({});
     }
 
-    void MapWindow::onMapZoomed(MyGUI::Widget* sender, int rel)
+    void MapWindow::onMapZoomed(MyGUI::Widget* /*sender*/, int rel)
     {
         const int localWidgetSize = Settings::map().mLocalMapWidgetSize;
         const bool zoomOut = rel < 0;
@@ -1193,19 +1194,19 @@ namespace MWGui
             setGlobalMapMarkerTooltip(widgetPair.widget, widgetPair.position.x(), widgetPair.position.y());
     }
 
-    void MapWindow::onDragStart(MyGUI::Widget* _sender, int _left, int _top, MyGUI::MouseButton _id)
+    void MapWindow::onDragStart(MyGUI::Widget* /*sender*/, int left, int top, MyGUI::MouseButton id)
     {
-        if (_id != MyGUI::MouseButton::Left)
+        if (id != MyGUI::MouseButton::Left)
             return;
-        mLastDragPos = MyGUI::IntPoint(_left, _top);
+        mLastDragPos = MyGUI::IntPoint(left, top);
     }
 
-    void MapWindow::onMouseDrag(MyGUI::Widget* _sender, int _left, int _top, MyGUI::MouseButton _id)
+    void MapWindow::onMouseDrag(MyGUI::Widget* /*sender*/, int left, int top, MyGUI::MouseButton id)
     {
-        if (_id != MyGUI::MouseButton::Left)
+        if (id != MyGUI::MouseButton::Left)
             return;
 
-        MyGUI::IntPoint diff = MyGUI::IntPoint(_left, _top) - mLastDragPos;
+        MyGUI::IntPoint diff = MyGUI::IntPoint(left, top) - mLastDragPos;
 
         if (!Settings::map().mGlobal)
         {
@@ -1215,10 +1216,10 @@ namespace MWGui
         else
             mGlobalMap->setViewOffset(mGlobalMap->getViewOffset() + diff);
 
-        mLastDragPos = MyGUI::IntPoint(_left, _top);
+        mLastDragPos = MyGUI::IntPoint(left, top);
     }
 
-    void MapWindow::onWorldButtonClicked(MyGUI::Widget* _sender)
+    void MapWindow::onWorldButtonClicked(MyGUI::Widget* /*sender*/)
     {
         const bool global = !Settings::map().mGlobal;
 
@@ -1228,7 +1229,7 @@ namespace MWGui
         mLocalMap->setVisible(!global);
 
         mButton->setCaptionWithReplacing(global ? "#{sLocal}" : "#{sWorld}");
-        mControllerButtons.mX = global ? "#{sLocal}" : "#{sWorld}";
+        mControllerButtons.mX = global ? "#{Interface:Local}" : "#{Interface:World}";
         MWBase::Environment::get().getWindowManager()->updateControllerButtonsOverlay();
     }
 
@@ -1515,24 +1516,27 @@ namespace MWGui
         }
     }
 
-    void EditNoteDialog::onCancelButtonClicked(MyGUI::Widget* sender)
+    void EditNoteDialog::onCancelButtonClicked(MyGUI::Widget* /*sender*/)
     {
         setVisible(false);
     }
 
-    void EditNoteDialog::onOkButtonClicked(MyGUI::Widget* sender)
+    void EditNoteDialog::onOkButtonClicked(MyGUI::Widget* /*sender*/)
     {
         eventOkClicked();
     }
 
-    void EditNoteDialog::onDeleteButtonClicked(MyGUI::Widget* sender)
+    void EditNoteDialog::onDeleteButtonClicked(MyGUI::Widget* /*sender*/)
     {
         eventDeleteClicked();
     }
 
     ControllerButtons* EditNoteDialog::getControllerButtons()
     {
-        mControllerButtons.mX = getDeleteButtonShown() ? "#{sDelete}" : "";
+        if (getDeleteButtonShown())
+            mControllerButtons.mX = "#{Interface:Delete}";
+        else
+            mControllerButtons.mX.clear();
         return &mControllerButtons;
     }
 

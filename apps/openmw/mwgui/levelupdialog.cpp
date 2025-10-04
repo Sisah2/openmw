@@ -94,8 +94,8 @@ namespace MWGui
         if (Settings::gui().mControllerMenus)
         {
             mDisableGamepadCursor = true;
-            mControllerButtons.mA = "#{sSelect}";
-            mControllerButtons.mX = "#{sDone}";
+            mControllerButtons.mA = "#{Interface:Select}";
+            mControllerButtons.mX = "#{Interface:Done}";
             mOkButton->setCaption(
                 MyGUI::UString(MWBase::Environment::get().getWindowManager()->getGameSettingString("sDone", {})));
         }
@@ -238,7 +238,7 @@ namespace MWGui
         MWBase::Environment::get().getSoundManager()->streamMusic(MWSound::triumphMusic, MWSound::MusicType::Normal);
     }
 
-    void LevelupDialog::onOkButtonClicked(MyGUI::Widget* sender)
+    void LevelupDialog::onOkButtonClicked(MyGUI::Widget* /*sender*/)
     {
         MWWorld::Ptr player = MWMechanics::getPlayer();
         MWMechanics::NpcStats& pcStats = player.getClass().getNpcStats(player);

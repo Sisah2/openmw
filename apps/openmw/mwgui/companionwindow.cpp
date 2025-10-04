@@ -64,10 +64,10 @@ namespace MWGui
 
         setCoord(200, 0, 600, 300);
 
-        mControllerButtons.mA = "#{sTake}";
+        mControllerButtons.mA = "#{Interface:Take}";
         mControllerButtons.mB = "#{Interface:Close}";
-        mControllerButtons.mR3 = "#{sInfo}";
-        mControllerButtons.mL2 = "#{sInventory}";
+        mControllerButtons.mR3 = "#{Interface:Info}";
+        mControllerButtons.mL2 = "#{Interface:Inventory}";
     }
 
     void CompanionWindow::onItemSelected(int index)
@@ -114,9 +114,9 @@ namespace MWGui
             dragItem(nullptr, count);
     }
 
-    void CompanionWindow::onNameFilterChanged(MyGUI::EditBox* _sender)
+    void CompanionWindow::onNameFilterChanged(MyGUI::EditBox* sender)
     {
-        mSortModel->setNameFilter(_sender->getCaption());
+        mSortModel->setNameFilter(sender->getCaption());
         mItemView->update();
     }
 
@@ -186,7 +186,7 @@ namespace MWGui
             mProfitLabel->setCaption({});
     }
 
-    void CompanionWindow::onCloseButtonClicked(MyGUI::Widget* _sender)
+    void CompanionWindow::onCloseButtonClicked(MyGUI::Widget* /*sender*/)
     {
         if (exit())
             MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Companion);

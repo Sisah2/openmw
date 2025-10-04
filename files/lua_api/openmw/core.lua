@@ -1251,13 +1251,13 @@
 -- Get the current weather
 -- @function [parent=#Weather] getCurrent
 -- @param #Cell cell The cell to get the current weather for
--- @return #Weather Can be nil if the cell is inactive or has no weather
+-- @return #WeatherRecord Can be nil if the cell is inactive or has no weather
 
 ---
 -- Get the next weather if any
 -- @function [parent=#Weather] getNext
 -- @param #Cell cell The cell to get the next weather for
--- @return #Weather Can be nil
+-- @return #WeatherRecord Can be nil
 
 ---
 -- Get current weather transition value
@@ -1269,7 +1269,7 @@
 -- Change the weather
 -- @function [parent=#Weather] changeWeather
 -- @param #string regionId
--- @param #Weather weather The weather to change to
+-- @param #WeatherRecord weather The weather to change to
 
 ---
 -- Get the current direction of the light of the sun.
@@ -1304,7 +1304,6 @@
 ---
 -- Weather data
 -- @type WeatherRecord
--- @extends #userdata
 -- @field #string recordId
 -- @field #number scriptId
 -- @field #string name
@@ -1329,10 +1328,26 @@
 -- @field #number distantLandFogFactor
 -- @field #number distantLandFogOffset
 -- @field openmw.util#Color sunDiscSunsetColor
--- @field #table landFogDepth A table with the keys "sunrise", "day", "sunset" and "night"
--- @field #table skyColor A table with the keys "sunrise", "day", "sunset" and "night". Each is a @{openmw.util#Color}.
--- @field #table ambientColor A table with the keys "sunrise", "day", "sunset" and "night". Each is a @{openmw.util#Color}.
--- @field #table fogColor A table with the keys "sunrise", "day", "sunset" and "night". Each is a @{openmw.util#Color}.
--- @field #table sunColor A table with the keys "sunrise", "day", "sunset" and "night". Each is a @{openmw.util#Color}.
+-- @field #TimeOfDayInterpolatorFloat landFogDepth
+-- @field #TimeOfDayInterpolatorColor skyColor
+-- @field #TimeOfDayInterpolatorColor ambientColor
+-- @field #TimeOfDayInterpolatorColor fogColor
+-- @field #TimeOfDayInterpolatorColor sunColor
+
+---
+-- Interpolates numbers for weathers based on time of day
+-- @type TimeOfDayInterpolatorFloat
+-- @field #number sunrise
+-- @field #number sunset
+-- @field #number day
+-- @field #number night
+
+---
+-- Interpolates colors for weathers based on time of day
+-- @type TimeOfDayInterpolatorColor
+-- @field openmw.util#Color sunrise
+-- @field openmw.util#Color sunset
+-- @field openmw.util#Color day
+-- @field openmw.util#Color night
 
 return nil

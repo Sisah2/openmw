@@ -278,18 +278,18 @@ namespace MWGui
         mGroupIndices.push_back(mButtons.size());
     }
 
-    void SpellView::setSize(const MyGUI::IntSize& _value)
+    void SpellView::setSize(const MyGUI::IntSize& value)
     {
-        bool changed = (_value.width != getWidth() || _value.height != getHeight());
-        Base::setSize(_value);
+        bool changed = (value.width != getWidth() || value.height != getHeight());
+        Base::setSize(value);
         if (changed)
             layoutWidgets();
     }
 
-    void SpellView::setCoord(const MyGUI::IntCoord& _value)
+    void SpellView::setCoord(const MyGUI::IntCoord& value)
     {
-        bool changed = (_value.width != getWidth() || _value.height != getHeight());
-        Base::setCoord(_value);
+        bool changed = (value.width != getWidth() || value.height != getHeight());
+        Base::setCoord(value);
         if (changed)
             layoutWidgets();
     }
@@ -318,18 +318,18 @@ namespace MWGui
         return MyGUI::utility::parseInt(widget->getUserString(sSpellModelIndex));
     }
 
-    void SpellView::onSpellSelected(MyGUI::Widget* _sender)
+    void SpellView::onSpellSelected(MyGUI::Widget* sender)
     {
-        eventSpellClicked(getSpellModelIndex(_sender));
+        eventSpellClicked(getSpellModelIndex(sender));
     }
 
-    void SpellView::onMouseWheelMoved(MyGUI::Widget* _sender, int _rel)
+    void SpellView::onMouseWheelMoved(MyGUI::Widget* /*sender*/, int rel)
     {
-        if (mScrollView->getViewOffset().top + _rel * 0.3f > 0)
+        if (mScrollView->getViewOffset().top + rel * 0.3f > 0)
             mScrollView->setViewOffset(MyGUI::IntPoint(0, 0));
         else
             mScrollView->setViewOffset(
-                MyGUI::IntPoint(0, static_cast<int>(mScrollView->getViewOffset().top + _rel * 0.3f)));
+                MyGUI::IntPoint(0, static_cast<int>(mScrollView->getViewOffset().top + rel * 0.3f)));
     }
 
     void SpellView::resetScrollbars()
@@ -350,6 +350,7 @@ namespace MWGui
             return;
 
         int prevFocus = mControllerFocus;
+        MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
 
         switch (button)
         {
@@ -363,19 +364,22 @@ namespace MWGui
                 break;
             case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
                 // Toggle info tooltip
-                MWBase::Environment::get().getWindowManager()->setControllerTooltip(
-                    !MWBase::Environment::get().getWindowManager()->getControllerTooltip());
+                winMgr->setControllerTooltipEnabled(!winMgr->getControllerTooltipEnabled());
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                winMgr->restoreControllerTooltips();
                 mControllerFocus--;
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                winMgr->restoreControllerTooltips();
                 mControllerFocus++;
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                winMgr->restoreControllerTooltips();
                 mControllerFocus = std::max(0, mControllerFocus - 10);
                 break;
             case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                winMgr->restoreControllerTooltips();
                 mControllerFocus = std::min(mControllerFocus + 10, static_cast<int>(mButtons.size()) - 1);
                 break;
             case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
@@ -451,7 +455,10 @@ namespace MWGui
                     mScrollView->setViewOffset(MyGUI::IntPoint(0, -lineHeight * (line - 5)));
                 }
 
-                if (MWBase::Environment::get().getWindowManager()->getControllerTooltip())
+                MWBase::WindowManager* winMgr = MWBase::Environment::get().getWindowManager();
+                winMgr->restoreControllerTooltips();
+
+                if (winMgr->getControllerTooltipVisible())
                     MWBase::Environment::get().getInputManager()->warpMouseToWidget(focused);
             }
         }

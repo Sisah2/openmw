@@ -62,9 +62,9 @@ namespace MWGui
         if (Settings::gui().mControllerMenus)
         {
             setPinButtonVisible(false);
-            mControllerButtons.mA = "#{sSelect}";
-            mControllerButtons.mB = "#{sBack}";
-            mControllerButtons.mR3 = "#{sInfo}";
+            mControllerButtons.mA = "#{Interface:Select}";
+            mControllerButtons.mB = "#{Interface:Back}";
+            mControllerButtons.mR3 = "#{Interface:Info}";
         }
     }
 
@@ -328,7 +328,7 @@ namespace MWGui
             MyGUI::Window* window = mMainWidget->castType<MyGUI::Window>();
             window->setCoord(x, active ? y : viewSize.height + 1, width, height);
 
-            MWBase::Environment::get().getWindowManager()->setControllerTooltip(
+            MWBase::Environment::get().getWindowManager()->setControllerTooltipVisible(
                 active && Settings::gui().mControllerTooltips);
         }
 
