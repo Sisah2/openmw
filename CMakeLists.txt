@@ -616,7 +616,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT
         add_compile_options("/WX")
     endif()
 else ()
-    add_compile_options("-Wall" "-Wextra" "-Wundef" "-Wextra-semi" "-Wno-unused-parameter" "-pedantic" "-Wno-long-long" "-Wnon-virtual-dtor" "-Wunused" "-Wshadow")
+    add_compile_options("-Wall" "-Wextra" "-Wundef" "-Wextra-semi" "-Wno-unused-parameter" "-Wno-long-long" "-Wnon-virtual-dtor" "-Wunused" "-Wshadow" "-Wno-overloaded-virtual" "-Wno-inconsistent-missing-override" "-Wno-deprecated-copy-with-user-provided-copy" "-Wno-extra-semi")
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL Clang AND NOT APPLE)
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.6 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 3.6)
