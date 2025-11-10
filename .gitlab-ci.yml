@@ -344,7 +344,7 @@ Ubuntu_GCC_tests_coverage:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   before_script:
     - CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic openmw-coverage
-    - pipx install gcovr
+    - pipx install gcovr==8.3
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
     paths: []
@@ -429,7 +429,11 @@ Ubuntu_Clang:
     - mkdir -pv "${CCACHE_DIR}"
     - ccache -z -M "${CCACHE_SIZE}"
     - CI/before_script.linux.sh
-    - cp extern/.clang-tidy build/.clang-tidy
+    - mkdir -p build/extern build/apps/launcher build/apps/opencs build/apps/wizard
+    - cp extern/.clang-tidy build/extern/
+    - cp extern/.clang-tidy build/apps/launcher/
+    - cp extern/.clang-tidy build/apps/opencs/
+    - cp extern/.clang-tidy build/apps/wizard/
     - cd build
     - find . -name *.o -exec touch {} \;
     - cmake --build . -- -j $(nproc) ${BUILD_TARGETS}
@@ -555,11 +559,12 @@ Ubuntu_GCC_integration_tests_asan:
     - ccache/
   script:
     - CI/before_install.macos.sh
+    - brew install ccache
     - export CCACHE_BASEDIR="$(pwd)"
     - export CCACHE_DIR="$(pwd)/ccache"
     - mkdir -pv "${CCACHE_DIR}"
-    - CI/macos/ccache_prep.sh
-    - CI/before_script.macos.sh
+    - ccache -z -M "${CCACHE_SIZE}"
+    - CI/before_script.macos.sh -C
     - CI/macos/build.sh
     - cd build
     - for dmg in *.dmg; do mv "$dmg" "${dmg%.dmg}_${DMG_IDENTIFIER}_${CI_COMMIT_REF_NAME##*/}.dmg"; done
@@ -578,7 +583,7 @@ Ubuntu_GCC_integration_tests_asan:
           s3cmd put "${dmg}" s3://openmw-artifacts/${artifactDirectory}
         done
       fi
-    - ../CI/macos/ccache_show_stats.sh
+    - ccache -svv
   artifacts:
     paths:
       - build/OpenMW-*.dmg

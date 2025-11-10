@@ -42,6 +42,20 @@
 
 namespace MWLua
 {
+    namespace
+    {
+        struct BoolScopeGuard
+        {
+            bool& mValue;
+            BoolScopeGuard(bool& value)
+                : mValue(value)
+            {
+                mValue = true;
+            }
+
+            ~BoolScopeGuard() { mValue = false; }
+        };
+    }
 
     static LuaUtil::LuaStateSettings createLuaStateSettings()
     {
@@ -208,21 +222,23 @@ namespace MWLua
         // Run event handlers for events that were sent before `finalizeEventBatch`.
         mLuaEvents.callEventHandlers();
 
-        // Run queued callbacks
-        for (CallbackWithData& c : mQueuedCallbacks)
-            c.mCallback.tryCall(c.mArg);
-        mQueuedCallbacks.clear();
+        mLua.protectedCall([&](LuaUtil::LuaView& lua) {
+            // Run queued callbacks
+            for (CallbackWithData& c : mQueuedCallbacks)
+                c.mCallback.tryCall(c.mArg);
+            mQueuedCallbacks.clear();
 
-        // Run engine handlers
-        mEngineEvents.callEngineHandlers();
-        bool isPaused = timeManager.isPaused();
+            // Run engine handlers
+            mEngineEvents.callEngineHandlers();
+            bool isPaused = timeManager.isPaused();
 
-        float frameDuration = MWBase::Environment::get().getFrameDuration();
-        for (LocalScripts* scripts : mActiveLocalScripts)
-            scripts->update(isPaused ? 0 : frameDuration);
-        mGlobalScripts.update(isPaused ? 0 : frameDuration);
+            float frameDuration = MWBase::Environment::get().getFrameDuration();
+            for (LocalScripts* scripts : mActiveLocalScripts)
+                scripts->update(isPaused ? 0 : frameDuration);
+            mGlobalScripts.update(isPaused ? 0 : frameDuration);
 
-        mLua.protectedCall([&](LuaUtil::LuaView& lua) { mScriptTracker.unloadInactiveScripts(lua); });
+            mScriptTracker.unloadInactiveScripts(lua);
+        });
     }
 
     void LuaManager::objectTeleported(const MWWorld::Ptr& ptr)
@@ -264,31 +280,33 @@ namespace MWLua
             // can teleport the player to the starting location before the first frame is rendered.
             mGlobalScripts.newGameStarted();
         }
+        BoolScopeGuard updateGuard(mRunningSynchronizedUpdates);
 
-        // We apply input events in `synchronizedUpdate` rather than in `update` in order to reduce input latency.
-        mProcessingInputEvents = true;
+        MWBase::WindowManager* windowManager = MWBase::Environment::get().getWindowManager();
         PlayerScripts* playerScripts
             = mPlayer.isEmpty() ? nullptr : dynamic_cast<PlayerScripts*>(mPlayer.getRefData().getLuaScripts());
-        MWBase::WindowManager* windowManager = MWBase::Environment::get().getWindowManager();
-
-        for (const auto& event : mMenuInputEvents)
-            mMenuScripts.processInputEvent(event);
-        mMenuInputEvents.clear();
-        if (playerScripts && !windowManager->containsMode(MWGui::GM_MainMenu))
+        // We apply input events in `synchronizedUpdate` rather than in `update` in order to reduce input latency.
         {
-            for (const auto& event : mInputEvents)
-                playerScripts->processInputEvent(event);
+            BoolScopeGuard processingGuard(mProcessingInputEvents);
+
+            for (const auto& event : mMenuInputEvents)
+                mMenuScripts.processInputEvent(event);
+            mMenuInputEvents.clear();
+            if (playerScripts && !windowManager->containsMode(MWGui::GM_MainMenu))
+            {
+                for (const auto& event : mInputEvents)
+                    playerScripts->processInputEvent(event);
+            }
+            mInputEvents.clear();
+            mLuaEvents.callMenuEventHandlers();
+            double frameDuration = MWBase::Environment::get().getWorld()->getTimeManager()->isPaused()
+                ? 0.0
+                : MWBase::Environment::get().getFrameDuration();
+            mInputActions.update(frameDuration);
+            mMenuScripts.onFrame(frameDuration);
+            if (playerScripts)
+                playerScripts->onFrame(frameDuration);
         }
-        mInputEvents.clear();
-        mLuaEvents.callMenuEventHandlers();
-        double frameDuration = MWBase::Environment::get().getWorld()->getTimeManager()->isPaused()
-            ? 0.0
-            : MWBase::Environment::get().getFrameDuration();
-        mInputActions.update(frameDuration);
-        mMenuScripts.onFrame(frameDuration);
-        if (playerScripts)
-            playerScripts->onFrame(frameDuration);
-        mProcessingInputEvents = false;
 
         for (const auto& [message, mode] : mUIMessages)
             windowManager->messageBox(message, mode);
@@ -316,7 +334,7 @@ namespace MWLua
 
     void LuaManager::applyDelayedActions()
     {
-        mApplyingDelayedActions = true;
+        BoolScopeGuard applyingGuard(mApplyingDelayedActions);
         for (DelayedAction& action : mActionQueue)
             action.apply();
         mActionQueue.clear();
@@ -324,7 +342,6 @@ namespace MWLua
         if (mTeleportPlayerAction)
             mTeleportPlayerAction->apply();
         mTeleportPlayerAction.reset();
-        mApplyingDelayedActions = false;
     }
 
     void LuaManager::clear()

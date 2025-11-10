@@ -80,9 +80,9 @@ endif()
 message(STATUS "Configuring OpenMW...")
 
 set(OPENMW_VERSION_MAJOR 0)
-set(OPENMW_VERSION_MINOR 50)
+set(OPENMW_VERSION_MINOR 51)
 set(OPENMW_VERSION_RELEASE 0)
-set(OPENMW_LUA_API_REVISION 95)
+set(OPENMW_LUA_API_REVISION 101)
 set(OPENMW_POSTPROCESSING_API_REVISION 3)
 
 set(OPENMW_VERSION_COMMITHASH "")
@@ -270,6 +270,7 @@ set(USED_OSG_PLUGINS
     osgdb_bmp
     osgdb_dae
     osgdb_dds
+    osgdb_ktx
     osgdb_freetype
     osgdb_jpeg
     osgdb_osg
@@ -452,7 +453,7 @@ if(HAVE_MULTIVIEW)
     add_definitions(-DOSG_HAS_MULTIVIEW)
 endif(HAVE_MULTIVIEW)
 
-set(BOOST_COMPONENTS iostreams program_options system)
+set(BOOST_COMPONENTS iostreams program_options)
 
 find_package(Boost 1.70.0 CONFIG REQUIRED COMPONENTS ${BOOST_COMPONENTS} OPTIONAL_COMPONENTS ${BOOST_OPTIONAL_COMPONENTS})
 
@@ -483,6 +484,7 @@ set(SOL_CONFIG_DIR ${OpenMW_SOURCE_DIR}/extern/sol_config)
 include_directories(
     BEFORE SYSTEM
     "."
+    ${SDL2_INCLUDE_DIR}
     ${MyGUI_INCLUDE_DIRS}
     ${OPENAL_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
@@ -493,7 +495,7 @@ include_directories(
     ${ICU_INCLUDE_DIRS}
 )
 
-link_directories(${COLLADA_DOM_LIBRARY_DIRS})
+link_directories(${SDL2_LIBRARY_DIRS} ${COLLADA_DOM_LIBRARY_DIRS})
 
 if(MYGUI_STATIC)
     add_definitions(-DMYGUI_STATIC)
@@ -615,7 +617,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT
         add_compile_options("/WX")
     endif()
 else ()
-    add_compile_options("-Wall" "-Wextra" "-Wundef" "-Wextra-semi" "-Wno-unused-parameter" "-pedantic" "-Wno-long-long" "-Wnon-virtual-dtor" "-Wunused" "-Wshadow")
+    add_compile_options("-Wall" "-Wextra" "-Wundef" "-Wextra-semi" "-Wno-unused-parameter" "-Wno-long-long" "-Wnon-virtual-dtor" "-Wunused" "-Wshadow" "-Wno-overloaded-virtual" "-Wno-inconsistent-missing-override" "-Wno-deprecated-copy-with-user-provided-copy" "-Wno-extra-semi")
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL Clang AND NOT APPLE)
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.6 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 3.6)

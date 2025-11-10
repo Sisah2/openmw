@@ -32,6 +32,9 @@
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
 
+
+#include <components/files/configurationmanager.hpp>
+
 namespace MWGui
 {
     namespace

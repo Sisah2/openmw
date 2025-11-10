@@ -342,10 +342,10 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
     mViewer->eventTraversal();
     mViewer->updateTraversal();
 
-    // update GUI by world data
+    // update focus object for GUI
     {
-        ScopedProfile<UserStatsType::WindowManager> profile(frameStart, frameNumber, *timer, *stats);
-        mWorld->updateWindowManager();
+        ScopedProfile<UserStatsType::Focus> profile(frameStart, frameNumber, *timer, *stats);
+        mWorld->updateFocusObject();
     }
 
     // if there is a separate Lua thread, it starts the update now
@@ -482,6 +482,10 @@ void OMW::Engine::setSkipMenu(bool skipMenu, bool newGame)
     mSkipMenu = skipMenu;
     mNewGame = newGame;
 }
+
+
+// To share the viewer with Android interfaces
+osg::ref_ptr<osgViewer::Viewer> g_viewer;
 
 void OMW::Engine::createWindow()
 {
@@ -689,6 +693,9 @@ void OMW::Engine::createWindow()
 
     mViewer->getEventQueue()->getCurrentEventState()->setWindowRectangle(
         0, 0, graphicsWindow->getTraits()->width, graphicsWindow->getTraits()->height);
+
+    // To share the viewer with Android interfaces
+    g_viewer = mViewer;
 }
 
 void OMW::Engine::setWindowIcon()
@@ -1070,6 +1077,8 @@ void OMW::Engine::go()
     }
 
     mLuaWorker->join();
+
+    g_viewer.release();
 
     // Save user settings
     Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");

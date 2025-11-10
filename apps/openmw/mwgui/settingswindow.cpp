@@ -33,6 +33,7 @@
 #include <components/vfs/manager.hpp>
 #include <components/vfs/recursivedirectoryiterator.hpp>
 #include <components/widgets/sharedstatebutton.hpp>
+#include <components/files/configurationmanager.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/inputmanager.hpp"
@@ -140,6 +141,8 @@ namespace
             box->setIndexSelected(MyGUI::ITEM_NONE);
     }
 }
+
+extern Files::ConfigurationManager *g_cfgMgr;
 
 namespace MWGui
 {
