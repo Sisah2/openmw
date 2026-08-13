@@ -6,42 +6,52 @@
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
+uniform mat4 texMat@diffuseMapUV;
 #endif
 
 #if @darkMap
 varying vec2 darkMapUV;
+uniform mat4 texMat@darkMapUV;
 #endif
 
 #if @detailMap
 varying vec2 detailMapUV;
+uniform mat4 texMat@detailMapUV;
 #endif
 
 #if @decalMap
 varying vec2 decalMapUV;
+uniform mat4 texMat@decalMapUV;
 #endif
 
 #if @emissiveMap
 varying vec2 emissiveMapUV;
+uniform mat4 texMat@emissiveMapUV;
 #endif
 
 #if @normalMap
 varying vec2 normalMapUV;
+uniform mat4 texMat@normalMapUV;
 #endif
 
 #if @envMap
 varying vec2 envMapUV;
+uniform mat4 texMat@envMapUV;
 #endif
 
 #if @bumpMap
 varying vec2 bumpMapUV;
+uniform mat4 texMat@bumpMapUV;
 #endif
 
 #if @specularMap
 varying vec2 specularMapUV;
+uniform mat4 texMat@specularMapUV;
 #endif
 
 #if @glossMap
 varying vec2 glossMapUV;
+uniform mat4 texMat@glossMapUV;
 #endif
 
 #define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
@@ -110,39 +120,39 @@ void main(void)
 #endif
 
 #if @diffuseMap
-    diffuseMapUV = (gl_TextureMatrix[@diffuseMapUV] * gl_MultiTexCoord@diffuseMapUV).xy;
+    diffuseMapUV = (texMat@diffuseMapUV * vec4(gl_MultiTexCoord@diffuseMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @darkMap
-    darkMapUV = (gl_TextureMatrix[@darkMapUV] * gl_MultiTexCoord@darkMapUV).xy;
+    darkMapUV = (texMat@darkMapUV * vec4(gl_MultiTexCoord@darkMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @detailMap
-    detailMapUV = (gl_TextureMatrix[@detailMapUV] * gl_MultiTexCoord@detailMapUV).xy;
+    detailMapUV = (texMat@detailMapUV * vec4(gl_MultiTexCoord@detailMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @decalMap
-    decalMapUV = (gl_TextureMatrix[@decalMapUV] * gl_MultiTexCoord@decalMapUV).xy;
+    decalMapUV = (texMat@decalMapUV * vec4(gl_MultiTexCoord@decalMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @emissiveMap
-    emissiveMapUV = (gl_TextureMatrix[@emissiveMapUV] * gl_MultiTexCoord@emissiveMapUV).xy;
+    emissiveMapUV = (texMat@emissiveMapUV * vec4(gl_MultiTexCoord@emissiveMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @normalMap
-    normalMapUV = (gl_TextureMatrix[@normalMapUV] * gl_MultiTexCoord@normalMapUV).xy;
+    normalMapUV = (texMat@normalMapUV * vec4(gl_MultiTexCoord@normalMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @bumpMap
-    bumpMapUV = (gl_TextureMatrix[@bumpMapUV] * gl_MultiTexCoord@bumpMapUV).xy;
+    bumpMapUV = (texMat@bumpMapUV * vec4(gl_MultiTexCoord@bumpMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @specularMap
-    specularMapUV = (gl_TextureMatrix[@specularMapUV] * gl_MultiTexCoord@specularMapUV).xy;
+    specularMapUV = (texMat@specularMapUV * vec4(gl_MultiTexCoord@specularMapUV.xyz, 1.0)).xy;
 #endif
 
 #if @glossMap
-    glossMapUV = (gl_TextureMatrix[@glossMapUV] * gl_MultiTexCoord@glossMapUV).xy;
+    glossMapUV = (texMat@glossMapUV * vec4(gl_MultiTexCoord@glossMapUV.xyz, 1.0)).xy;
 #endif
 
 #if !PER_PIXEL_LIGHTING
