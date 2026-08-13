@@ -14,7 +14,7 @@ void main(void)
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 
     vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
-    gl_ClipVertex = viewPos;
+    applyClipPlanes(viewPos);
 
     if (useDiffuseMapForShadowAlpha)
         diffuseMapUV = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
