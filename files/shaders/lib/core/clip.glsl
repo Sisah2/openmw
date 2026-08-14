@@ -1,7 +1,7 @@
 #version 330 core
 
 @foreach clipPlaneIndex @clipPlaneList
-    uniform mat4 clipPlane@clipPlaneIndex;
+    uniform vec4 clipPlane@clipPlaneIndex;
 @endforeach
 
 void applyClipPlanes(vec4 pos)

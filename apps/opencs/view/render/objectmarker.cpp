@@ -55,12 +55,15 @@ namespace
 
             if (false)
             {
-                mClipPlane->setClipPlane(normal.x(), normal.y(), normal.z(), 0);
+                osg::Plane clipPlane(normal, 0.0);
+                clipPlane.transform(*cv->getModelViewMatrix());
+
+                stateset = new osg::StateSet;
+                SceneUtil::setClipPlane(*stateset, 0, clipPlane.asVec4());
             }
             else
             {
-                stateset = new osg::StateSet;
-                SceneUtil::setClipPlane(*stateset, 0, { normal.x(), normal.y(), normal.z(), 0 });
+                mClipPlane->setClipPlane(normal.x(), normal.y(), normal.z(), 0);
             }
 
             if (stateset)
@@ -145,9 +148,9 @@ namespace CSVRender
         osg::ClipPlane* clip = new osg::ClipPlane(0);
         rotateMarkers->setCullCallback(new ToCamera(clip));
         if (false)
-            rotateMarkers->getStateSet()->setAttributeAndModes(clip, osg::StateAttribute::ON);
-        else
             SceneUtil::setClipPlaneMode(*rotateMarkers->getStateSet(), 0, osg::StateAttribute::ON);
+        else
+            rotateMarkers->getStateSet()->setAttributeAndModes(clip, osg::StateAttribute::ON);
     }
 
     void ObjectMarker::toggleVisibility()

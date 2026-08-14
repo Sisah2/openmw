@@ -84,8 +84,10 @@ namespace MWRender
 
                 if (false)
                 {
+                    osg::Plane clipPlane = osg::Plane(plane.getNormal(), 0);
+                    clipPlane.transform(*cv->getModelViewMatrix());
                     stateset = new osg::StateSet;
-                    SceneUtil::setClipPlane(*stateset, 0, osg::Plane(plane.getNormal(), 0).asVec4());
+                    SceneUtil::setClipPlane(*stateset, 0, clipPlane.asVec4());
                 }
 
                 if (stateset)
@@ -170,12 +172,12 @@ namespace MWRender
 
             if (false)
             {
-                mClipNode->addClipPlane(
-                    new osg::ClipPlane(0, osg::Plane(mPlane.getNormal(), 0))); // mPlane.d() applied in FlipCallback
+                SceneUtil::setClipPlaneMode(*getOrCreateStateSet(), 0, osg::StateAttribute::ON);
             }
             else
             {
-                SceneUtil::setClipPlaneMode(*getOrCreateStateSet(), 0, osg::StateAttribute::ON);
+                mClipNode->addClipPlane(
+                    new osg::ClipPlane(0, osg::Plane(mPlane.getNormal(), 0))); // mPlane.d() applied in FlipCallback
             }
 
             mClipNode->setCullingActive(false);

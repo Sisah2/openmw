@@ -768,8 +768,8 @@ namespace Shader
     ShaderManager::DefineMap getDefaultDefines()
     {
         std::string clipPlaneList = "";
-        for (unsigned int i = 0; i <= SceneUtil::NumClipPlanes; ++i)
-            clipPlaneList += std::to_string(i) + (i < SceneUtil::NumClipPlanes ? "," : "");
+        for (unsigned int i = 0; i < SceneUtil::NumClipPlanes; ++i)
+            clipPlaneList += std::to_string(i) + ((i + 1) < SceneUtil::NumClipPlanes ? "," : "");
 
         return {
             { "forcePPL", "0" },
