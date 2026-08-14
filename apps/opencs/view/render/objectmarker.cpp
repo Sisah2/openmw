@@ -55,11 +55,8 @@ namespace
 
             if (false)
             {
-                osg::Plane clipPlane(normal, 0.0);
-                clipPlane.transform(*cv->getModelViewMatrix());
-
                 stateset = new osg::StateSet;
-                SceneUtil::setClipPlane(*stateset, 0, clipPlane.asVec4());
+                SceneUtil::setClipPlane(*stateset, 0, osg::Plane(normal, 0.0).asVec4());
             }
             else
             {
