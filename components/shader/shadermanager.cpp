@@ -20,6 +20,7 @@
 #include <components/misc/pathhelpers.hpp>
 #include <components/misc/strings/algorithm.hpp>
 #include <components/misc/strings/conversion.hpp>
+#include <components/sceneutil/clipplane.hpp>
 #include <components/settings/settings.hpp>
 
 namespace
@@ -766,6 +767,10 @@ namespace Shader
 
     ShaderManager::DefineMap getDefaultDefines()
     {
+        std::string clipPlaneList = "";
+        for (unsigned int i = 0; i < SceneUtil::NumClipPlanes; ++i)
+            clipPlaneList += std::to_string(i) + ((i + 1) < SceneUtil::NumClipPlanes ? "," : "");
+
         return {
             { "forcePPL", "0" },
             { "clamp", "1" },
@@ -783,6 +788,7 @@ namespace Shader
             { "numViews", "1" },
             { "particle", "0" },
             { "particlePointLighting", "1" },
+            { "clipPlaneList", clipPlaneList },
         };
     }
 }

@@ -9,6 +9,7 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/material.hpp>
+#include <components/sceneutil/clipplane.hpp>
 #include <components/sceneutil/visitor.hpp>
 
 #include "../../model/prefs/state.hpp"
@@ -49,8 +50,26 @@ namespace
         void operator()(osg::Node* node, osgUtil::CullVisitor* cv)
         {
             osg::Vec3f normal = cv->getEyePoint();
-            mClipPlane->setClipPlane(normal.x(), normal.y(), normal.z(), 0);
+
+            osg::ref_ptr<osg::StateSet> stateset;
+
+            if (false)
+            {
+                stateset = new osg::StateSet;
+                SceneUtil::setClipPlane(*stateset, 0, osg::Plane(normal, 0.0).asVec4());
+            }
+            else
+            {
+                mClipPlane->setClipPlane(normal.x(), normal.y(), normal.z(), 0);
+            }
+
+            if (stateset)
+                cv->pushStateSet(stateset);
+
             traverse(node, cv);
+
+            if (stateset)
+                cv->popStateSet();
         }
 
     private:
@@ -127,7 +146,10 @@ namespace CSVRender
         osg::ref_ptr<osg::Node> rotateMarkers = mMarkerNodes["rotateMarkers"];
         osg::ClipPlane* clip = new osg::ClipPlane(0);
         rotateMarkers->setCullCallback(new ToCamera(clip));
-        rotateMarkers->getStateSet()->setAttributeAndModes(clip, osg::StateAttribute::ON);
+        if (false)
+            SceneUtil::setClipPlaneMode(*rotateMarkers->getStateSet(), 0, osg::StateAttribute::ON);
+        else
+            rotateMarkers->getStateSet()->setAttributeAndModes(clip, osg::StateAttribute::ON);
     }
 
     void ObjectMarker::toggleVisibility()

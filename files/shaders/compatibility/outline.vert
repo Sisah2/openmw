@@ -5,5 +5,5 @@
 void main(void)
 {
     gl_Position = modelToClip(gl_Vertex);
-    gl_ClipVertex = modelToView(gl_Vertex);
+    applyClipPlanes(modelToView(gl_Vertex));
 }

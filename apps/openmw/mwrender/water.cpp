@@ -18,6 +18,7 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
 
+#include <components/sceneutil/clipplane.hpp>
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/fog.hpp>
 #include <components/sceneutil/material.hpp>
@@ -79,7 +80,21 @@ namespace MWRender
 
                 cv->getProjectionCullingStack().back().getFrustum().add(plane);
 
+                osg::ref_ptr<osg::StateSet> stateset;
+
+                if (true)
+                {
+                    stateset = new osg::StateSet;
+                    SceneUtil::setClipPlane(*stateset, 0, osg::Plane(plane.getNormal(), 0).asVec4());
+                }
+
+                if (stateset)
+                    cv->pushStateSet(stateset);
+
                 traverse(node, cv);
+
+                if (stateset)
+                    cv->popStateSet();
 
                 // undo
                 cv->getProjectionCullingStack().back().getFrustum().set(origPlaneList);
@@ -152,9 +167,17 @@ namespace MWRender
             mPlane = plane;
 
             mClipNode->getClipPlaneList().clear();
-            mClipNode->addClipPlane(
-                new osg::ClipPlane(0, osg::Plane(mPlane.getNormal(), 0))); // mPlane.d() applied in FlipCallback
-            mClipNode->setStateSetModes(*getOrCreateStateSet(), osg::StateAttribute::ON);
+
+            if (true)
+            {
+                SceneUtil::setClipPlaneMode(*getOrCreateStateSet(), 0, osg::StateAttribute::ON);
+            }
+            else
+            {
+                mClipNode->addClipPlane(
+                    new osg::ClipPlane(0, osg::Plane(mPlane.getNormal(), 0))); // mPlane.d() applied in FlipCallback
+            }
+
             mClipNode->setCullingActive(false);
         }
 

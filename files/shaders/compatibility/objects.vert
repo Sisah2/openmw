@@ -99,7 +99,7 @@ void main(void)
     gl_Position = modelToClip(gl_Vertex);
 
     vec4 viewPos = modelToView(gl_Vertex);
-    gl_ClipVertex = viewPos;
+    applyClipPlanes(viewPos);
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
     passNormal = gl_Normal.xyz;

@@ -113,8 +113,13 @@ uniform sampler2D orthoDepthMap;
 varying vec3 orthoDepthMapCoord;
 #endif
 
+varying float clip;
+
 void main()
 {
+    if (clip < 0.0)
+        discard;
+
 #if @particleOcclusion
     applyOcclusionDiscard(orthoDepthMapCoord, texture2D(orthoDepthMap, orthoDepthMapCoord.xy * 0.5 + 0.5).r);
 #endif

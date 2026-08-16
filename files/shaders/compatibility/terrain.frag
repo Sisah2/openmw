@@ -50,8 +50,13 @@ uniform mat4 texMat1;
 
 centroid varying vec4 passColor;
 
+varying float clip;
+
 void main()
 {
+    if (clip < 0.0)
+        discard;
+
     Material material = getMaterial();
 
     vec2 adjustedUV = (texMat0 * vec4(uv, 0.0, 1.0)).xy;

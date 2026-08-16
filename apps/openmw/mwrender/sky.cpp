@@ -11,6 +11,7 @@
 
 #include <components/settings/values.hpp>
 
+#include <components/sceneutil/clipplane.hpp>
 #include <components/sceneutil/controller.hpp>
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/material.hpp>
@@ -275,7 +276,7 @@ namespace MWRender
         // render before the world is rendered
         mEarlyRenderBinRoot->getOrCreateStateSet()->setRenderBinDetails(RenderBin_Sky, "RenderBin");
         // Prevent unwanted clipping by water reflection camera's clipping plane
-        mEarlyRenderBinRoot->getOrCreateStateSet()->setMode(GL_CLIP_PLANE0, osg::StateAttribute::OFF);
+        SceneUtil::setClipPlaneMode(*mEarlyRenderBinRoot->getOrCreateStateSet(), 0, osg::StateAttribute::OFF);
 
         if (enableSkyRTT)
         {
