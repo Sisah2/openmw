@@ -30,6 +30,8 @@ namespace SceneUtil
         if (index >= NumClipPlanes)
             throw std::out_of_range(std::format("Clip plane #{} exceeds maximum of {}", index, NumClipPlanes));
 
-        stateset.setMode(GL_CLIP_DISTANCE0 + index, value);
+        // GL_CLIP_DISTANCEi and GL_CLIP_PLANEi are aliases
+        // This means we can set the same modes for FFP clip planes and forward compatible vertex clipping
+        stateset.setMode(GL_CLIP_PLANE0 + index, value);
     }
 }
