@@ -46,8 +46,13 @@ varying vec3 passViewPos;
 
 centroid varying vec4 passColor;
 
+varying float clip;
+
 void main()
 {
+    if (clip < 0.0)
+        discard;
+
     Material material = getMaterial();
 
 #if @diffuseMap

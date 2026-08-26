@@ -15,7 +15,8 @@ void main()
     gl_Position = modelToClip(gl_Vertex);
 
     vec4 viewPos = modelToView(gl_Vertex);
-    gl_ClipVertex = viewPos;
+
+    applyClipPlanes(viewPos);
 
     if (material.vertexColorMode == ColorMode_AmbientAndDiffuse)
         alphaPassthrough = gl_Color.a;

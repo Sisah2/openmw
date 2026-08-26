@@ -140,7 +140,8 @@ void main(void)
     worldPos.xy += groundcoverDisplacement(worldPos.xyz, gl_Vertex.z);
     vec4 viewPos = osg_ViewMatrix * worldPos;
     passViewPos = viewPos.xyz;
-    gl_ClipVertex = viewPos;
+    applyClipPlanes(viewPos);
+
     euclideanDepth = length(viewPos.xyz);
 
     if (length(gl_ModelViewMatrix * vec4(position, 1.0)) > @groundcoverFadeEnd)

@@ -29,6 +29,8 @@ set(SHADER_FILES
     lib/core/vertex.glsl
     lib/core/vertex.h.glsl
     lib/core/vertex_multiview.glsl
+    lib/core/clip.glsl
+    lib/core/clip_legacy.glsl
     lib/light/bindings.glsl
     lib/light/bindings-legacy.glsl
     lib/light/clamp.glsl
