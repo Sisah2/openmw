@@ -41,6 +41,10 @@ centroid varying vec4 passColor;
 
 void main()
 {
+#if @useClipDistanceFallback
+    applyClipPlanes();
+#endif
+
     Material material = getMaterial();
 
 #if @diffuseMap

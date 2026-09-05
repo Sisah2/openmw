@@ -52,6 +52,10 @@ centroid varying vec4 passColor;
 
 void main()
 {
+#if @useClipDistanceFallback
+    applyClipPlanes();
+#endif
+
     Material material = getMaterial();
 
     vec2 adjustedUV = (texMat0 * vec4(uv, 0.0, 1.0)).xy;

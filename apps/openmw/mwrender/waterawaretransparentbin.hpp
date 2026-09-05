@@ -44,6 +44,7 @@ namespace MWRender
         osg::ref_ptr<osg::StateSet> mClipStateSet;
         bool mCameraUnderwater = false;
         const Water* mWater;
+        const bool mUseFixedFunctionClipPlanes;
     };
 }
 

@@ -18,8 +18,10 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
 
+#include <components/sceneutil/clipplane.hpp>
 #include <components/sceneutil/depth.hpp>
 #include <components/sceneutil/fog.hpp>
+#include <components/sceneutil/glextensions.hpp>
 #include <components/sceneutil/material.hpp>
 #include <components/sceneutil/rtt.hpp>
 #include <components/sceneutil/shadow.hpp>
@@ -60,8 +62,9 @@ namespace MWRender
         {
         public:
             /// @param cullPlane The culling plane (in world space).
-            PlaneCullCallback(const osg::Plane* cullPlane)
+            PlaneCullCallback(const osg::Plane* cullPlane, bool useFixedFunctionClipPlanes)
                 : mCullPlane(cullPlane)
+                , mUseFixedFunctionClipPlanes(useFixedFunctionClipPlanes)
             {
             }
 
@@ -79,7 +82,21 @@ namespace MWRender
 
                 cv->getProjectionCullingStack().back().getFrustum().add(plane);
 
+                osg::ref_ptr<osg::StateSet> stateset;
+
+                if (!mUseFixedFunctionClipPlanes)
+                {
+                    stateset = new osg::StateSet;
+                    SceneUtil::updateClipPlane(*stateset, 0, plane.asVec4());
+                }
+
+                if (stateset)
+                    cv->pushStateSet(stateset);
+
                 traverse(node, cv);
+
+                if (stateset)
+                    cv->popStateSet();
 
                 // undo
                 cv->getProjectionCullingStack().back().getFrustum().set(origPlaneList);
@@ -87,6 +104,7 @@ namespace MWRender
 
         private:
             const osg::Plane* mCullPlane;
+            const bool mUseFixedFunctionClipPlanes;
         };
 
         class FlipCallback : public SceneUtil::NodeCallback<FlipCallback, osg::Node*, osgUtil::CullVisitor*>
@@ -134,7 +152,7 @@ namespace MWRender
     public:
         ClipCullNode()
         {
-            addCullCallback(new PlaneCullCallback(&mPlane));
+            addCullCallback(new PlaneCullCallback(&mPlane, mUseFixedFunctionClipPlanes));
 
             mClipNodeTransform = new osg::Group;
             mClipNodeTransform->addCullCallback(new FlipCallback(&mPlane));
@@ -152,13 +170,18 @@ namespace MWRender
             mPlane = plane;
 
             mClipNode->getClipPlaneList().clear();
-            mClipNode->addClipPlane(
-                new osg::ClipPlane(0, osg::Plane(mPlane.getNormal(), 0))); // mPlane.d() applied in FlipCallback
-            mClipNode->setStateSetModes(*getOrCreateStateSet(), osg::StateAttribute::ON);
+
+            if (mUseFixedFunctionClipPlanes)
+                mClipNode->addClipPlane(
+                    new osg::ClipPlane(0, osg::Plane(mPlane.getNormal(), 0))); // mPlane.d() applied in FlipCallback
+            else
+                SceneUtil::setClipPlaneMode(*getOrCreateStateSet(), 0, osg::StateAttribute::ON);
+
             mClipNode->setCullingActive(false);
         }
 
     private:
+        const bool mUseFixedFunctionClipPlanes = SceneUtil::useFixedFunctionClipPlanes();
         osg::ref_ptr<osg::Group> mClipNodeTransform;
         osg::ref_ptr<osg::ClipNode> mClipNode;
 
