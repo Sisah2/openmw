@@ -1,5 +1,3 @@
-#include <unordered_set>
-
 #include <QFile>
 
 #include <osg/ClipPlane>
@@ -8,6 +6,8 @@
 
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/sceneutil/clipplane.hpp>
+#include <components/sceneutil/glextensions.hpp>
 #include <components/sceneutil/material.hpp>
 #include <components/sceneutil/visitor.hpp>
 
@@ -20,7 +20,7 @@ namespace
     class FindMaterialVisitor : public osg::NodeVisitor
     {
     public:
-        FindMaterialVisitor(CSVRender::NodeMap& map)
+        FindMaterialVisitor(CSVRender::MaterialNodeMap& map)
             : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN)
             , mMap(map)
         {
@@ -30,13 +30,13 @@ namespace
         {
             osg::StateSet* state = node.getStateSet();
             if (state->getAttribute(osg::StateAttribute::MATERIAL))
-                mMap.emplace(node.getName(), &node);
+                mMap[node.getName()].emplace_back(&node);
 
             traverse(node);
         }
 
     private:
-        CSVRender::NodeMap& mMap;
+        CSVRender::MaterialNodeMap& mMap;
     };
 
     class ToCamera : public SceneUtil::NodeCallback<ToCamera, osg::Node*, osgUtil::CullVisitor*>
@@ -49,8 +49,25 @@ namespace
         void operator()(osg::Node* node, osgUtil::CullVisitor* cv)
         {
             osg::Vec3f normal = cv->getEyePoint();
-            mClipPlane->setClipPlane(normal.x(), normal.y(), normal.z(), 0);
+
+            osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
+
+            if (SceneUtil::useFixedFunctionClipPlanes())
+            {
+                mClipPlane->setClipPlane(normal.x(), normal.y(), normal.z(), 0);
+                stateset->setAttributeAndModes(mClipPlane, osg::StateAttribute::ON);
+            }
+            else
+            {
+                osg::Plane viewPlane(normal, 0.0);
+                viewPlane.transform(*cv->getModelViewMatrix());
+                SceneUtil::setClipPlaneMode(*stateset, 0, osg::StateAttribute::ON);
+                SceneUtil::updateClipPlane(*stateset, 0, viewPlane.asVec4());
+            }
+
+            cv->pushStateSet(stateset);
             traverse(node, cv);
+            cv->popStateSet();
         }
 
     private:
@@ -103,19 +120,24 @@ namespace CSVRender
         baseNodeState->setMode(GL_DEPTH_TEST, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
         baseNodeState->setRenderBinDetails(1000, "RenderBin");
 
-        FindMaterialVisitor matMapper(mMarkerNodes);
+        FindMaterialVisitor matMapper(mMaterialNodes);
 
         mBaseNode->accept(matMapper);
 
-        for (const auto& [name, node] : mMarkerNodes)
+        for (const auto& [name, nodes] : mMaterialNodes)
         {
-            osg::StateSet* state = node->getStateSet();
-            SceneUtil::Material* mat
-                = static_cast<SceneUtil::Material*>(state->getAttribute(osg::StateAttribute::MATERIAL));
-            osg::Vec4f emis = mat->getEmission();
-            mat->setEmission(emis / 4);
-            mat->updateStateSet(state);
-            mOriginalColors.emplace(name, emis);
+            const auto* firstMaterial = static_cast<SceneUtil::Material*>(
+                nodes.front()->getStateSet()->getAttribute(osg::StateAttribute::MATERIAL));
+            const osg::Vec4f originalEmission = firstMaterial->getEmission();
+            mOriginalColors.emplace(name, originalEmission);
+
+            for (const auto& node : nodes)
+            {
+                osg::StateSet* state = node->getStateSet();
+                auto* material = static_cast<SceneUtil::Material*>(state->getAttribute(osg::StateAttribute::MATERIAL));
+                material->setEmission(originalEmission / 4);
+                material->updateStateSet(state);
+            }
         }
 
         SceneUtil::NodeMap sceneNodes;
@@ -127,7 +149,6 @@ namespace CSVRender
         osg::ref_ptr<osg::Node> rotateMarkers = mMarkerNodes["rotateMarkers"];
         osg::ClipPlane* clip = new osg::ClipPlane(0);
         rotateMarkers->setCullCallback(new ToCamera(clip));
-        rotateMarkers->getStateSet()->setAttributeAndModes(clip, osg::StateAttribute::ON);
     }
 
     void ObjectMarker::toggleVisibility()
@@ -254,13 +275,21 @@ namespace CSVRender
 
     void ObjectMarker::resetMarkerHighlight()
     {
-        if (mLastHighlightedNodes.empty())
+        if (mHighlightedMaterials.empty())
             return;
 
-        for (const auto& [nodeName, mat] : mLastHighlightedNodes)
-            mat->setEmission(mat->getEmission() / 4);
+        for (const std::string& materialName : mHighlightedMaterials)
+        {
+            for (const auto& node : mMaterialNodes.at(materialName))
+            {
+                osg::StateSet* state = node->getStateSet();
+                auto* material = static_cast<SceneUtil::Material*>(state->getAttribute(osg::StateAttribute::MATERIAL));
+                material->setEmission(mOriginalColors.at(materialName) / 4);
+                material->updateStateSet(state);
+            }
+        }
 
-        mLastHighlightedNodes.clear();
+        mHighlightedMaterials.clear();
         mLastHitNode.clear();
     }
 
@@ -293,17 +322,17 @@ namespace CSVRender
         if (mSubMode != Object::Mode_Rotate)
             targetMaterials.emplace_back(colorName + "_alpha-material");
 
-        for (const auto& materialNodeName : targetMaterials)
+        for (const std::string& materialName : targetMaterials)
         {
-            osg::ref_ptr<osg::Node> matNode = mMarkerNodes[materialNodeName];
-            osg::StateSet* state = matNode->getStateSet();
-            osg::StateAttribute* matAttr = state->getAttribute(osg::StateAttribute::MATERIAL);
+            for (const auto& node : mMaterialNodes.at(materialName))
+            {
+                osg::StateSet* state = node->getStateSet();
+                auto* material = static_cast<SceneUtil::Material*>(state->getAttribute(osg::StateAttribute::MATERIAL));
+                material->setEmission(mOriginalColors.at(materialName));
+                material->updateStateSet(state);
+            }
 
-            SceneUtil::Material* mat = static_cast<SceneUtil::Material*>(matAttr);
-            mat->setEmission(mOriginalColors[materialNodeName]);
-            mat->updateStateSet(state);
-
-            mLastHighlightedNodes.emplace(std::make_pair(matNode->getName(), mat));
+            mHighlightedMaterials.insert(materialName);
         }
 
         mLastHitNode = hitNode;

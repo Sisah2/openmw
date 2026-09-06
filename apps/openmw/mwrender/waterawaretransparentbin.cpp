@@ -9,6 +9,9 @@
 #include <osgUtil/StateGraph>
 
 #include <components/misc/constants.hpp>
+#include <components/sceneutil/clipplane.hpp>
+#include <components/sceneutil/glextensions.hpp>
+#include <components/settings/values.hpp>
 
 #include "opaqueblit.hpp"
 #include "water.hpp"
@@ -35,6 +38,7 @@ namespace MWRender
         , mOpaqueColorResolve(opaqueColorResolve)
         , mClipStateSet(new osg::StateSet)
         , mWater(water)
+        , mUseFixedFunctionClipPlanes(SceneUtil::useFixedFunctionClipPlanes())
     {
     }
 
@@ -43,6 +47,7 @@ namespace MWRender
         , mOpaqueColorResolve(rhs.mOpaqueColorResolve)
         , mClipStateSet(new osg::StateSet)
         , mWater(rhs.mWater)
+        , mUseFixedFunctionClipPlanes(rhs.mUseFixedFunctionClipPlanes)
     {
     }
 
@@ -152,8 +157,18 @@ namespace MWRender
 
         osg::Plane viewPlane = worldPlane;
         viewPlane.transformProvidingInverse(inverseView);
-        mClipStateSet->setAttributeAndModes(new osg::ClipPlane(1, viewPlane),
-            osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE | osg::StateAttribute::PROTECTED);
+
+        if (mUseFixedFunctionClipPlanes)
+        {
+            mClipStateSet->setAttributeAndModes(new osg::ClipPlane(1, viewPlane),
+                osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE | osg::StateAttribute::PROTECTED);
+        }
+        else
+        {
+            SceneUtil::setClipPlaneMode(*mClipStateSet, 1,
+                osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE | osg::StateAttribute::PROTECTED);
+            SceneUtil::updateClipPlane(*mClipStateSet, 1, viewPlane.asVec4());
+        }
 
         if (previous)
             osgUtil::StateGraph::moveToRootStateGraph(state, previous->_parent->_parent);

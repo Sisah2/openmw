@@ -115,6 +115,10 @@ varying vec3 orthoDepthMapCoord;
 
 void main()
 {
+#if @useClipDistanceFallback
+    applyClipPlanes();
+#endif
+
 #if @particleOcclusion
     applyOcclusionDiscard(orthoDepthMapCoord, texture2D(orthoDepthMap, orthoDepthMapCoord.xy * 0.5 + 0.5).r);
 #endif

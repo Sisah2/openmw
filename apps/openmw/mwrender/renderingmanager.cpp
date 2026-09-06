@@ -28,8 +28,10 @@
 
 #include <components/settings/values.hpp>
 
+#include <components/sceneutil/clipplane.hpp>
 #include <components/sceneutil/cullsafeboundsvisitor.hpp>
 #include <components/sceneutil/depth.hpp>
+#include <components/sceneutil/glextensions.hpp>
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/material.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
@@ -263,6 +265,7 @@ namespace MWRender
         globalDefines["exponentialFog"] = exponentialFog ? "1" : "0";
         globalDefines["skyBlending"] = mSkyBlending ? "1" : "0";
         globalDefines["particlePointLighting"] = Settings::shaders().mParticlePointLighting ? "1" : "0";
+        globalDefines["clipDistance"] = SceneUtil::useFixedFunctionClipPlanes() ? "0" : "1";
 
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
@@ -418,6 +421,9 @@ namespace MWRender
         }
 
         SceneUtil::initTexMatForStateSet(*mViewer->getSceneData()->getOrCreateStateSet());
+
+        for (unsigned int i = 0; i < SceneUtil::NumClipPlanes; ++i)
+            SceneUtil::setClipPlaneMode(*mViewer->getSceneData()->getOrCreateStateSet(), i, osg::StateAttribute::OFF);
 
         mRootNode->getOrCreateStateSet()->setMode(
             GL_LIGHTING, osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED | osg::StateAttribute::OVERRIDE);

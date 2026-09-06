@@ -5,6 +5,7 @@
 @link "lib/core/fragment_multiview.glsl" if @useOVR_multiview
 @link "lib/core/lighting_fragment.glsl" if @lightingMethodClustered
 @link "lib/core/lighting_fragment_legacy.glsl" if !@lightingMethodClustered
+@link "lib/core/clip_fragment.glsl" if @useClipDistanceFallback
 
 #include "lib/material/struct.glsl"
 
@@ -23,5 +24,9 @@ void doLighting(vec2 screenCoord, vec3 viewPos, vec3 viewNormal, float shininess
 vec3 doSpecularLighting(vec2 screenCoord, vec3 viewPos, vec3 viewNormal);
 
 Material getMaterial();
+
+#if @useClipDistanceFallback
+void applyClipPlanes();
+#endif
 
 #endif  // OPENMW_FRAGMENT_H_GLSL

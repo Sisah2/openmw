@@ -22,6 +22,8 @@
 #include <components/misc/pathhelpers.hpp>
 #include <components/misc/strings/algorithm.hpp>
 #include <components/misc/strings/conversion.hpp>
+#include <components/sceneutil/clipplane.hpp>
+#include <components/sceneutil/glextensions.hpp>
 #include <components/settings/settings.hpp>
 
 namespace
@@ -858,23 +860,40 @@ namespace Shader
 
     ShaderManager::DefineMap getDefaultDefines()
     {
-        return {
-            { "forcePPL", "0" },
-            { "clamp", "1" },
-            { "preLightEnv", "0" },
-            { "radialFog", "0" },
-            { "exponentialFog", "0" },
-            { "reverseZ", "0" },
-            { "waterRefraction", "0" },
-            { "classicFalloff", "1" },
-            { "skyBlending", "0" },
-            { "disableNormals", "1" },
-            { "useGPUShader4", "0" },
-            { "useOVR_multiview", "0" },
-            { "distorionRTRatio", "0" },
-            { "numViews", "1" },
-            { "particle", "0" },
-            { "particlePointLighting", "1" },
-        };
+        std::string clipPlaneList = "";
+        for (unsigned int i = 0; i < SceneUtil::NumClipPlanes; ++i)
+            clipPlaneList += std::to_string(i) + ((i + 1) < SceneUtil::NumClipPlanes ? "," : "");
+
+#if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+        const bool useClipDistanceFallback = !SceneUtil::supportsNativeClipDistance();
+#endif
+
+        ShaderManager::DefineMap defines
+            = { { "forcePPL", "0" },
+                  { "clamp", "1" },
+                  { "preLightEnv", "0" },
+                  { "radialFog", "0" },
+                  { "exponentialFog", "0" },
+                  { "reverseZ", "0" },
+                  { "waterRefraction", "0" },
+                  { "classicFalloff", "1" },
+                  { "skyBlending", "0" },
+                  { "disableNormals", "1" },
+                  { "useGPUShader4", "0" },
+                  { "useOVR_multiview", "0" },
+                  { "distorionRTRatio", "0" },
+                  { "numViews", "1" },
+                  { "particle", "0" },
+                  { "particlePointLighting", "1" },
+                  { "clipDistance", "0" },
+                  { "clipPlaneList", clipPlaneList },
+#if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+                  { "useClipDistanceFallback", useClipDistanceFallback ? "1" : "0" },
+#else
+                  { "useClipDistanceFallback", "0" },
+#endif
+              };
+        return defines;
     }
+
 }

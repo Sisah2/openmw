@@ -51,6 +51,7 @@
 #include <components/sceneutil/stateupdater.hpp>
 #include <components/sceneutil/texmat.hpp>
 #include <components/shader/removedalphafunc.hpp>
+#include <components/shader/shadermanager.hpp>
 
 #include "../widget/scenetoolmode.hpp"
 
@@ -111,6 +112,28 @@ namespace
 
 namespace CSVRender
 {
+    class ConfigureShadersOperation : public osg::GraphicsOperation
+    {
+    public:
+        ConfigureShadersOperation(Shader::ShaderManager& shaderManager)
+            : GraphicsOperation("ConfigureShadersOperation", false)
+            , mShaderManager(shaderManager)
+        {
+        }
+
+        void operator()(osg::GraphicsContext* graphicsContext) override
+        {
+            mGetGLExtensionsOperation(graphicsContext);
+
+            auto defines = mShaderManager.getGlobalDefines();
+            defines["clipDistance"] = SceneUtil::useFixedFunctionClipPlanes() ? "0" : "1";
+            mShaderManager.setGlobalDefines(defines);
+        }
+
+    private:
+        SceneUtil::GetGLExtensionsOperation mGetGLExtensionsOperation;
+        Shader::ShaderManager& mShaderManager;
+    };
 
     RenderWidget::RenderWidget(
         std::shared_ptr<Resource::ResourceSystem> resourceSystem, QWidget* parent, Qt::WindowFlags f)
@@ -135,7 +158,8 @@ namespace CSVRender
             = new osgViewer::GraphicsWindowEmbedded(0, 0, width(), height());
         mWidget->setGraphicsWindowEmbedded(window);
 
-        mRenderer->setRealizeOperation(new SceneUtil::GetGLExtensionsOperation());
+        mRenderer->setRealizeOperation(
+            new ConfigureShadersOperation(resourceSystem->getSceneManager()->getShaderManager()));
 
         int frameRateLimit = CSMPrefs::get()["Rendering"]["framerate-limit"].toInt();
         mRenderer->setRunMaxFrameRate(frameRateLimit);

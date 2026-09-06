@@ -8,6 +8,8 @@ namespace SceneUtil
 {
     bool glExtensionsReady();
     osg::GLExtensions& getGLExtensions();
+    bool supportsNativeClipDistance();
+    bool useFixedFunctionClipPlanes();
 
     class GetGLExtensionsOperation : public osg::GraphicsOperation
     {

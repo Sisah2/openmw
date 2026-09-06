@@ -1,6 +1,8 @@
 #ifndef OPENCS_VIEW_OBJECT_MARKER_H
 #define OPENCS_VIEW_OBJECT_MARKER_H
 
+#include <unordered_set>
+
 #include "object.hpp"
 
 namespace osg
@@ -16,6 +18,7 @@ namespace SceneUtil
 namespace CSVRender
 {
     using NodeMap = std::unordered_map<std::string, osg::ref_ptr<osg::Node>>;
+    using MaterialNodeMap = std::unordered_map<std::string, std::vector<osg::ref_ptr<osg::Node>>>;
     class WorldspaceWidget;
 
     class ObjectMarkerTag : public ObjectTag
@@ -33,12 +36,13 @@ namespace CSVRender
         WorldspaceWidget* mWorldspaceWidget;
         Resource::ResourceSystem* mResourceSystem;
         NodeMap mMarkerNodes;
+        MaterialNodeMap mMaterialNodes;
         osg::ref_ptr<osg::PositionAttitudeTransform> mBaseNode;
         osg::ref_ptr<osg::PositionAttitudeTransform> mRootNode;
         std::unordered_map<std::string, osg::Vec4f> mOriginalColors;
         std::vector<std::string> mSelectionHistory;
         std::string mLastHitNode;
-        std::unordered_map<std::string, SceneUtil::Material*> mLastHighlightedNodes;
+        std::unordered_set<std::string> mHighlightedMaterials;
         float mMarkerScale;
         int mSubMode;
 

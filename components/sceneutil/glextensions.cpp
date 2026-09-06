@@ -47,6 +47,22 @@ namespace SceneUtil
         return **sGLExtensions.begin();
     }
 
+    bool supportsNativeClipDistance()
+    {
+#if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+        return osg::isGLExtensionSupported(getGLExtensions().contextID, "GL_EXT_clip_cull_distance");
+#endif
+        return getGLExtensions().glVersion >= 3.0f && getGLExtensions().glslLanguageVersion >= 3.3f;
+    }
+
+    bool useFixedFunctionClipPlanes()
+    {
+#if defined(OSG_GLES2_AVAILABLE) || defined(OSG_GLES3_AVAILABLE)
+        return false;
+#endif
+        return !supportsNativeClipDistance();
+    }
+
     GetGLExtensionsOperation::GetGLExtensionsOperation()
         : GraphicsOperation("GetGLExtensionsOperation", false)
     {
