@@ -11,7 +11,6 @@
 #include <components/vfs/pathutil.hpp>
 
 #include "../mwbase/world.hpp"
-#include "../mwphysics/raycasting.hpp"
 
 #include "contentloader.hpp"
 #include "esmstore.hpp"
@@ -123,7 +122,6 @@ namespace MWWorld
         float mSwimHeightScale;
 
         float mDistanceToFocusObject;
-        MWPhysics::RayCastingResult mFocusRay;
 
         bool mTeleportEnabled;
         bool mLevitationEnabled;
@@ -354,8 +352,6 @@ namespace MWWorld
         ///< Return pointer to the object the player is looking at, if it is within activation range
 
         float getDistanceToFocusObject() override;
-
-        const MWPhysics::RayCastingResult& getFocusRay() const override { return mFocusRay; }
 
         /// @note No-op for items in containers. Use ContainerStore::removeItem instead.
         void deleteObject(const Ptr& ptr) override;

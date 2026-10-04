@@ -11,7 +11,7 @@ OpenMW also comes with OpenMW-CS, a replacement for Bethesda's Construction Set.
 * IRC: #openmw on irc.libera.chat
 * Discord: https://discord.gg/bWuqq2e
 
-
+   
 Font Licenses:
 * DejaVuLGCSansMono.ttf: custom (see [files/data/fonts/DejaVuFontLicense.txt](https://gitlab.com/OpenMW/openmw/-/raw/master/files/data/fonts/DejaVuFontLicense.txt) for more information)
 * DemonicLetters.ttf: SIL Open Font License (see [files/data/fonts/DemonicLettersFontLicense.txt](https://gitlab.com/OpenMW/openmw/-/raw/master/files/data/fonts/DemonicLettersFontLicense.txt) for more information)

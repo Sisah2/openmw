@@ -75,13 +75,6 @@ namespace ESM
             v.mAttack, v.mGold);
     }
 
-    template <Misc::SameAsWithoutCvref<Creature::NPDTstruct> T>
-    void decompose(T&& v, const auto& f)
-    {
-        f(v.mType, v.mLevel, v.mHealth, v.mMana, v.mFatigue, v.mSoul, v.mCombat, v.mMagic, v.mStealth, v.mAttack,
-            v.mGold);
-    }
-
     void Creature::load(ESMReader& esm, bool& isDeleted)
     {
         isDeleted = false;
@@ -123,24 +116,9 @@ namespace ESM
                     break;
                 case fourCC("NPDT"):
                 {
-                    if (esm.getFormatVersion() <= MaxFixedStatsFormatVersion)
-                    {
-                        EsmNPDTstruct data;
-                        esm.getSubComposite(data);
-                        fromBinary(data, mData);
-                    }
-                    else
-                    {
-                        esm.getSubComposite(mData);
-                        while (esm.isNextSub("ATTR"))
-                        {
-                            esm.getSubHeader();
-                            int32_t value;
-                            esm.getT(value);
-                            ESM::RefId attribute = esm.getRefId(esm.getSubSize() - sizeof(value));
-                            mData.mAttributes.emplace(attribute, value);
-                        }
-                    }
+                    EsmNPDTstruct data;
+                    esm.getSubComposite(data);
+                    fromBinary(data, mData);
                     hasNpdt = true;
                     break;
                 }
@@ -213,26 +191,9 @@ namespace ESM
         esm.writeHNOCRefId("CNAM", mOriginal);
         esm.writeHNOCString("FNAM", mName);
         esm.writeHNOCRefId("SCRI", mScript);
-        if (esm.getFormatVersion() <= MaxFixedStatsFormatVersion)
-        {
-            EsmNPDTstruct data;
-            toBinary(mData, data);
-            esm.writeNamedComposite("NPDT", data);
-        }
-        else
-        {
-            esm.writeNamedComposite("NPDT", mData);
-            for (const auto& [attribute, value] : mData.mAttributes)
-            {
-                if (!attribute.empty() && value != 0)
-                {
-                    esm.startSubRecord("ATTR");
-                    esm.writeT(value);
-                    esm.writeHRefId(attribute);
-                    esm.endRecord("ATTR");
-                }
-            }
-        }
+        EsmNPDTstruct data;
+        toBinary(mData, data);
+        esm.writeNamedComposite("NPDT", data);
         esm.writeHNT("FLAG", ((mBloodType << 10) + mFlags));
         if (mScale != 1.0)
         {

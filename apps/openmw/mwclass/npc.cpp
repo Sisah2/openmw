@@ -106,11 +106,6 @@ namespace
         return i + 1.f;
     }
 
-    bool contains(const auto& array, ESM::RefId id)
-    {
-        return std::find(array.begin(), array.end(), id) != array.end();
-    }
-
     void autoCalculateAttributes(const ESM::NPC* npc, const ESM::Race* race, MWMechanics::CreatureStats& creatureStats)
     {
         // race bonus
@@ -143,10 +138,13 @@ namespace
 
                 // is this a minor or major skill?
                 float add = 0.2f;
-                if (contains(npcClass->mData.mMajorSkills, skill.mId))
-                    add = 1.0;
-                else if (contains(npcClass->mData.mMinorSkills, skill.mId))
-                    add = 0.5;
+                for (const auto& skills : npcClass->mData.mSkills)
+                {
+                    if (skills[0] == skill.mId)
+                        add = 0.5;
+                    if (skills[1] == skill.mId)
+                        add = 1.0;
+                }
                 modifierSum += add;
             }
             creatureStats.setAttribute(attribute.mId,
@@ -194,15 +192,18 @@ namespace
 
         unsigned int level = npcStats.getLevel();
 
-        for (const auto& id : npcClass->mData.mMinorSkills)
+        for (int i = 0; i < 2; ++i)
         {
-            if (!id.empty())
-                npcStats.getSkill(id).setBase(npcStats.getSkill(id).getBase() + 10);
-        }
-        for (const auto& id : npcClass->mData.mMajorSkills)
-        {
-            if (!id.empty())
-                npcStats.getSkill(id).setBase(npcStats.getSkill(id).getBase() + 25);
+            int bonus = (i == 0) ? 10 : 25;
+
+            for (const auto& skills : npcClass->mData.mSkills)
+            {
+                const ESM::RefId& id = skills[i];
+                if (!id.empty())
+                {
+                    npcStats.getSkill(id).setBase(npcStats.getSkill(id).getBase() + bonus);
+                }
+            }
         }
 
         for (const ESM::Skill& skill : MWBase::Environment::get().getESMStore()->get<ESM::Skill>())
@@ -218,9 +219,15 @@ namespace
             if (bonusIt != race->mData.mBonus.end())
                 raceBonus = bonusIt->mBonus;
 
-            // is this a minor or major skill?
-            if (contains(npcClass->mData.mMinorSkills, skill.mId) || contains(npcClass->mData.mMajorSkills, skill.mId))
-                majorMultiplier = 1.0f;
+            for (const auto& skills : npcClass->mData.mSkills)
+            {
+                // is this a minor or major skill?
+                if (std::find(skills.begin(), skills.end(), skill.mId) != skills.end())
+                {
+                    majorMultiplier = 1.0f;
+                    break;
+                }
+            }
 
             // is this skill in the same Specialization as the class?
             if (skill.mData.mSpecialization == npcClass->mData.mSpecialization)
@@ -301,6 +308,7 @@ namespace MWClass
         if (!ptr.getRefData().getCustomData())
         {
             MWBase::Environment::get().getWorldModel()->registerPtr(ptr);
+            bool recalculate = false;
             auto tempData = std::make_unique<NpcCustomData>();
             NpcCustomData* data = tempData.get();
             MWMechanics::CreatureCustomDataResetter resetter{ ptr };
@@ -308,16 +316,16 @@ namespace MWClass
 
             MWWorld::LiveCellRef<ESM::NPC>* ref = ptr.get<ESM::NPC>();
 
-            const bool autoCalc = ref->mBase->mFlags & ESM::NPC::Autocalc;
-            const bool spellsInitialised = data->mNpcStats.getSpells().setSpells(ref->mBase->mId, autoCalc);
+            const bool spellsInitialised
+                = data->mNpcStats.getSpells().setSpells(ref->mBase->mId, ref->mBase->mFlags & ESM::NPC::Autocalc);
 
             const ESM::Race* race = MWBase::Environment::get().getESMStore()->get<ESM::Race>().find(ref->mBase->mRace);
             // creature stats
-            data->mNpcStats.setLevel(ref->mBase->mNpdt.mLevel);
-            data->mNpcStats.setBaseDisposition(ref->mBase->mNpdt.mDisposition);
-            data->mNpcStats.setReputation(ref->mBase->mNpdt.mReputation);
-            if (!autoCalc)
+            int gold = 0;
+            if (ref->mBase->mNpdtType != ESM::NPC::NPC_WITH_AUTOCALCULATED_STATS)
             {
+                gold = ref->mBase->mNpdt.mGold;
+
                 for (const auto& [skill, value] : ref->mBase->mNpdt.mSkills)
                     data->mNpcStats.getSkill(skill).setBase(value);
 
@@ -327,14 +335,26 @@ namespace MWClass
                 data->mNpcStats.setHealth(ref->mBase->mNpdt.mHealth);
                 data->mNpcStats.setMagicka(ref->mBase->mNpdt.mMana);
                 data->mNpcStats.setFatigue(ref->mBase->mNpdt.mFatigue);
+
+                data->mNpcStats.setLevel(ref->mBase->mNpdt.mLevel);
+                data->mNpcStats.setBaseDisposition(ref->mBase->mNpdt.mDisposition);
+                data->mNpcStats.setReputation(ref->mBase->mNpdt.mReputation);
             }
             else
             {
+                gold = ref->mBase->mNpdt.mGold;
+
                 for (int i = 0; i < 3; ++i)
                     data->mNpcStats.setDynamic(i, 10);
 
+                data->mNpcStats.setLevel(ref->mBase->mNpdt.mLevel);
+                data->mNpcStats.setBaseDisposition(ref->mBase->mNpdt.mDisposition);
+                data->mNpcStats.setReputation(ref->mBase->mNpdt.mReputation);
+
                 autoCalculateAttributes(ref->mBase, race, data->mNpcStats);
                 autoCalculateSkills(ref->mBase, race, data->mNpcStats, spellsInitialised);
+
+                recalculate = true;
             }
 
             // Persistent actors with 0 health do not play death animation
@@ -373,11 +393,11 @@ namespace MWClass
             if (!spellsInitialised)
                 data->mNpcStats.getSpells().addAllToInstance(ref->mBase->mSpells.mList);
 
-            data->mNpcStats.setGoldPool(ref->mBase->mNpdt.mGold);
+            data->mNpcStats.setGoldPool(gold);
 
             // store
             resetter.mPtr = {};
-            if (autoCalc)
+            if (recalculate)
                 data->mNpcStats.recalculateMagicka();
 
             // inventory

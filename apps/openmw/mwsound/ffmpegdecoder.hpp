@@ -131,7 +131,6 @@ namespace MWSound
         virtual ~FFmpegDecoder();
 
         friend class SoundManager;
-        friend class WarmQueue;
 
     private:
         HeadCache* mHeadCache;

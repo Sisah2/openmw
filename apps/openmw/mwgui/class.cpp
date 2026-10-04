@@ -309,16 +309,13 @@ namespace MWGui
         ToolTips::createAttributeToolTip(mFavoriteAttribute[0], mFavoriteAttribute[0]->getAttributeId());
         ToolTips::createAttributeToolTip(mFavoriteAttribute[1], mFavoriteAttribute[1]->getAttributeId());
 
-        for (size_t i = 0; i < currentClass->mData.mMinorSkills.size(); ++i)
+        for (size_t i = 0; i < currentClass->mData.mSkills.size(); ++i)
         {
-            const ESM::RefId& minor = currentClass->mData.mMinorSkills[i];
+            const ESM::RefId& minor = currentClass->mData.mSkills[i][0];
+            const ESM::RefId& major = currentClass->mData.mSkills[i][1];
             mMinorSkill[i]->setSkillId(minor);
-            ToolTips::createSkillToolTip(mMinorSkill[i], minor);
-        }
-        for (size_t i = 0; i < currentClass->mData.mMajorSkills.size(); ++i)
-        {
-            const ESM::RefId& major = currentClass->mData.mMajorSkills[i];
             mMajorSkill[i]->setSkillId(major);
+            ToolTips::createSkillToolTip(mMinorSkill[i], minor);
             ToolTips::createSkillToolTip(mMajorSkill[i], major);
         }
 

@@ -363,10 +363,11 @@ namespace MWLua
             };
 
             auto getSaveState = [](const ObjectT& o) { return o.ptr().getRefData().hasChanged(); };
-            objectT["saveState"] = sol::readonly_property(getSaveState);
+            auto setSaveState = [](const ObjectT& o, bool save) { o.ptr().getRefData().setChanged(save); };
             if constexpr (std::is_same_v<ObjectT, GObject>)
-                objectT["setSaveState"]
-                    = [](const GObject& object, bool save) { object.ptr().getRefData().setChanged(save); };
+                objectT["saveState"] = sol::property(getSaveState, setSaveState);
+            else
+                objectT["saveState"] = sol::readonly_property(getSaveState);
 
             auto isEnabled = [](const ObjectT& o) { return o.ptr().getRefData().isEnabled(); };
             auto setEnabled = [context](const GObject& object, bool enable) {

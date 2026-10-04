@@ -123,7 +123,17 @@ namespace MWGui
                 const ESM::Class* cls = store->get<ESM::Class>().find(watchedRecord->mClass);
                 setValue("class", cls->mName);
 
-                configureSkills(cls->mData.mMajorSkills, cls->mData.mMinorSkills);
+                size_t size = cls->mData.mSkills.size();
+                std::vector<ESM::RefId> majorSkills(size);
+                std::vector<ESM::RefId> minorSkills(size);
+
+                for (size_t i = 0; i < size; ++i)
+                {
+                    minorSkills[i] = cls->mData.mSkills[i][0];
+                    majorSkills[i] = cls->mData.mSkills[i][1];
+                }
+
+                configureSkills(majorSkills, minorSkills);
             }
         }
 
@@ -170,7 +180,7 @@ namespace MWGui
             listener->setValue(id, value);
     }
 
-    void StatsWatcher::configureSkills(std::span<const ESM::RefId> major, std::span<const ESM::RefId> minor)
+    void StatsWatcher::configureSkills(const std::vector<ESM::RefId>& major, const std::vector<ESM::RefId>& minor)
     {
         for (StatsListener* listener : mListeners)
             listener->configureSkills(major, minor);

@@ -8,8 +8,6 @@
 #include <osg/Matrixf>
 
 #include <components/debug/debuglog.hpp>
-#include <components/esm3/loaddial.hpp>
-#include <components/esm3/loadinfo.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/rng.hpp>
 #include <components/settings/values.hpp>
@@ -35,7 +33,6 @@
 #include "soundbuffer.hpp"
 #include "sounddecoder.hpp"
 #include "soundoutput.hpp"
-#include "warmqueue.hpp"
 
 namespace MWSound
 {
@@ -170,15 +167,6 @@ namespace MWSound
                 stream << "  " << name;
 
             Log(Debug::Info) << stream.str();
-        }
-
-        if (mHeadCache != nullptr && Settings::sound().mWarmSounds)
-        {
-            mWarmQueue = std::make_unique<WarmQueue>(*vfs, *mHeadCache);
-            // Music is independent of cell changes.
-            constexpr VFS::Path::NormalizedView musicDir("music/");
-            for (const VFS::Path::Normalized& name : vfs->getRecursiveDirectoryIterator(musicDir))
-                mWarmQueue->enqueue(name);
         }
     }
 
@@ -846,25 +834,6 @@ namespace MWSound
         mOutput->resumeActiveDevice();
     }
 
-    void SoundManager::warmSounds()
-    {
-        if (mWarmQueue == nullptr || mWarmedSounds)
-            return;
-        mWarmedSounds = true;
-
-        const MWWorld::ESMStore& store = *MWBase::Environment::get().getESMStore();
-        // Voice topics can play during gameplay.
-        for (const ESM::Dialogue& topic : store.get<ESM::Dialogue>())
-        {
-            if (topic.mType != ESM::Dialogue::Voice)
-                continue;
-            for (const ESM::DialInfo& info : topic.mInfo)
-                if (!info.mSound.empty())
-                    mWarmQueue->enqueue(Misc::ResourceHelpers::correctSoundPath(
-                        Misc::ResourceHelpers::correctSoundPath(VFS::Path::toNormalized(info.mSound)), *mVFS));
-        }
-    }
-
     void SoundManager::updateRegionSound(float duration)
     {
         MWBase::World* world = MWBase::Environment::get().getWorld();
@@ -1150,7 +1119,6 @@ namespace MWSound
         updateSounds(duration);
         if (state != MWBase::StateManager::State_NoGame)
         {
-            warmSounds();
             updateRegionSound(duration);
             updateWaterSound();
         }

@@ -12,7 +12,7 @@ namespace MWPhysics
     class RayCastingResult
     {
     public:
-        bool mHit = false;
+        bool mHit;
         osg::Vec3f mHitPos;
         osg::Vec3f mHitNormal;
         MWWorld::Ptr mHitObject;

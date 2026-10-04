@@ -1,7 +1,7 @@
 #ifndef MWGUI_LEVELUPDIALOG_H
 #define MWGUI_LEVELUPDIALOG_H
 
-#include <components/esm/refid.hpp>
+#include <components/esm/attr.hpp>
 
 #include "windowbase.hpp"
 
@@ -32,10 +32,10 @@ namespace MWGui
         MyGUI::Widget* mCoinBox;
         MyGUI::ScrollView* mAssignWidget;
 
-        std::map<ESM::RefId, Widgets> mAttributeWidgets;
+        std::map<ESM::Attribute::AttributeID, Widgets> mAttributeWidgets;
         std::vector<MyGUI::ImageBox*> mCoins;
 
-        std::vector<ESM::RefId> mSpentAttributes;
+        std::vector<ESM::Attribute::AttributeID> mSpentAttributes;
 
         size_t mPerCol;
         unsigned int mCoinCount;

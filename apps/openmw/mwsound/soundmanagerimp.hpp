@@ -43,7 +43,6 @@ namespace MWSound
     class Sound;
     class Stream;
     class HeadCache;
-    class WarmQueue;
 
     using SoundPtr = Misc::ObjectPtr<Sound>;
     using StreamPtr = Misc::ObjectPtr<Stream>;
@@ -53,8 +52,6 @@ namespace MWSound
         const VFS::Manager* mVFS;
 
         std::unique_ptr<HeadCache> mHeadCache;
-        std::unique_ptr<WarmQueue> mWarmQueue;
-        bool mWarmedSounds = false;
 
         std::unique_ptr<SoundOutput> mOutput;
 
@@ -140,7 +137,6 @@ namespace MWSound
 
         void updateSounds(float duration);
         void updateRegionSound(float duration);
-        void warmSounds();
         void updateWaterSound();
         void updateMusic(float duration);
 

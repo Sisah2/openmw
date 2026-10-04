@@ -11,23 +11,12 @@ namespace ESM
 
     void CreatureStats::load(ESMReader& esm)
     {
-        if (esm.getFormatVersion() <= MaxFixedStatsFormatVersion)
+        const bool intFallback = esm.getFormatVersion() <= MaxIntFallbackFormatVersion;
+        for (int i = 0; i < ESM::Attribute::Length; ++i)
         {
-            const bool intFallback = esm.getFormatVersion() <= MaxIntFallbackFormatVersion;
-            for (int i = 0; i < ESM::Attribute::Length; ++i)
-            {
-                StatState<float> stat;
-                stat.load(esm, intFallback);
-                mAttributes.emplace(ESM::Attribute::indexToRefId(i), std::move(stat));
-            }
-        }
-        else
-        {
-            while (esm.isNextSub("ATTR"))
-            {
-                ESM::RefId attribute = esm.getRefId();
-                mAttributes[attribute].load(esm);
-            }
+            StatState<float> stat;
+            stat.load(esm, intFallback);
+            mAttributes.emplace(ESM::Attribute::indexToRefId(i), std::move(stat));
         }
 
         for (auto& dynamic : mDynamic)
@@ -199,25 +188,13 @@ namespace ESM
 
     void CreatureStats::save(ESMWriter& esm) const
     {
-        if (esm.getFormatVersion() <= MaxFixedStatsFormatVersion)
+        for (int i = 0; i < ESM::Attribute::Length; ++i)
         {
-            // This branch is only used in tests. It probably shouldn't exist.
-            for (int i = 0; i < ESM::Attribute::Length; ++i)
-            {
-                const auto it = mAttributes.find(ESM::Attribute::indexToRefId(i));
-                if (it != mAttributes.end())
-                    it->second.save(esm);
-                else
-                    StatState<float>{}.save(esm);
-            }
-        }
-        else
-        {
-            for (const auto& [attribute, value] : mAttributes)
-            {
-                esm.writeHNRefId("ATTR", attribute);
-                value.save(esm);
-            }
+            const auto it = mAttributes.find(ESM::Attribute::indexToRefId(i));
+            if (it != mAttributes.end())
+                it->second.save(esm);
+            else
+                StatState<float>{}.save(esm);
         }
 
         for (const auto& dynamic : mDynamic)

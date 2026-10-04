@@ -163,7 +163,7 @@
 -- @field #string id The unique id of this object (not record id), can be used as a key in a table.
 -- @field #string contentFile Lowercase file name of the content file that defines this object; nil for dynamically created objects.
 -- @field #boolean enabled Whether the object is enabled or disabled. Global scripts can set the value. Items in containers or inventories can't be disabled.
--- @field #boolean saveState Whether this object has been modified and will be written to the save game. For objects originating from a content file, a value of false restores the object to its original state after loading. Objects spawned by scripts will not be restored on save load. This field is read-only; global scripts can use @{#GameObject.setSaveState} to change it.
+-- @field #boolean saveState Whether this object has been modified and will be written to the save game. For objects originating from a content file, setting this to false restores the object to its original state after loading. Objects spawned by scripts will not be restored on save load. Global scripts can set the value; local scripts are read-only.
 -- @field openmw.util#Vector3 position Object position.
 -- @field #number scale Object scale.
 -- @field openmw.util#Transform rotation Object rotation.
@@ -239,15 +239,6 @@
 -- @function [parent=#GameObject] setScale
 -- @param self
 -- @param #number scale Scale desired in game.
-
----
--- Sets whether the object will be written to the save game.
--- For objects originating from a content file, setting this to false restores the object to its original state after loading.
--- Objects spawned by scripts will not be restored on save load.
--- Can be called only from a global script.
--- @function [parent=#GameObject] setSaveState
--- @param self
--- @param #boolean saveState
 
 ---
 -- Moves the object to given cell and position.
@@ -993,7 +984,6 @@
 -- @field #string name Human-readable name
 -- @field #string description Human-readable description
 -- @field #string icon VFS path to the icon
--- @field #number werewolfValue Value for werewolf players
 
 ---
 -- @type SkillRecord
@@ -1005,7 +995,6 @@
 -- @field #MagicSchoolData school Optional magic school
 -- @field #string attribute The id of the skill's governing attribute
 -- @field #table skillGain Table of the 4 possible skill gain values. See [SkillProgression#SkillUseType](interface_skill_progression.html#SkillUseType).
--- @field #number werewolfValue Value for werewolf players
 
 ---
 -- @type MagicSchoolData
@@ -1015,7 +1004,6 @@
 -- @field #string castSound VFS path to the cast sound
 -- @field #string failureSound VFS path to the failure sound
 -- @field #string hitSound VFS path to the hit sound
--- @field #number autoCalcMax Maximum number of spells of this school to auto calculate
 
 --- @{#Dialogue}: Dialogue. Not available in load scripts.
 -- @field [parent=#core] #Dialogue dialogue

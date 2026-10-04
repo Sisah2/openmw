@@ -7,7 +7,6 @@
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
-#include "../mwphysics/raycasting.hpp"
 #include "../mwrender/camera.hpp"
 #include "../mwrender/renderingmanager.hpp"
 
@@ -130,8 +129,6 @@ namespace MWLua
 
             return vpCoords;
         };
-
-        api["getFocusRay"] = []() { return MWBase::Environment::get().getWorld()->getFocusRay(); };
 
         return LuaUtil::makeReadOnly(api);
     }

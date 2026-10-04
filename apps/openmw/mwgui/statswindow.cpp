@@ -57,7 +57,7 @@ namespace MWGui
             box->setUserString("ToolTipLayout", "AttributeToolTip");
             box->setUserString("Caption_AttributeName", attribute.mName);
             box->setUserString("Caption_AttributeDescription", attribute.mDescription);
-            box->setUserString("ImageTexture_AttributeImage", attribute.mIcon.getNormalized());
+            box->setUserString("ImageTexture_AttributeImage", attribute.mIcon);
             coord.top += coord.height;
             auto* name = box->createWidget<MyGUI::TextBox>("SandText", { 0, 0, 160, 18 }, alignment);
             name->setNeedMouseFocus(false);
@@ -309,10 +309,10 @@ namespace MWGui
         }
     }
 
-    void StatsWindow::configureSkills(std::span<const ESM::RefId> major, std::span<const ESM::RefId> minor)
+    void StatsWindow::configureSkills(const std::vector<ESM::RefId>& major, const std::vector<ESM::RefId>& minor)
     {
-        mMajorSkills.assign(major.begin(), major.end());
-        mMinorSkills.assign(minor.begin(), minor.end());
+        mMajorSkills = major;
+        mMinorSkills = minor;
 
         // Update misc skills with the remaining skills not in major or minor
         std::set<ESM::RefId> skillSet;
@@ -529,8 +529,7 @@ namespace MWGui
                     "Caption_SkillDescription", skill->mDescription);
                 mSkillWidgets[mSkillWidgets.size() - 1 - i]->setUserString("Caption_SkillAttribute",
                     "#{sGoverningAttribute}: " + MyGUI::TextIterator::toTagsString(attr->mName));
-                mSkillWidgets[mSkillWidgets.size() - 1 - i]->setUserString(
-                    "ImageTexture_SkillImage", skill->mIcon.getNormalized());
+                mSkillWidgets[mSkillWidgets.size() - 1 - i]->setUserString("ImageTexture_SkillImage", skill->mIcon);
                 mSkillWidgets[mSkillWidgets.size() - 1 - i]->setUserString("Range_SkillProgress", "100");
             }
 

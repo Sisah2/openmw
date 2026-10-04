@@ -3,7 +3,6 @@
 
 #include <map>
 #include <set>
-#include <span>
 
 #include <components/esm/attr.hpp>
 #include <components/esm3/loadskil.hpp>
@@ -25,7 +24,7 @@ namespace MWGui
         virtual void setValue(std::string_view, const std::string& value) {}
         virtual void setValue(std::string_view, int value) {}
         virtual void setValue(ESM::RefId id, const MWMechanics::SkillValue& value) {}
-        virtual void configureSkills(std::span<const ESM::RefId> major, std::span<const ESM::RefId> minor) {}
+        virtual void configureSkills(const std::vector<ESM::RefId>& major, const std::vector<ESM::RefId>& minor) {}
     };
 
     class StatsWatcher
@@ -56,7 +55,7 @@ namespace MWGui
         void setValue(std::string_view id, const std::string& value);
         void setValue(std::string_view id, int value);
         void setValue(ESM::RefId id, const MWMechanics::SkillValue& value);
-        void configureSkills(std::span<const ESM::RefId> major, std::span<const ESM::RefId> minor);
+        void configureSkills(const std::vector<ESM::RefId>& major, const std::vector<ESM::RefId>& minor);
 
     public:
         StatsWatcher();
